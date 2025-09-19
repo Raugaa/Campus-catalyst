@@ -1,3 +1,5 @@
+'use client'
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -5,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Users,
   Building2,
@@ -19,11 +22,104 @@ import {
   Plus,
 } from "lucide-react"
 import Link from "next/link"
+import dynamic from 'next/dynamic'
+import { useState } from 'react'
+
+// Dynamically import Recharts components to avoid SSR issues
+import RechartsComponent from '../../components/admin/recharts-component'
 
 export default function AdminDashboard() {
+  const [selectedYear, setSelectedYear] = useState<string>("ly")
+
+  // Mock data that changes based on selected year
+  const getDepartmentStats = () => {
+    switch (selectedYear) {
+      case "fy":
+        return [
+          { department: "Computer Science", placed: 35, total: 180, rate: 19 },
+          { department: "Electrical Engineering", placed: 25, total: 120, rate: 21 },
+          { department: "Mechanical Engineering", placed: 20, total: 95, rate: 21 },
+          { department: "Information Technology", placed: 22, total: 100, rate: 22 },
+          { department: "Electronics & Communication", placed: 15, total: 85, rate: 18 },
+        ]
+      case "sy":
+        return [
+          { department: "Computer Science", placed: 75, total: 180, rate: 42 },
+          { department: "Electrical Engineering", placed: 55, total: 120, rate: 46 },
+          { department: "Mechanical Engineering", placed: 45, total: 95, rate: 47 },
+          { department: "Information Technology", placed: 50, total: 100, rate: 50 },
+          { department: "Electronics & Communication", placed: 35, total: 85, rate: 41 },
+        ]
+      case "ty":
+        return [
+          { department: "Computer Science", placed: 110, total: 180, rate: 61 },
+          { department: "Electrical Engineering", placed: 75, total: 120, rate: 63 },
+          { department: "Mechanical Engineering", placed: 60, total: 95, rate: 63 },
+          { department: "Information Technology", placed: 65, total: 100, rate: 65 },
+          { department: "Electronics & Communication", placed: 45, total: 85, rate: 53 },
+        ]
+      case "ly":
+      default:
+        return [
+          { department: "Computer Science", placed: 145, total: 180, rate: 81 },
+          { department: "Electrical Engineering", placed: 89, total: 120, rate: 74 },
+          { department: "Mechanical Engineering", placed: 67, total: 95, rate: 71 },
+          { department: "Information Technology", placed: 78, total: 100, rate: 78 },
+          { department: "Electronics & Communication", placed: 56, total: 85, rate: 66 },
+        ]
+    }
+  }
+
+  const getMetricsData = () => {
+    switch (selectedYear) {
+      case "fy":
+        return {
+          totalStudents: 1247,
+          activeCompanies: 89,
+          studentsPlaced: 215,
+          studentsInInternship: 95,
+        }
+      case "sy":
+        return {
+          totalStudents: 1247,
+          activeCompanies: 89,
+          studentsPlaced: 365,
+          studentsInInternship: 142,
+        }
+      case "ty":
+        return {
+          totalStudents: 1247,
+          activeCompanies: 89,
+          studentsPlaced: 415,
+          studentsInInternship: 168,
+        }
+      case "ly":
+      default:
+        return {
+          totalStudents: 1247,
+          activeCompanies: 89,
+          studentsPlaced: 435,
+          studentsInInternship: 189,
+        }
+    }
+  }
+
+  const getBarChartData = () => {
+    const departmentStats = getDepartmentStats()
+    return departmentStats.map(dept => ({
+      name: dept.department,
+      placed: dept.placed,
+      unplaced: dept.total - dept.placed
+    }))
+  }
+
+  const departmentStats = getDepartmentStats()
+  const metrics = getMetricsData()
+  const barChartData = getBarChartData()
+
   return (
     <DashboardLayout userRole="admin">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -46,6 +142,23 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Year Filter */}
+        <div className="flex justify-start">
+          <div className="w-40">
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fy">FY</SelectItem>
+                <SelectItem value="sy">SY</SelectItem>
+                <SelectItem value="ty">TY</SelectItem>
+                <SelectItem value="ly">LY</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {/* Key Metrics */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -54,7 +167,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,247</div>
+              <div className="text-2xl font-bold">{metrics.totalStudents}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +12% from last semester
@@ -68,7 +181,7 @@ export default function AdminDashboard() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">89</div>
+              <div className="text-2xl font-bold">{metrics.activeCompanies}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +8 new this month
@@ -78,102 +191,58 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
+              <CardTitle className="text-sm font-medium">Students Placed</CardTitle>
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">156</div>
+              <div className="text-2xl font-bold">{metrics.studentsPlaced}</div>
               <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowDown className="w-3 h-3 mr-1 text-red-500" />
-                -5% from last week
+                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
+                +15% from last semester
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Placement Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Students placed in internship</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">78%</div>
+              <div className="text-2xl font-bold">{metrics.studentsInInternship}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +3% from last year
+                +22% from last year
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Recent Activity */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* Left Column - Charts */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Placement Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest updates across the platform</CardDescription>
+                <CardTitle>Placed vs Unplaced Students</CardTitle>
+                <CardDescription>Visualization of student placement status by department</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  {
-                    type: "application",
-                    message: "Sarah Johnson applied for Software Engineering Intern at TechCorp",
-                    time: "2 minutes ago",
-                    icon: <Users className="w-4 h-4 text-blue-500" />,
-                  },
-                  {
-                    type: "company",
-                    message: "DataSoft Solutions posted a new Data Science Intern position",
-                    time: "15 minutes ago",
-                    icon: <Building2 className="w-4 h-4 text-green-500" />,
-                  },
-                  {
-                    type: "interview",
-                    message: "Interview scheduled between Michael Chen and WebFlow Agency",
-                    time: "1 hour ago",
-                    icon: <Clock className="w-4 h-4 text-purple-500" />,
-                  },
-                  {
-                    type: "placement",
-                    message: "Emily Rodriguez accepted offer from Frontend Solutions Inc.",
-                    time: "2 hours ago",
-                    icon: <CheckCircle className="w-4 h-4 text-green-500" />,
-                  },
-                  {
-                    type: "alert",
-                    message: "Application deadline approaching for 5 positions",
-                    time: "3 hours ago",
-                    icon: <AlertTriangle className="w-4 h-4 text-yellow-500" />,
-                  },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 rounded-lg border">
-                    <div className="mt-0.5">{activity.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-                <Button variant="outline" className="w-full bg-transparent">
-                  View All Activity
-                </Button>
+              <CardContent className="pt-0">
+                <RechartsComponent data={barChartData} />
               </CardContent>
             </Card>
+          </div>
 
+          {/* Right Column - Sidebar */}
+          <div className="space-y-4">
             {/* Department-wise Placement Stats */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle>Department-wise Placement Statistics</CardTitle>
                 <CardDescription>Placement rates by academic department</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  { department: "Computer Science", placed: 145, total: 180, rate: 81 },
-                  { department: "Electrical Engineering", placed: 89, total: 120, rate: 74 },
-                  { department: "Mechanical Engineering", placed: 67, total: 95, rate: 71 },
-                  { department: "Information Technology", placed: 78, total: 100, rate: 78 },
-                  { department: "Electronics & Communication", placed: 56, total: 85, rate: 66 },
-                ].map((dept, index) => (
+              <CardContent className="space-y-3">
+                {departmentStats.map((dept, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{dept.department}</span>
@@ -186,58 +255,14 @@ export default function AdminDashboard() {
                 ))}
               </CardContent>
             </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Pending Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Actions</CardTitle>
-                <CardDescription>Items requiring your attention</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-2 rounded border">
-                  <div>
-                    <p className="text-sm font-medium">Company Approvals</p>
-                    <p className="text-xs text-muted-foreground">3 pending</p>
-                  </div>
-                  <Badge variant="destructive">3</Badge>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded border">
-                  <div>
-                    <p className="text-sm font-medium">Job Post Reviews</p>
-                    <p className="text-xs text-muted-foreground">7 pending</p>
-                  </div>
-                  <Badge variant="destructive">7</Badge>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded border">
-                  <div>
-                    <p className="text-sm font-medium">Student Verifications</p>
-                    <p className="text-xs text-muted-foreground">12 pending</p>
-                  </div>
-                  <Badge variant="destructive">12</Badge>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded border">
-                  <div>
-                    <p className="text-sm font-medium">Faculty Approvals</p>
-                    <p className="text-xs text-muted-foreground">5 pending</p>
-                  </div>
-                  <Badge variant="destructive">5</Badge>
-                </div>
-                <Button size="sm" className="w-full">
-                  Review All
-                </Button>
-              </CardContent>
-            </Card>
 
             {/* Top Companies */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle>Top Recruiting Companies</CardTitle>
                 <CardDescription>Most active companies this semester</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 {[
                   { name: "TechCorp Inc.", positions: 12, logo: "TC" },
                   { name: "DataSoft Solutions", positions: 8, logo: "DS" },
@@ -264,10 +289,10 @@ export default function AdminDashboard() {
 
             {/* Quick Stats */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle>Quick Stats</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Applications Today</span>
                   <span className="font-medium">23</span>
@@ -290,13 +315,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* Placement Trends */}
-        <Card>
-          <CardHeader>
+        <Card className="mt-2">
+          <CardHeader className="pb-3">
             <CardTitle>Placement Trends</CardTitle>
             <CardDescription>Monthly placement statistics for the current academic year</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="overview" className="space-y-4">
+          <CardContent className="pt-0">
+            <Tabs defaultValue="overview" className="space-y-3">
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="internships">Internships</TabsTrigger>
@@ -304,10 +329,10 @@ export default function AdminDashboard() {
                 <TabsTrigger value="companies">Companies</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-4">
+              <TabsContent value="overview" className="space-y-3">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="text-center p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-blue-500">456</div>
+                    <div className="text-2xl font-bold text-primary">456</div>
                     <p className="text-sm text-muted-foreground">Total Applications</p>
                   </div>
                   <div className="text-center p-4 border rounded-lg">
