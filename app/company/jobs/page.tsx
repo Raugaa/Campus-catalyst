@@ -1,3 +1,5 @@
+"use client"
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,12 +21,14 @@ import {
   MapPin,
   Clock,
   DollarSign,
+  Pause,
+  Play
 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { useState } from "react"
 
 export default function CompanyJobs() {
-  const jobs = [
+  const [jobs, setJobs] = useState([
     {
       id: 1,
       title: "Software Engineering Intern",
@@ -85,7 +89,7 @@ export default function CompanyJobs() {
       description: "Build scalable backend systems and APIs...",
       skills: ["Node.js", "PostgreSQL", "Docker", "AWS"],
     },
-  ]
+  ])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -97,9 +101,24 @@ export default function CompanyJobs() {
         return "bg-red-500"
       case "Draft":
         return "bg-gray-500"
+      case "Paused":
+        return "bg-orange-500"
       default:
         return "bg-gray-500"
     }
+  }
+
+  const toggleJobStatus = (jobId: number) => {
+    setJobs(jobs.map(job => {
+      if (job.id === jobId) {
+        if (job.status === "Active") {
+          return { ...job, status: "Paused" }
+        } else if (job.status === "Paused") {
+          return { ...job, status: "Active" }
+        }
+      }
+      return job
+    }))
   }
 
   return (
@@ -220,51 +239,39 @@ export default function CompanyJobs() {
                         <span>Posted {job.posted}</span>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Job
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Public Page
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/company/jobs/${job.id}/applications`}>
-                          View Applications ({job.applications})
+                        <Link href={`/company/jobs/${job.id}`}>
+                          Detailed View
                         </Link>
                       </Button>
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/company/jobs/${job.id}/edit`}>
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
+                        <Link href={`/company/jobs/${job.id}#applicants`}>
+                          View Applications ({job.applications})
                         </Link>
                       </Button>
                     </div>
                     <div className="flex gap-2">
-                      {job.status === "Active" && (
-                        <Button size="sm" variant="outline">
-                          Pause Job
+                      {(job.status === "Active" || job.status === "Paused") && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => toggleJobStatus(job.id)}
+                        >
+                          {job.status === "Active" ? (
+                            <>
+                              <Pause className="w-4 h-4 mr-2" />
+                              Pause Job
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 mr-2" />
+                              Resume Job
+                            </>
+                          )}
                         </Button>
                       )}
                       {job.status === "Draft" && <Button size="sm">Publish</Button>}
