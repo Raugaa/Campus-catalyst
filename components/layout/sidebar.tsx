@@ -18,9 +18,12 @@ import {
   Building2,
   Users,
   BarChart3,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 
 interface SidebarProps {
   userRole: "student" | "company" | "faculty" | "admin"
@@ -64,12 +67,113 @@ const navigationItems = {
   ],
 }
 
+type MeResponse =
+  | {
+      user: {
+        id: string
+        email: string
+        role: "STUDENT" | "FACULTY" | "ADMIN" | "COMPANY"
+        student?: { firstName: string; lastName: string; rollNumber: string; department: string; year: string } | null
+        faculty?: { name: string; department: string; designation: string | null } | null
+        admin?: { name: string; department: string | null; college: { name: string; code: string } } | null
+        company?: { name: string; isVerified: boolean; location: string | null } | null
+      }
+    }
+  | { error: string }
+
 export function Sidebar({ userRole, className }: SidebarProps) {
+  const router = useRouter()
   const pathname = usePathname()
   const items = navigationItems[userRole]
+  const [displayName, setDisplayName] = useState<string>("")
+  const [subtitle, setSubtitle] = useState<string>("")
+  const [avatarFallback, setAvatarFallback] = useState<string>("U")
+  const [companyVerified, setCompanyVerified] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let ignore = false
+    const load = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { method: "GET", credentials: "include" })
+        if (!res.ok) return
+        const data: MeResponse = await res.json()
+        if ("error" in data || !data.user || ignore) return
+
+        const role = data.user.role
+        if (role === "STUDENT" && data.user.student) {
+          const fn = data.user.student.firstName
+          const ln = data.user.student.lastName
+          setDisplayName(`${fn} ${ln}`.trim())
+          setSubtitle(`${data.user.student.department} • ${data.user.student.year}`)
+          setAvatarFallback(`${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST")
+        } else if (role === "FACULTY" && data.user.faculty) {
+          const nm = data.user.faculty.name
+          setDisplayName(nm)
+          setSubtitle(`${data.user.faculty.department}${data.user.faculty.designation ? " • " + data.user.faculty.designation : ""}`)
+          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "FA")
+        } else if (role === "ADMIN" && data.user.admin) {
+          const nm = data.user.admin.name
+          setDisplayName(nm)
+          setSubtitle(`${data.user.admin.college.name} (${data.user.admin.college.code})`)
+          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "AD")
+        } else if (role === "COMPANY" && data.user.company) {
+          const nm = data.user.company.name
+          setDisplayName(nm)
+          setSubtitle(data.user.company.location || "Company")
+          setCompanyVerified(Boolean(data.user.company.isVerified))
+          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "CO")
+        } else {
+          setDisplayName(data.user.email)
+          setSubtitle("")
+          setAvatarFallback(data.user.email?.slice(0, 2).toUpperCase() || "U")
+        }
+      } catch {
+        // ignore
+      }
+    }
+    load()
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const badgeNode = useMemo(() => {
+    const label = userRole.charAt(0).toUpperCase() + userRole.slice(1)
+    if (userRole === "company") {
+      if (companyVerified === true) {
+        return (
+          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+            {label} • Verified
+          </Badge>
+        )
+      }
+      if (companyVerified === false) {
+        return (
+          <Badge variant="destructive" className="text-xs flex items-center gap-1">
+            <AlertCircle className="h-3.5 w-3.5" />
+            {label} • Pending
+          </Badge>
+        )
+      }
+    }
+    return (
+      <Badge variant="secondary" className="text-xs">
+        {label}
+      </Badge>
+    )
+  }, [userRole, companyVerified])
+
+  const onLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+    } finally {
+      router.push("/auth/login")
+    }
+  }
 
   return (
-    <div className={cn("pb-12 w-64", className)}>
+    <div className={cn("pb-12 w-64 relative", className)}>
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 mb-6">
@@ -82,14 +186,13 @@ export function Sidebar({ userRole, className }: SidebarProps) {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-6">
             <Avatar className="w-10 h-10">
               <AvatarImage src="/placeholder.svg?height=40&width=40" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">John Doe</p>
+              <p className="text-sm font-medium truncate">{displayName || "User"}</p>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                </Badge>
+                {badgeNode}
+                {subtitle && <span className="text-xs text-muted-foreground truncate">• {subtitle}</span>}
               </div>
             </div>
           </div>
@@ -112,10 +215,11 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               ))}
             </ScrollArea>
           </div>
-        </div>
+        </div> 
       </div>
-      <div className="absolute bottom-4 left-3 right-3">
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+
+      <div className="absolute left-3 right-3">
+        <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </Button>

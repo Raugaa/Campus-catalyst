@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+// College/Institution table
+model College {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique // College code like "VIT", "IIT", etc.
+  location  String
+  type      CollegeType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  admins   Admin[]
+  students Student[]
+  faculty  Faculty[]
+
+  @@map("colleges")
+}
+
+enum CollegeType {
+  UNIVERSITY
+  COLLEGE
+  INSTITUTE
+  POLYTECHNIC
+}
+
+// User authentication base
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student?
+  faculty Faculty?
+  company Company?
+  admin   Admin?
+
+  @@map("users")
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  COMPANY
+  ADMIN
+}
+
+// Admin - Placement Cell (created by system admin)
+model Admin {
+  id          String @id @default(cuid())
+  userId      String @unique
+  name        String
+  phone       String?
+  department  String? // Placement Cell, Training & Placement, etc.
+  
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college   College @relation(fields: [collegeId], references: [id])
+  collegeId String
+
+  @@map("admins")
+}
+
+// Students - Created by admin
+model Student {
+  id           String @id @default(cuid())
+  userId       String @unique
+  firstName    String
+  lastName     String
+  rollNumber   String @unique
+  phone        String?
+  department   String
+  year         String // FY, SY, TY, LY
+  semester     Int
+  cgpa         Float?
+  skills       String? // JSON array of skills
+  resume       String? // File path/URL
+  isPlaced     Boolean @default(false)
+  
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college      College        @relation(fields: [collegeId], references: [id])
+  collegeId    String
+  mentor       Faculty?       @relation(fields: [mentorId], references: [id])
+  mentorId     String?
+  applications Application[]
+
+  @@map("students")
+}
+
+// Faculty - Created by admin
+model Faculty {
+  id          String @id @default(cuid())
+  userId      String @unique
+  name        String
+  department  String
+  designation String? // Professor, Assistant Professor, etc.
+  phone       String?
+  canMentor   Boolean @default(true)
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college   College   @relation(fields: [collegeId], references: [id])
+  collegeId String
+  students  Student[] // Students under mentorship
+
+  @@map("faculty")
+}
+
+// Companies - Self registration
+model Company {
+  id          String @id @default(cuid())
+  userId      String @unique
+  name        String
+  website     String?
+  location    String
+  industry    String?
+  size        CompanySize?
+  description String?
+  isVerified  Boolean @default(false) // Admin verification required
+  
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@map("companies")
+}
+
+enum CompanySize {
+  STARTUP
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+// Opportunities
+model Opportunity {
+  id           String @id @default(cuid())
+  title        String
+  description  String
+  location     String
+  type         OpportunityType
+  duration     String?
+  stipend      String?
+  requirements String?
+  skills       String? // JSON array
+  deadline     DateTime
+  status       OpportunityStatus @default(PENDING)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId    String
+  applications Application[]
+
+  @@map("opportunities")
+}
+
+enum OpportunityType {
+  INTERNSHIP
+  FULL_TIME
+  BOTH
+}
+
+enum OpportunityStatus {
+  PENDING    // Waiting for admin approval
+  ACTIVE     // Live
+  CLOSED     // Closed
+  CANCELLED  // Cancelled
+}
+
+// Applications
+model Application {
+  id              String @id @default(cuid())
+  status          ApplicationStatus @default(PENDING)
+  appliedAt       DateTime @default(now())
+  mentorApproved  Boolean @default(false)
+  adminRemarks    String?
+  
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId     String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId String
+
+  @@unique([studentId, opportunityId])
+  @@map("applications")
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SELECTED
+  COMPLETED
+}

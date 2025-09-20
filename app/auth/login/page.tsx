@@ -16,18 +16,13 @@ export default function LoginPage() {
   const roleParam = searchParams.get('role') || ''
   
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
+  const [formData, setFormData] = useState({ email: "", password: "" })
   const [role, setRole] = useState(roleParam)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Set role based on URL parameter
   useEffect(() => {
-    if (roleParam) {
-      setRole(roleParam)
-    }
+    if (roleParam) setRole(roleParam)
   }, [roleParam])
 
   // Role display names
@@ -44,11 +39,8 @@ export default function LoginPage() {
     
     // Clear error when user types
     if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
+      const { [name]: _, ...rest } = errors
+      setErrors(rest)
     }
   }
 
@@ -59,7 +51,6 @@ export default function LoginPage() {
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Please enter a valid email address"
     if (!formData.password) newErrors.password = "Password is required"
     else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters"
-    if (!role) newErrors.role = "Role is required"
     
     return newErrors
   }
@@ -67,36 +58,46 @@ export default function LoginPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     const newErrors = validateForm()
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       setIsLoading(false)
       return
     }
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Redirect based on role
-      switch (role) {
-        case "student":
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email.trim().toLowerCase(), password: formData.password }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data?.error || "Login failed")
+        setIsLoading(false)
+        return
+      }
+
+      const roleFromApi = String(data?.user?.role || '').toUpperCase()
+      switch (roleFromApi) {
+        case "STUDENT":
           router.push("/student")
           break
-        case "company":
-          router.push("/company")
-          break
-        case "faculty":
+        case "FACULTY":
           router.push("/faculty")
           break
-        case "admin":
+        case "ADMIN":
           router.push("/admin")
+          break
+        case "COMPANY":
+          router.push("/company")
           break
         default:
           router.push("/")
       }
-      
+
       toast.success("Login successful!")
     } catch (error) {
       toast.error("Login failed. Please check your credentials.")
@@ -121,10 +122,12 @@ export default function LoginPage() {
           <span className="text-2xl font-semibold">Campus Portal</span>
         </div>
 
-        <Card className="shadow-xl border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-card/80 backdrop-blur-sm">
+        <Card className="shadow-xl border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center pt-6 pb-3">
-            <CardTitle className="text-xl font-bold text-gray-800 dark:text-white">Welcome Back, {roleDisplayNames[role] || 'User'}</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-300">Sign in to your account to continue</CardDescription>
+            <CardTitle className="text-xl font-bold">
+              Welcome Back{role ? `, ${roleDisplayNames[role] || 'User'}` : ''}
+            </CardTitle>
+            <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pb-6">
             <form onSubmit={onSubmit} className="space-y-4">
@@ -139,9 +142,7 @@ export default function LoginPage() {
                   onChange={handleInputChange}
                 />
               </div>
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input 
@@ -153,9 +154,7 @@ export default function LoginPage() {
                   onChange={handleInputChange}
                 />
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password}</p>
-              )}
+              {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
               <Button className="w-full mt-4" type="submit" disabled={isLoading}>
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
@@ -167,8 +166,8 @@ export default function LoginPage() {
             </div>
             <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link href="/auth/register" className="text-primary hover:underline">
-                Sign up
+              <Link href="/auth/register?role=company" className="text-primary hover:underline">
+                Register your company
               </Link>
             </div>
           </CardContent>

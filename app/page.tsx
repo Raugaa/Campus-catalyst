@@ -9,7 +9,7 @@ import Link from "next/link"
 import Image from "next/image"
 
 // Import the background image
-import mainpgBg from "../public/assets/mainpg_bg.png"
+import mainpgBg from "@/public/assets/mainpg_bg.png"
 
 export default function LandingPage() {
   return (
