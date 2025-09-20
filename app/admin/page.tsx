@@ -43,7 +43,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     let isMounted = true
     setLoading(true)
-    fetch('/api/admin/dashboard')
+    // Pass the selected year as a query parameter
+    fetch(`/api/admin/dashboard?year=${selectedYear}`)
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to load dashboard')
         return res.json()
@@ -56,7 +57,7 @@ export default function AdminDashboard() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
     return () => { isMounted = false }
-  }, [])
+  }, [selectedYear]) // Add selectedYear to dependency array
 
   const barChartData = useMemo(() => {
     if (!departments?.length) return []
@@ -184,10 +185,10 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fy">FY</SelectItem>
-                <SelectItem value="sy">SY</SelectItem>
-                <SelectItem value="ty">TY</SelectItem>
-                <SelectItem value="ly">LY</SelectItem>
+                <SelectItem value="FY">FY</SelectItem>
+                <SelectItem value="SY">SY</SelectItem>
+                <SelectItem value="TY">TY</SelectItem>
+                <SelectItem value="LY">LY</SelectItem>
               </SelectContent>
             </Select>
           </div>
