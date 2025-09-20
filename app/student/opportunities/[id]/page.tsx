@@ -1,3 +1,5 @@
+"use client";
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,9 +22,12 @@ import {
   FileText,
 } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
-export default function OpportunityDetails() {
-  const opportunity = {
+// Mock data for opportunities
+const mockOpportunities = {
+  1: {
     id: 1,
     title: "Software Engineering Intern",
     company: "TechCorp Inc.",
@@ -74,6 +79,73 @@ This is an excellent opportunity to gain hands-on experience in a fast-paced sta
       description:
         "TechCorp is a fast-growing technology company focused on building innovative web applications that solve real-world problems.",
     },
+  },
+  2: {
+    id: 2,
+    title: "Data Science Intern",
+    company: "DataSoft Solutions",
+    location: "Remote",
+    type: "Internship",
+    duration: "6 months",
+    stipend: "$1,800/month",
+    posted: "5 days ago",
+    deadline: "Dec 20, 2024",
+    applicants: 32,
+    positions: 2,
+    match: "88%",
+    description: `Join our data science team to work on cutting-edge machine learning projects and analyze large datasets to drive business insights. You'll work with experienced data scientists on real-world problems and contribute to our research initiatives.`,
+    responsibilities: [
+      "Analyze large datasets to identify trends and insights",
+      "Build and deploy machine learning models",
+      "Create data visualizations and reports",
+      "Collaborate with cross-functional teams to understand business requirements",
+      "Document and present findings to stakeholders",
+    ],
+    requirements: [
+      "Currently pursuing a degree in Data Science, Statistics, or related field",
+      "Proficiency in Python and SQL",
+      "Experience with machine learning libraries (scikit-learn, TensorFlow, PyTorch)",
+      "Strong analytical and problem-solving skills",
+      "Familiarity with data visualization tools",
+    ],
+    preferred: [
+      "Experience with big data technologies (Spark, Hadoop)",
+      "Knowledge of cloud platforms (AWS, GCP, Azure)",
+      "Previous internship or project experience in data science",
+    ],
+    skills: ["Python", "SQL", "Machine Learning", "TensorFlow", "PyTorch", "Spark"],
+    benefits: [
+      "Competitive stipend",
+      "Flexible remote work",
+      "Mentorship from senior data scientists",
+      "Learning and development opportunities",
+      "Potential for full-time offer",
+    ],
+    companyInfo: {
+      name: "DataSoft Solutions",
+      size: "200-500 employees",
+      industry: "Data Analytics",
+      founded: "2015",
+      description:
+        "DataSoft Solutions is a leading data analytics company that helps businesses make data-driven decisions through advanced analytics and machine learning solutions.",
+    },
+  }
+}
+
+export default function OpportunityDetails({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const [isApplied, setIsApplied] = useState(false)
+  
+  // Get opportunity data based on ID
+  const opportunity = mockOpportunities[parseInt(params.id) as keyof typeof mockOpportunities] || mockOpportunities[1]
+
+  const handleApply = () => {
+    // Simulate application submission
+    setIsApplied(true)
+    // After a short delay, redirect back to dashboard
+    setTimeout(() => {
+      router.push('/student')
+    }, 1500)
   }
 
   return (
@@ -308,10 +380,18 @@ This is an excellent opportunity to gain hands-on experience in a fast-paced sta
 
                 <Separator />
 
-                <Button className="w-full" size="lg">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Apply Now
-                </Button>
+                {isApplied ? (
+                  <div className="text-center py-4">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                    <p className="font-medium text-green-600">Application Submitted!</p>
+                    <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
+                  </div>
+                ) : (
+                  <Button className="w-full" size="lg" onClick={handleApply}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Submit Application
+                  </Button>
+                )}
                 <p className="text-xs text-muted-foreground text-center">Your profile and resume will be submitted</p>
               </CardContent>
             </Card>
@@ -344,8 +424,8 @@ This is an excellent opportunity to gain hands-on experience in a fast-paced sta
                     </div>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full bg-transparent">
-                  View More
+                <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
+                  <Link href="/student/opportunities">View More</Link>
                 </Button>
               </CardContent>
             </Card>
