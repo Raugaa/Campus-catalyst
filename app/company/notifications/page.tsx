@@ -133,11 +133,6 @@ export default function CompanyNotifications() {
                       <p className="text-sm text-muted-foreground mb-2">{notification.message}</p>
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-muted-foreground">{notification.time}</p>
-                        {notification.type === "application" && (
-                          <Button size="sm" variant="outline">
-                            View Application
-                          </Button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -184,7 +179,6 @@ export default function CompanyNotifications() {
                             <Button size="sm" variant="outline">
                               Mark as Read
                             </Button>
-                            {notification.type === "application" && <Button size="sm">View Application</Button>}
                           </div>
                         </div>
                       </div>
