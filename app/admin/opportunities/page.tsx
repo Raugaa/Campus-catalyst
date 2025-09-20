@@ -1,4 +1,6 @@
-import DashboardLayout from "@/components/layout/dashboard-layout"
+"use client"
+
+import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,96 +23,89 @@ import {
   AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+
+interface UIOpportunity {
+  id: string
+  title: string
+  company: { id: string; name: string; industry?: string; location?: string }
+  location: string
+  type: string
+  duration?: string
+  applications: number
+  views?: number
+  status: string
+  postedDate?: string
+  deadline: string
+  salary?: string
+  stipend?: string
+  skills: string[]
+}
 
 export default function AdminOpportunities() {
-  const opportunities = [
-    {
-      id: 1,
-      title: "Software Engineering Intern",
-      company: "TechCorp Inc.",
-      companyLogo: "TC",
-      location: "San Francisco, CA",
-      type: "Internship",
-      duration: "3 months",
-      applications: 45,
-      views: 234,
-      status: "Active",
-      postedDate: "2024-01-10",
-      deadline: "2024-02-15",
-      salary: "$5000/month",
-      skills: ["JavaScript", "React", "Node.js"],
-    },
-    {
-      id: 2,
-      title: "Data Science Intern",
-      company: "DataSoft Solutions",
-      companyLogo: "DS",
-      location: "New York, NY",
-      type: "Internship",
-      duration: "4 months",
-      applications: 32,
-      views: 189,
-      status: "Active",
-      postedDate: "2024-01-08",
-      deadline: "2024-02-20",
-      salary: "$4800/month",
-      skills: ["Python", "Machine Learning", "SQL"],
-    },
-    {
-      id: 3,
-      title: "Frontend Developer Intern",
-      company: "WebFlow Agency",
-      companyLogo: "WA",
-      location: "Remote",
-      type: "Internship",
-      duration: "3 months",
-      applications: 28,
-      views: 156,
-      status: "Closing Soon",
-      postedDate: "2024-01-05",
-      deadline: "2024-01-25",
-      salary: "$4500/month",
-      skills: ["React", "TypeScript", "CSS"],
-    },
-    {
-      id: 4,
-      title: "DevOps Engineering Intern",
-      company: "CloudTech Systems",
-      companyLogo: "CS",
-      location: "Austin, TX",
-      type: "Internship",
-      duration: "6 months",
-      applications: 19,
-      views: 98,
-      status: "Under Review",
-      postedDate: "2024-01-12",
-      deadline: "2024-03-01",
-      salary: "$5200/month",
-      skills: ["AWS", "Docker", "Kubernetes"],
-    },
-    {
-      id: 5,
-      title: "UX Design Intern",
-      company: "DesignStudio Pro",
-      companyLogo: "DP",
-      location: "Los Angeles, CA",
-      type: "Internship",
-      duration: "4 months",
-      applications: 41,
-      views: 203,
-      status: "Paused",
-      postedDate: "2024-01-03",
-      deadline: "2024-02-10",
-      salary: "$4200/month",
-      skills: ["Figma", "User Research", "Prototyping"],
-    },
-  ]
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tab = (searchParams.get('tab') || 'all') as 'all'|'active'|'pending'|'closed'
+  const q = searchParams.get('q') || ''
+
+  const [opportunities, setOpportunities] = useState<UIOpportunity[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | undefined>()
+
+  const status = useMemo(() => {
+    if (tab === 'active') return 'ACTIVE'
+    if (tab === 'pending') return 'PENDING'
+    if (tab === 'closed') return 'CLOSED'
+    return undefined
+  }, [tab])
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError(undefined)
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    if (q) params.set('q', q)
+    params.set('take', '20')
+    params.set('skip', '0')
+    fetch(`/api/admin/opportunities?${params.toString()}`)
+      .then(async (res) => { if (!res.ok) throw new Error('Failed to load opportunities'); return res.json() })
+      .then((data) => { if (!isMounted) return; const mapped: UIOpportunity[] = (data.opportunities || []).map((o: any) => ({
+        id: o.id,
+        title: o.title,
+        company: o.company,
+        location: o.location,
+        type: o.type,
+        duration: o.duration || undefined,
+        applications: o.totalApplications,
+        status: o.status,
+        deadline: o.deadline,
+        salary: o.salary || undefined,
+        stipend: o.stipend || undefined,
+        skills: o.skills || [],
+      })); setOpportunities(mapped) })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+    return () => { isMounted = false }
+  }, [status, q])
+
+  const setParam = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) {
+      params.set(key, value)
+    } else {
+      params.delete(key)
+    }
+    if (key !== 'tab') params.set('tab', tab)
+    router.push(`/admin/opportunities?${params.toString()}`)
+  }
 
   const stats = [
-    { title: "Total Opportunities", value: "156", change: "+12 this month", icon: Briefcase },
-    { title: "Active Postings", value: "89", change: "+5 this week", icon: TrendingUp },
-    { title: "Total Applications", value: "2,341", change: "+234 this week", icon: Users },
-    { title: "Pending Reviews", value: "23", change: "7 urgent", icon: AlertCircle },
+    { title: "Total Opportunities", value: "-", change: "", icon: Briefcase },
+    { title: "Active Postings", value: "-", change: "", icon: TrendingUp },
+    { title: "Total Applications", value: "-", change: "", icon: Users },
+    { title: "Pending Reviews", value: "-", change: "", icon: AlertCircle },
   ]
 
   return (
@@ -129,7 +124,7 @@ export default function AdminOpportunities() {
           </Button>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards (kept minimal) */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.title}>
@@ -145,7 +140,7 @@ export default function AdminOpportunities() {
           ))}
         </div>
 
-        <Tabs defaultValue="all" className="space-y-4">
+        <Tabs defaultValue={tab} value={tab} onValueChange={(v) => setParam('tab', v)} className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="all">All Opportunities</TabsTrigger>
@@ -157,7 +152,12 @@ export default function AdminOpportunities() {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search opportunities..." className="pl-8 w-64" />
+                <Input 
+                  placeholder="Search opportunities..." 
+                  className="pl-8 w-64"
+                  defaultValue={q}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value) }}
+                />
               </div>
               <Button variant="outline" size="sm">
                 <Filter className="w-4 h-4 mr-2" />
@@ -174,16 +174,18 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {opportunities.map((opportunity) => (
+                  {loading && <div className="text-sm text-muted-foreground">Loading opportunities...</div>}
+                  {error && <div className="text-sm text-destructive">{error}</div>}
+                  {!loading && !error && opportunities.map((opportunity) => (
                     <div
                       key={opportunity.id}
                       className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <Avatar className="w-12 h-12">
                         <AvatarImage
-                          src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.companyLogo}`}
+                          src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.company.name[0]}`}
                         />
-                        <AvatarFallback>{opportunity.companyLogo}</AvatarFallback>
+                        <AvatarFallback>{opportunity.company.name[0]}</AvatarFallback>
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
@@ -192,16 +194,16 @@ export default function AdminOpportunities() {
                             <h3 className="font-semibold text-lg">{opportunity.title}</h3>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               <Building2 className="w-3 h-3" />
-                              {opportunity.company}
+                              {opportunity.company.name}
                             </p>
                           </div>
                           <Badge
                             variant={
-                              opportunity.status === "Active"
+                              opportunity.status === "ACTIVE"
                                 ? "default"
-                                : opportunity.status === "Closing Soon"
-                                  ? "destructive"
-                                  : opportunity.status === "Under Review"
+                                : opportunity.status === "CLOSED"
+                                  ? "outline"
+                                  : opportunity.status === "PENDING"
                                     ? "secondary"
                                     : "outline"
                             }
@@ -215,21 +217,24 @@ export default function AdminOpportunities() {
                             <MapPin className="w-3 h-3" />
                             {opportunity.location}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {opportunity.duration}
-                          </span>
-                          <span className="font-medium text-foreground">{opportunity.salary}</span>
+                          {opportunity.duration && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {opportunity.duration}
+                            </span>
+                          )}
+                          {opportunity.salary && (
+                            <span className="font-medium text-foreground">{opportunity.salary}</span>
+                          )}
+                          {opportunity.stipend && (
+                            <span className="font-medium text-foreground">{opportunity.stipend}</span>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             {opportunity.applications} applications
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            {opportunity.views} views
                           </span>
                           <span>Deadline: {new Date(opportunity.deadline).toLocaleDateString()}</span>
                         </div>
@@ -267,6 +272,7 @@ export default function AdminOpportunities() {
             </Card>
           </TabsContent>
 
+          {/* Other tabs keep filtered or placeholder content as needed */}
           <TabsContent value="active" className="space-y-4">
             <Card>
               <CardHeader>
@@ -276,21 +282,20 @@ export default function AdminOpportunities() {
               <CardContent>
                 <div className="space-y-4">
                   {opportunities
-                    .filter((opp) => opp.status === "Active")
+                    .filter((opp) => opp.status === "ACTIVE")
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="w-12 h-12">
                           <AvatarImage
-                            src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.companyLogo}`}
+                            src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.company.name[0]}`}
                           />
-                          <AvatarFallback>{opportunity.companyLogo}</AvatarFallback>
+                          <AvatarFallback>{opportunity.company.name[0]}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold">{opportunity.title}</h3>
-                          <p className="text-sm text-muted-foreground">{opportunity.company}</p>
+                          <p className="text-sm text-muted-foreground">{opportunity.company.name}</p>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                             <span>{opportunity.applications} applications</span>
-                            <span>{opportunity.views} views</span>
                           </div>
                         </div>
                         <Badge variant="default">Active</Badge>
@@ -310,20 +315,20 @@ export default function AdminOpportunities() {
               <CardContent>
                 <div className="space-y-4">
                   {opportunities
-                    .filter((opp) => opp.status === "Under Review")
+                    .filter((opp) => opp.status === "PENDING")
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="w-12 h-12">
                           <AvatarImage
-                            src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.companyLogo}`}
+                            src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.company.name[0]}`}
                           />
-                          <AvatarFallback>{opportunity.companyLogo}</AvatarFallback>
+                          <AvatarFallback>{opportunity.company.name[0]}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold">{opportunity.title}</h3>
-                          <p className="text-sm text-muted-foreground">{opportunity.company}</p>
+                          <p className="text-sm text-muted-foreground">{opportunity.company.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            Posted: {new Date(opportunity.postedDate).toLocaleDateString()}
+                            Deadline: {new Date(opportunity.deadline).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex gap-2">

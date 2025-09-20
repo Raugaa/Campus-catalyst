@@ -6,24 +6,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
-  Home,
-  User,
-  Briefcase,
-  FileText,
-  Bell,
-  Settings,
-  LogOut,
-  GraduationCap,
-  BookOpen,
-  Building2,
-  Users,
-  BarChart3,
-  CheckCircle2,
-  AlertCircle,
+  Home, User, Briefcase, FileText, Bell, Settings, LogOut,
+  GraduationCap, BookOpen, Building2, Users, BarChart3,
+  CheckCircle2, AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 interface SidebarProps {
   userRole: "student" | "company" | "faculty" | "admin"
@@ -67,102 +57,87 @@ const navigationItems = {
   ],
 }
 
-type MeResponse =
-  | {
-      user: {
-        id: string
-        email: string
-        role: "STUDENT" | "FACULTY" | "ADMIN" | "COMPANY"
-        student?: { firstName: string; lastName: string; rollNumber: string; department: string; year: string } | null
-        faculty?: { name: string; department: string; designation: string | null } | null
-        admin?: { name: string; department: string | null; college: { name: string; code: string } } | null
-        company?: { name: string; isVerified: boolean; location: string | null } | null
-      }
-    }
-  | { error: string }
-
 export function Sidebar({ userRole, className }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const items = navigationItems[userRole]
-  const [displayName, setDisplayName] = useState<string>("")
-  const [subtitle, setSubtitle] = useState<string>("")
-  const [avatarFallback, setAvatarFallback] = useState<string>("U")
-  const [companyVerified, setCompanyVerified] = useState<boolean | null>(null)
+  const { user, loading } = useAuth()
 
-  useEffect(() => {
-    let ignore = false
-    const load = async () => {
-      try {
-        const res = await fetch("/api/auth/me", { method: "GET", credentials: "include" })
-        if (!res.ok) return
-        const data: MeResponse = await res.json()
-        if ("error" in data || !data.user || ignore) return
-
-        const role = data.user.role
-        if (role === "STUDENT" && data.user.student) {
-          const fn = data.user.student.firstName
-          const ln = data.user.student.lastName
-          setDisplayName(`${fn} ${ln}`.trim())
-          setSubtitle(`${data.user.student.department} • ${data.user.student.year}`)
-          setAvatarFallback(`${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST")
-        } else if (role === "FACULTY" && data.user.faculty) {
-          const nm = data.user.faculty.name
-          setDisplayName(nm)
-          setSubtitle(`${data.user.faculty.department}${data.user.faculty.designation ? " • " + data.user.faculty.designation : ""}`)
-          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "FA")
-        } else if (role === "ADMIN" && data.user.admin) {
-          const nm = data.user.admin.name
-          setDisplayName(nm)
-          setSubtitle(`${data.user.admin.college.name} (${data.user.admin.college.code})`)
-          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "AD")
-        } else if (role === "COMPANY" && data.user.company) {
-          const nm = data.user.company.name
-          setDisplayName(nm)
-          setSubtitle(data.user.company.location || "Company")
-          setCompanyVerified(Boolean(data.user.company.isVerified))
-          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "CO")
-        } else {
-          setDisplayName(data.user.email)
-          setSubtitle("")
-          setAvatarFallback(data.user.email?.slice(0, 2).toUpperCase() || "U")
-        }
-      } catch {
-        // ignore
+  const { displayName, subtitle, avatarFallback, badgeNode } = useMemo(() => {
+    if (loading || !user) {
+      return {
+        displayName: "Loading...",
+        subtitle: "",
+        avatarFallback: "L",
+        badgeNode: <Badge variant="secondary" className="text-xs">...</Badge>
       }
     }
-    load()
-    return () => {
-      ignore = true
-    }
-  }, [])
 
-  const badgeNode = useMemo(() => {
+    let name = ""
+    let sub = ""
+    let fallback = "U"
+    let companyVerified: boolean | null = null
+
+    const role = user.role
+    if (role === "STUDENT" && user.student) {
+      const fn = user.student.firstName
+      const ln = user.student.lastName
+      name = `${fn} ${ln}`.trim()
+      sub = `${user.student.department} • ${user.student.year}`
+      fallback = `${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST"
+    } else if (role === "FACULTY" && user.faculty) {
+      const nm = user.faculty.name
+      name = nm
+      sub = `${user.faculty.department}${user.faculty.designation ? " • " + user.faculty.designation : ""}`
+      fallback = nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "FA"
+    } else if (role === "ADMIN" && user.admin) {
+      const nm = user.admin.name
+      name = nm
+      sub = `${user.admin.college.name} (${user.admin.college.code})`
+      fallback = nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "AD"
+    } else if (role === "COMPANY" && user.company) {
+      const nm = user.company.name
+      name = nm
+      sub = user.company.location || "Company"
+      companyVerified = Boolean(user.company.isVerified)
+      fallback = nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "CO"
+    } else {
+      name = user.email
+      sub = ""
+      fallback = user.email?.slice(0, 2).toUpperCase() || "U"
+    }
+
     const label = userRole.charAt(0).toUpperCase() + userRole.slice(1)
+    let badge
     if (userRole === "company") {
       if (companyVerified === true) {
-        return (
+        badge = (
           <Badge variant="secondary" className="text-xs flex items-center gap-1">
             <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
             {label} • Verified
           </Badge>
         )
-      }
-      if (companyVerified === false) {
-        return (
+      } else if (companyVerified === false) {
+        badge = (
           <Badge variant="destructive" className="text-xs flex items-center gap-1">
             <AlertCircle className="h-3.5 w-3.5" />
             {label} • Pending
           </Badge>
         )
+      } else {
+        badge = <Badge variant="secondary" className="text-xs">{label}</Badge>
       }
+    } else {
+      badge = <Badge variant="secondary" className="text-xs">{label}</Badge>
     }
-    return (
-      <Badge variant="secondary" className="text-xs">
-        {label}
-      </Badge>
-    )
-  }, [userRole, companyVerified])
+
+    return {
+      displayName: name || "User",
+      subtitle: sub,
+      avatarFallback: fallback,
+      badgeNode: badge
+    }
+  }, [user, loading, userRole])
 
   const onLogout = async () => {
     try {
@@ -189,7 +164,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{displayName || "User"}</p>
+              <p className="text-sm font-medium truncate">{displayName}</p>
               <div className="flex items-center gap-2">
                 {badgeNode}
                 {subtitle && <span className="text-xs text-muted-foreground truncate">• {subtitle}</span>}
@@ -215,10 +190,10 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               ))}
             </ScrollArea>
           </div>
-        </div> 
+        </div>
       </div>
 
-      <div className="absolute left-3 right-3">
+      <div className="absolute bottom-4 left-3 right-3">
         <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out

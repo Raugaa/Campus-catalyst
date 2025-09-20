@@ -1,3 +1,5 @@
+"use client"
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Search,
   Filter,
-  Download,
   Eye,
   Edit,
   MessageSquare,
@@ -22,74 +23,70 @@ import {
   Globe,
   MapPin,
 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+
+interface UICompany {
+  id: string
+  name: string
+  email: string
+  website?: string
+  location?: string
+  industry?: string
+  size?: string
+  status: "Active" | "Pending" | "Inactive"
+  joinedDate?: string
+  activeJobs: number
+  totalApplications: number
+  selectedStudents: number
+  description?: string
+  logo?: string
+}
 
 export default function AdminCompanies() {
-  const companies = [
-    {
-      id: 1,
-      name: "TechCorp Inc.",
-      email: "hr@techcorp.com",
-      website: "www.techcorp.com",
-      location: "San Francisco, CA",
-      industry: "Technology",
-      size: "50-200 employees",
-      status: "Active",
-      joinedDate: "Jan 2024",
-      activeJobs: 8,
-      totalApplications: 156,
-      hiredStudents: 12,
-      description: "Leading technology company focused on innovative web solutions.",
-      logo: "TC",
-    },
-    {
-      id: 2,
-      name: "DataSoft Solutions",
-      email: "careers@datasoft.com",
-      website: "www.datasoft.com",
-      location: "New York, NY",
-      industry: "Data Analytics",
-      size: "200-500 employees",
-      status: "Active",
-      joinedDate: "Mar 2024",
-      activeJobs: 5,
-      totalApplications: 89,
-      hiredStudents: 8,
-      description: "Data analytics and machine learning solutions provider.",
-      logo: "DS",
-    },
-    {
-      id: 3,
-      name: "WebFlow Agency",
-      email: "jobs@webflow.com",
-      website: "www.webflow.com",
-      location: "Austin, TX",
-      industry: "Digital Marketing",
-      size: "10-50 employees",
-      status: "Pending",
-      joinedDate: "Nov 2024",
-      activeJobs: 3,
-      totalApplications: 45,
-      hiredStudents: 2,
-      description: "Creative digital marketing and web development agency.",
-      logo: "WA",
-    },
-    {
-      id: 4,
-      name: "CloudTech Systems",
-      email: "hr@cloudtech.com",
-      website: "www.cloudtech.com",
-      location: "Seattle, WA",
-      industry: "Cloud Computing",
-      size: "500+ employees",
-      status: "Inactive",
-      joinedDate: "Sep 2023",
-      activeJobs: 0,
-      totalApplications: 234,
-      hiredStudents: 18,
-      description: "Enterprise cloud computing and infrastructure solutions.",
-      logo: "CS",
-    },
-  ]
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tab = (searchParams.get('tab') || 'all') as 'all'|'active'|'pending'|'inactive'
+  const q = searchParams.get('q') || ''
+
+  const [companies, setCompanies] = useState<UICompany[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | undefined>()
+
+  const status = useMemo(() => {
+    if (tab === 'active') return 'Active'
+    if (tab === 'pending') return 'Pending'
+    if (tab === 'inactive') return 'Inactive'
+    return undefined
+  }, [tab])
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError(undefined)
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    if (q) params.set('q', q)
+    params.set('take', '20')
+    params.set('skip', '0')
+    fetch(`/api/admin/companies?${params.toString()}`)
+      .then(async (res) => { if (!res.ok) throw new Error('Failed to load companies'); return res.json() })
+      .then((data) => { if (!isMounted) return; setCompanies(data.companies || []) })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+    return () => { isMounted = false }
+  }, [status, q])
+
+  const setParam = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) {
+      params.set(key, value)
+    } else {
+      params.delete(key)
+    }
+    if (key !== 'tab') params.set('tab', tab)
+    router.push(`/admin/companies?${params.toString()}`)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -134,7 +131,7 @@ export default function AdminCompanies() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats (static for now) */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
@@ -192,9 +189,15 @@ export default function AdminCompanies() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input placeholder="Search companies..." className="pl-10" />
+                  <Input 
+                    placeholder="Search companies..." 
+                    className="pl-10"
+                    defaultValue={q}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value) }}
+                  />
                 </div>
               </div>
+              {/* Placeholder selects for industry/size retained, not wired to API */}
               <div className="flex gap-2">
                 <Select>
                   <SelectTrigger className="w-[140px]">
@@ -206,17 +209,6 @@ export default function AdminCompanies() {
                     <SelectItem value="finance">Finance</SelectItem>
                     <SelectItem value="healthcare">Healthcare</SelectItem>
                     <SelectItem value="consulting">Consulting</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select>
@@ -235,7 +227,7 @@ export default function AdminCompanies() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="all" className="space-y-6">
+        <Tabs defaultValue={tab} value={tab} onValueChange={(v) => setParam('tab', v)} className="space-y-6">
           <TabsList>
             <TabsTrigger value="all">All Companies</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
@@ -244,14 +236,16 @@ export default function AdminCompanies() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {companies.map((company) => (
+            {loading && <div className="text-sm text-muted-foreground">Loading companies...</div>}
+            {error && <div className="text-sm text-destructive">{error}</div>}
+            {!loading && !error && companies.map((company) => (
               <Card key={company.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={`/placeholder-icon.png?height=48&width=48&text=${company.logo}`} />
-                        <AvatarFallback>{company.logo}</AvatarFallback>
+                        <AvatarImage src={`/placeholder-icon.png?height=48&width=48&text=${company.logo ?? company.name[0]}`} />
+                        <AvatarFallback>{company.logo ?? company.name[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -270,7 +264,9 @@ export default function AdminCompanies() {
                           <div>{company.industry}</div>
                           <div>{company.size}</div>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-3">{company.description}</p>
+                        {company.description && (
+                          <p className="text-sm text-muted-foreground mb-3">{company.description}</p>
+                        )}
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Briefcase className="w-3 h-3" />
@@ -280,8 +276,7 @@ export default function AdminCompanies() {
                             <Users className="w-3 h-3" />
                             {company.totalApplications} applications
                           </span>
-                          <span>{company.hiredStudents} hires</span>
-                          <span>Joined {company.joinedDate}</span>
+                          <span>{company.selectedStudents} hires</span>
                         </div>
                       </div>
                     </div>
@@ -329,6 +324,7 @@ export default function AdminCompanies() {
             ))}
           </TabsContent>
 
+          {/* Other tabs keep placeholders */}
           <TabsContent value="active" className="space-y-4">
             <div className="text-center py-8">
               <p className="text-muted-foreground">Active companies will appear here.</p>
