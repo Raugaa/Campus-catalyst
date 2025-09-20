@@ -8,24 +8,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { GraduationCap } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialRole = searchParams.get('role') || ''
+  
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
-    role: "",
     password: "",
     confirmPassword: "",
-    organization: "",
-    bio: "",
+    companyType: "",
   })
+  const [role, setRole] = useState(initialRole)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (initialRole) {
+      setRole(initialRole)
+    }
+  }, [initialRole])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -41,14 +48,18 @@ export default function RegisterPage() {
     }
   }
 
-  const handleSelectChange = (value: string) => {
-    setFormData(prev => ({ ...prev, role: value }))
+  const handleSelectChange = (name: string, value: string) => {
+    if (name === "role") {
+      setRole(value)
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
     
     // Clear error when user selects
-    if (errors.role) {
+    if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev }
-        delete newErrors.role
+        delete newErrors[name]
         return newErrors
       })
     }
@@ -57,16 +68,19 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required"
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required"
+    if (!formData.name.trim()) newErrors.name = "Name is required"
     if (!formData.email.trim()) newErrors.email = "Email is required"
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Please enter a valid email address"
-    if (!formData.role) newErrors.role = "Please select a role"
+    if (!role) newErrors.role = "Please select a role"
     if (!formData.password) newErrors.password = "Password is required"
     else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters"
     if (!formData.confirmPassword) newErrors.confirmPassword = "Please confirm your password"
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords don't match"
-    if (!formData.organization.trim()) newErrors.organization = "Organization/College is required"
+    
+    // For company role, require company type
+    if (role === "company" && !formData.companyType.trim()) {
+      newErrors.companyType = "Company type is required"
+    }
     
     return newErrors
   }
@@ -87,7 +101,7 @@ export default function RegisterPage() {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       // Redirect based on role
-      switch (formData.role) {
+      switch (role) {
         case "student":
           router.push("/student")
           break
@@ -135,34 +149,19 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent className="space-y-4 pb-6">
             <form onSubmit={onSubmit} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input 
-                    id="firstName" 
-                    name="firstName"
-                    placeholder="Enter your first name" 
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                {errors.firstName && (
-                  <p className="text-sm text-red-500">{errors.firstName}</p>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input 
-                    id="lastName" 
-                    name="lastName"
-                    placeholder="Enter your last name" 
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                {errors.lastName && (
-                  <p className="text-sm text-red-500">{errors.lastName}</p>
-                )}
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input 
+                  id="name" 
+                  name="name"
+                  placeholder="Enter your full name" 
+                  value={formData.name}
+                  onChange={handleInputChange}
+                />
               </div>
+              {errors.name && (
+                <p className="text-sm text-red-500">{errors.name}</p>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -177,27 +176,6 @@ export default function RegisterPage() {
               </div>
               {errors.email && (
                 <p className="text-sm text-red-500">{errors.email}</p>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select 
-                  value={formData.role}
-                  onValueChange={handleSelectChange}
-                >
-                  <SelectTrigger className={errors.role ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="company">Company/Recruiter</SelectItem>
-                    <SelectItem value="faculty">Faculty Mentor</SelectItem>
-                    <SelectItem value="admin">Placement Cell Officer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {errors.role && (
-                <p className="text-sm text-red-500">{errors.role}</p>
               )}
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -232,30 +210,42 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="organization">Organization/College</Label>
-                <Input 
-                  id="organization" 
-                  name="organization"
-                  placeholder="Enter your college or company name" 
-                  value={formData.organization}
-                  onChange={handleInputChange}
-                />
+                <Label htmlFor="role">Role</Label>
+                <Select 
+                  value={role}
+                  onValueChange={(value) => handleSelectChange("role", value)}
+                >
+                  <SelectTrigger className={errors.role ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="company">Company/Recruiter</SelectItem>
+                    <SelectItem value="faculty">Faculty Mentor</SelectItem>
+                    <SelectItem value="admin">Placement Cell Officer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              {errors.organization && (
-                <p className="text-sm text-red-500">{errors.organization}</p>
+              {errors.role && (
+                <p className="text-sm text-red-500">{errors.role}</p>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio (Optional)</Label>
-                <Textarea 
-                  id="bio" 
-                  name="bio"
-                  placeholder="Tell us a bit about yourself..." 
-                  rows={3} 
-                  value={formData.bio}
-                  onChange={(e) => handleInputChange(e)}
-                />
-              </div>
+              {/* Show company type field only for company role */}
+              {role === "company" && (
+                <div className="space-y-2">
+                  <Label htmlFor="companyType">Type of Company</Label>
+                  <Input 
+                    id="companyType" 
+                    name="companyType"
+                    placeholder="Enter company type (e.g., IT, Finance, Consulting)" 
+                    value={formData.companyType}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              )}
+              {role === "company" && errors.companyType && (
+                <p className="text-sm text-red-500">{errors.companyType}</p>
+              )}
 
               <Button className="w-full mt-4" type="submit" disabled={isLoading}>
                 {isLoading ? "Creating Account..." : "Create Account"}

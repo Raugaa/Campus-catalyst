@@ -39,7 +39,7 @@ export default function LandingPage() {
               <Link href="/auth/login">Sign In</Link>
             </Button>
             <Button asChild>
-              <Link href="/auth/register">Get Started</Link>
+              <Link href="#roles">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
-              <Link href="/auth/register">
+              <Link href="#roles">
                 Start Your Journey <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
             </Button>
@@ -190,7 +190,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/auth/register?role=student">Join as Student</Link>
+                  <Link href="/auth/login?role=student">Join as Student</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -224,7 +224,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/auth/register?role=faculty">Join as Faculty</Link>
+                  <Link href="/auth/login?role=faculty">Join as Faculty</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -241,7 +241,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/auth/register?role=admin">Join as Admin</Link>
+                  <Link href="/auth/login?role=admin">Join as Admin</Link>
                 </Button>
               </CardContent>
             </Card>

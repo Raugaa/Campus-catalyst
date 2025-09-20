@@ -4,22 +4,39 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GraduationCap } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const roleParam = searchParams.get('role') || ''
+  
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "",
   })
+  const [role, setRole] = useState(roleParam)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Set role based on URL parameter
+  useEffect(() => {
+    if (roleParam) {
+      setRole(roleParam)
+    }
+  }, [roleParam])
+
+  // Role display names
+  const roleDisplayNames: Record<string, string> = {
+    student: "Student",
+    company: "Company/Recruiter",
+    faculty: "Faculty Mentor",
+    admin: "Placement Cell Officer"
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -35,19 +52,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleSelectChange = (value: string) => {
-    setFormData(prev => ({ ...prev, role: value }))
-    
-    // Clear error when user selects
-    if (errors.role) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors.role
-        return newErrors
-      })
-    }
-  }
-
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
@@ -55,7 +59,7 @@ export default function LoginPage() {
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Please enter a valid email address"
     if (!formData.password) newErrors.password = "Password is required"
     else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters"
-    if (!formData.role) newErrors.role = "Please select a role"
+    if (!role) newErrors.role = "Role is required"
     
     return newErrors
   }
@@ -76,7 +80,7 @@ export default function LoginPage() {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       // Redirect based on role
-      switch (formData.role) {
+      switch (role) {
         case "student":
           router.push("/student")
           break
@@ -119,7 +123,7 @@ export default function LoginPage() {
 
         <Card className="shadow-xl border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center pt-6 pb-3">
-            <CardTitle className="text-xl font-bold text-gray-800 dark:text-white">Welcome Back</CardTitle>
+            <CardTitle className="text-xl font-bold text-gray-800 dark:text-white">Welcome Back, {roleDisplayNames[role] || 'User'}</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-300">Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pb-6">
@@ -151,26 +155,6 @@ export default function LoginPage() {
               </div>
               {errors.password && (
                 <p className="text-sm text-red-500">{errors.password}</p>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select 
-                  value={formData.role}
-                  onValueChange={handleSelectChange}
-                >
-                  <SelectTrigger className={errors.role ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="company">Company/Recruiter</SelectItem>
-                    <SelectItem value="faculty">Faculty Mentor</SelectItem>
-                    <SelectItem value="admin">Placement Cell Officer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {errors.role && (
-                <p className="text-sm text-red-500">{errors.role}</p>
               )}
               <Button className="w-full mt-4" type="submit" disabled={isLoading}>
                 {isLoading ? "Signing In..." : "Sign In"}
