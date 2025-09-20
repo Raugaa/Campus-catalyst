@@ -1,8 +1,15 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Users, Building2, GraduationCap, BarChart3, Shield, Zap } from "lucide-react"
+import { Users, Building2, Briefcase, Calendar, ArrowRight, Mail, Phone, MapPin, Star, GraduationCap, Zap, BarChart3, Shield } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
+
+// Import the background image
+import mainpgBg from "../public/assets/mainpg_bg.png"
 
 export default function LandingPage() {
   return (
@@ -38,9 +45,20 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
+      {/* Hero Section with Background */}
+      <section className="relative py-20 px-4 overflow-hidden">
+        {/* Background Image Container */}
+        <div className="absolute inset-0 z-0">
+          <div 
+            className="w-full h-full bg-cover bg-center bg-no-repeat"
+            style={{ 
+              backgroundImage: `url(${mainpgBg.src})`
+            }}
+          />
+        </div>
+        
+        {/* Content */}
+        <div className="container mx-auto text-center max-w-4xl relative z-10">
           <Badge variant="secondary" className="mb-4">
             Streamline Your Campus Placements
           </Badge>
@@ -48,7 +66,7 @@ export default function LandingPage() {
             Integrated Campus
             <span className="text-primary"> Internship Portal</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 text-pretty max-w-2xl mx-auto">
+          <p className="text-xl text-foreground mb-8 text-pretty max-w-2xl mx-auto">
             A centralized platform that connects students, companies, faculty, and placement officers. Streamline
             applications, track progress, and manage placements efficiently.
           </p>

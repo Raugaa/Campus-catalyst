@@ -20,13 +20,18 @@ import {
   ArrowUp,
   ArrowDown,
   Plus,
+  Mail,
+  FileDown,
 } from "lucide-react"
 import Link from "next/link"
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 
 // Dynamically import Recharts components to avoid SSR issues
-import RechartsComponent from '../../components/admin/recharts-component'
+const RechartsComponent = dynamic(
+  () => import('../../components/admin/recharts-component'),
+  { ssr: false }
+)
 
 export default function AdminDashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("ly")
@@ -113,9 +118,89 @@ export default function AdminDashboard() {
     }))
   }
 
+  // Mock data for top opportunities
+  const topOpportunities = [
+    {
+      id: 1,
+      title: "Software Engineering Intern",
+      company: "TechCorp Inc.",
+      applications: 45,
+      status: "Active",
+    },
+    {
+      id: 2,
+      title: "Data Science Intern",
+      company: "DataSoft Solutions",
+      applications: 32,
+      status: "Active",
+    },
+    {
+      id: 3,
+      title: "Frontend Developer Intern",
+      company: "WebFlow Agency",
+      applications: 28,
+      status: "Closing Soon",
+    },
+  ]
+
+  // Mock data for placement trends
+  const getPlacementTrendData = (tab: string) => {
+    switch (tab) {
+      case "internships":
+        return [
+          { month: "Jan", applications: 45, placements: 18 },
+          { month: "Feb", applications: 52, placements: 22 },
+          { month: "Mar", applications: 48, placements: 25 },
+          { month: "Apr", applications: 61, placements: 30 },
+          { month: "May", applications: 55, placements: 28 },
+          { month: "Jun", applications: 67, placements: 35 },
+        ]
+      case "fulltime":
+        return [
+          { month: "Jan", applications: 22, placements: 12 },
+          { month: "Feb", applications: 25, placements: 15 },
+          { month: "Mar", applications: 28, placements: 18 },
+          { month: "Apr", applications: 31, placements: 20 },
+          { month: "May", applications: 29, placements: 19 },
+          { month: "Jun", applications: 35, placements: 25 },
+        ]
+      case "companies":
+        return [
+          { month: "Jan", newCompanies: 5, activeCompanies: 42 },
+          { month: "Feb", newCompanies: 7, activeCompanies: 49 },
+          { month: "Mar", newCompanies: 6, activeCompanies: 55 },
+          { month: "Apr", newCompanies: 8, activeCompanies: 63 },
+          { month: "May", newCompanies: 4, activeCompanies: 67 },
+          { month: "Jun", newCompanies: 9, activeCompanies: 76 },
+        ]
+      case "overview":
+      default:
+        return [
+          { month: "Jan", total: 67, placed: 30 },
+          { month: "Feb", total: 77, placed: 37 },
+          { month: "Mar", total: 76, placed: 43 },
+          { month: "Apr", total: 92, placed: 50 },
+          { month: "May", total: 84, placed: 47 },
+          { month: "Jun", total: 102, placed: 60 },
+        ]
+    }
+  }
+
   const departmentStats = getDepartmentStats()
   const metrics = getMetricsData()
   const barChartData = getBarChartData()
+
+  // Function to generate CSV report
+  const generateCSVReport = () => {
+    console.log("Generating CSV report...")
+    // In a real implementation, this would generate and download a CSV file
+  }
+
+  // Function to send bulk email
+  const sendBulkEmail = () => {
+    console.log("Sending bulk email...")
+    // In a real implementation, this would open an email composer or trigger an email sending process
+  }
 
   return (
     <DashboardLayout userRole="admin">
@@ -219,16 +304,152 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          {/* Left Column - Charts */}
+          {/* Left Column - Charts and Top Opportunities */}
           <div className="lg:col-span-2 space-y-4">
             {/* Placement Chart */}
-            <Card>
+            <Card className="h-[500px]">
               <CardHeader>
                 <CardTitle>Placed vs Unplaced Students</CardTitle>
                 <CardDescription>Visualization of student placement status by department</CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 h-[calc(100%-60px)]">
                 <RechartsComponent data={barChartData} />
+              </CardContent>
+            </Card>
+
+            {/* Top Opportunities - Added below the graph */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Top Opportunities</CardTitle>
+                    <CardDescription>Most popular internship opportunities</CardDescription>
+                  </div>
+                  <Button asChild>
+                    <Link href="/admin/opportunities/new">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Opportunity
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {topOpportunities.map((opportunity) => (
+                  <div key={opportunity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{opportunity.title}</h4>
+                      <p className="text-sm text-muted-foreground">{opportunity.company}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={opportunity.status === "Active" ? "default" : "destructive"}
+                      >
+                        {opportunity.status}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {opportunity.applications} apps
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link href="/admin/opportunities">View All Opportunities</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Placement Trends */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Placement Trends</CardTitle>
+                <CardDescription>Monthly placement statistics for the current academic year</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Tabs defaultValue="overview" className="space-y-3">
+                  <TabsList>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="internships">Internships</TabsTrigger>
+                    <TabsTrigger value="fulltime">Full-time</TabsTrigger>
+                    <TabsTrigger value="companies">Companies</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-3">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-primary">456</div>
+                        <p className="text-sm text-muted-foreground">Total Applications</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-green-500">234</div>
+                        <p className="text-sm text-muted-foreground">Successful Placements</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-purple-500">89</div>
+                        <p className="text-sm text-muted-foreground">Partner Companies</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="internships" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-blue-500">189</div>
+                        <p className="text-sm text-muted-foreground">Internship Applications</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-green-500">124</div>
+                        <p className="text-sm text-muted-foreground">Successful Placements</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-orange-500">65</div>
+                        <p className="text-sm text-muted-foreground">Pending Interviews</p>
+                      </div>
+                    </div>
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">Internship placement data shows a 15% increase from last semester.</p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="fulltime" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-blue-500">78</div>
+                        <p className="text-sm text-muted-foreground">Full-time Applications</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-green-500">52</div>
+                        <p className="text-sm text-muted-foreground">Successful Placements</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-orange-500">26</div>
+                        <p className="text-sm text-muted-foreground">Pending Interviews</p>
+                      </div>
+                    </div>
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">Full-time placement data shows steady growth with a 8% increase from last year.</p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="companies" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-blue-500">142</div>
+                        <p className="text-sm text-muted-foreground">Total Companies</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-green-500">89</div>
+                        <p className="text-sm text-muted-foreground">Active Partnerships</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <div className="text-2xl font-bold text-purple-500">23</div>
+                        <p className="text-sm text-muted-foreground">New This Semester</p>
+                      </div>
+                    </div>
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">Company partnership data shows strong growth with 3 new major tech partners.</p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
@@ -311,61 +532,33 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Report Generation - Added to the sidebar */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Report Generation</CardTitle>
+                <CardDescription>Export data and communicate with students</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  className="w-full" 
+                  onClick={generateCSVReport}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Generate CSV Report
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={sendBulkEmail}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Bulk Email
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
-
-        {/* Placement Trends */}
-        <Card className="mt-2">
-          <CardHeader className="pb-3">
-            <CardTitle>Placement Trends</CardTitle>
-            <CardDescription>Monthly placement statistics for the current academic year</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <Tabs defaultValue="overview" className="space-y-3">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="internships">Internships</TabsTrigger>
-                <TabsTrigger value="fulltime">Full-time</TabsTrigger>
-                <TabsTrigger value="companies">Companies</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-3">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-primary">456</div>
-                    <p className="text-sm text-muted-foreground">Total Applications</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-green-500">234</div>
-                    <p className="text-sm text-muted-foreground">Successful Placements</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-purple-500">89</div>
-                    <p className="text-sm text-muted-foreground">Partner Companies</p>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="internships" className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Internship placement data will be displayed here.</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="fulltime" className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Full-time placement data will be displayed here.</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="companies" className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Company partnership data will be displayed here.</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   )

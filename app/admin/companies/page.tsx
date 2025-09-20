@@ -128,10 +128,6 @@ export default function AdminCompanies() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Export Data
-            </Button>
-            <Button variant="outline">
               <Filter className="w-4 h-4 mr-2" />
               Advanced Filters
             </Button>

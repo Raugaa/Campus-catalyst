@@ -32,14 +32,14 @@ export default function RechartsComponent({ data }: RechartsComponentProps) {
   }
 
   return (
-    <div className="h-72 w-full">
+    <div className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
           margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
           barSize={30}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid stroke="#e5e7eb" />
           <XAxis 
             dataKey="name" 
             angle={-45} 
