@@ -1,5 +1,6 @@
+"use client"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,8 +9,20 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Search, Plus, User } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+
+interface UIFaculty {
+  id: string
+  name: string
+  department: string
+  email: string
+  assignedStudents: number
+  status: "Active" | "Inactive" | "On Leave"
+}
 
 export default function FacultyPage() {
+<<<<<<< HEAD
   // Mock faculty data
   const facultyData = [
     {
@@ -53,6 +66,40 @@ export default function FacultyPage() {
       status: "Active"
     }
   ]
+=======
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const q = searchParams.get('q') || ''
+  const department = searchParams.get('department') || 'all'
+
+  const [faculty, setFaculty] = useState<UIFaculty[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | undefined>()
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError(undefined)
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (department && department !== 'all') params.set('department', department)
+    params.set('take', '20')
+    params.set('skip', '0')
+    fetch(`/api/admin/faculty?${params.toString()}`)
+      .then(async (res) => { if (!res.ok) throw new Error('Failed to load faculty'); return res.json() })
+      .then((data) => { if (!isMounted) return; setFaculty(data.faculty || []) })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+    return () => { isMounted = false }
+  }, [q, department])
+
+  const setParam = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value && value !== 'all') params.set(key, value)
+    else params.delete(key)
+    router.push(`/admin/faculty?${params.toString()}`)
+  }
+>>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
 
   return (
     <DashboardLayout userRole="admin">
@@ -73,10 +120,6 @@ export default function FacultyPage() {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>Filter faculty by various criteria</CardDescription>
-          </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="search">Search</Label>
@@ -86,21 +129,24 @@ export default function FacultyPage() {
                   id="search"
                   placeholder="Search by name or email"
                   className="pl-8"
+                  defaultValue={q}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value) }}
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
-              <Select>
+              <Select defaultValue={department} onValueChange={(v) => setParam('department', v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cs">Computer Science</SelectItem>
-                  <SelectItem value="ee">Electrical Engineering</SelectItem>
-                  <SelectItem value="me">Mechanical Engineering</SelectItem>
-                  <SelectItem value="it">Information Technology</SelectItem>
-                  <SelectItem value="ece">Electronics & Communication</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="Computer Science">Computer Science</SelectItem>
+                  <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
+                  <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
+                  <SelectItem value="Information Technology">Information Technology</SelectItem>
+                  <SelectItem value="Electronics & Communication">Electronics & Communication</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -125,33 +171,35 @@ export default function FacultyPage() {
 
         {/* Faculty List */}
         <div className="space-y-4">
-          {facultyData.map((faculty) => (
-            <Card key={faculty.id}>
+          {loading && <div className="text-sm text-muted-foreground">Loading faculty...</div>}
+          {error && <div className="text-sm text-destructive">{error}</div>}
+          {!loading && !error && faculty.map((f) => (
+            <Card key={f.id}>
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
                     <Avatar className="w-12 h-12">
-                      <AvatarFallback>{faculty.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback>{f.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-semibold">{faculty.name}</h3>
+                        <h3 className="text-lg font-semibold">{f.name}</h3>
                       </div>
                       <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
-                        <div>{faculty.email}</div>
-                        <div>{faculty.department}</div>
+                        <div>{f.email}</div>
+                        <div>{f.department}</div>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Assigned Students: {faculty.assignedStudents}</span>
+                        <span>Assigned Students: {f.assignedStudents}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <Badge variant={faculty.status === "Active" ? "default" : "secondary"}>
-                      {faculty.status}
+                    <Badge variant={f.status === "Active" ? "default" : "secondary"}>
+                      {f.status}
                     </Badge>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/admin/faculty/${faculty.id}/assign`}>
+                      <Link href={`/admin/faculty/${f.id}/assign`}>
                         <User className="w-4 h-4 mr-1" />
                         Assign Students
                       </Link>
