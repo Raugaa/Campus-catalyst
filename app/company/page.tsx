@@ -590,16 +590,6 @@ export default function CompanyDashboard() {
                               View Details
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => {
-                              // Show more options
-                              console.log(`Showing more options for ${student.name}`);
-                            }}
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
                         </div>
                       </td>
                     </tr>

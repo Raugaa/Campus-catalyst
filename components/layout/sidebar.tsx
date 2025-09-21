@@ -174,9 +174,11 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   }
 
   return (
-    <div className={cn("pb-12 w-64 relative", className)}>
+    <div className={cn("w-64 h-full flex flex-col justify-between", className)}>
+      {/* Top Section */}
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
+          {/* Logo and user info */}
           <div className="flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
@@ -198,6 +200,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
             </div>
           </div>
 
+          {/* Navigation */}
           <div className="space-y-1">
             <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">Navigation</h2>
             <ScrollArea className="h-[300px] px-1">
@@ -216,15 +219,21 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               ))}
             </ScrollArea>
           </div>
-        </div> 
+        </div>
       </div>
 
-      <div className="absolute left-3 right-3">
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={onLogout}>
+      {/* Bottom Sign Out */}
+      <div className="px-3 py-4">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground"
+          onClick={onLogout}
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </Button>
       </div>
     </div>
+
   )
 }
