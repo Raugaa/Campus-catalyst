@@ -199,7 +199,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Create profiles, discover opportunities, track applications, and manage your career journey
                 </p>
-                <a href="/student" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
+                <a href="/auth/login?role=student" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
                   Join as Student
                 </a>
               </div>
@@ -216,7 +216,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Post opportunities, manage applications, and connect with talented students
                 </p>
-                <a href="/company" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
+                <a href="/auth/login?role=company" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
                   Join as Company
                 </a>
               </div>
@@ -234,7 +234,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Monitor student progress, review applications, and support career development
                 </p>
-                <a href="/faculty" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
+                <a href="/auth/login?role=faculty" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
                   Join as Faculty
                 </a>
               </div>
@@ -251,7 +251,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Oversee the entire platform, manage users, and generate comprehensive reports
                 </p>
-                <a href="/admin" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
+                <a href="/auth/login?role=admin" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3">
                   Join as Admin
                 </a>
               </div>
