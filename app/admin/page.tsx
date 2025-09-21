@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 // Dynamically import Recharts components to avoid SSR issues
 const RechartsComponent = dynamic(
@@ -35,36 +35,27 @@ const RechartsComponent = dynamic(
 
 export default function AdminDashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("ly")
-  const [metrics, setMetrics] = useState<any | null>(null)
-  const [departments, setDepartments] = useState<Array<{ name: string; total: number; placed: number; percentage: number }>>([])
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let isMounted = true
-    setLoading(true)
-    // Pass the selected year as a query parameter
-    fetch(`/api/admin/dashboard?year=${selectedYear}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to load dashboard')
-        return res.json()
-      })
-      .then((data) => {
-        if (!isMounted) return
-        setMetrics(data.metrics)
-        setDepartments(data.departments || [])
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
-    return () => { isMounted = false }
-  }, [selectedYear]) // Add selectedYear to dependency array
+  const metrics =  {
+    totalStudents: 0,
+    activeCompanies: 0,
+    studentsPlaced: 0,
+    studentsInInternship: 0,
+  }
+
+  const departments : any[] = [] // This would come from analytics data when implemented
 
   const barChartData = useMemo(() => {
-    if (!departments?.length) return []
-    return departments.map((dept) => ({
+    if (!departments?.length) return [
+      { name: "Computer Science", placed: 25, unplaced: 15 },
+      { name: "Information Technology", placed: 20, unplaced: 10 },
+      { name: "Electronics", placed: 15, unplaced: 12 },
+      { name: "Mechanical", placed: 18, unplaced: 8 },
+    ]
+    return departments.map((dept: any) => ({
       name: dept.name,
-      placed: dept.placed,
-      unplaced: Math.max(dept.total - dept.placed, 0),
+      placed: dept.placed || 0,
+      unplaced: Math.max((dept.total || 0) - (dept.placed || 0), 0),
     }))
   }, [departments])
 
@@ -144,13 +135,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // Fallback UI values while loading
-  const safeMetrics = metrics ?? {
-    totalStudents: 0,
-    activeCompanies: 0,
-    studentsPlaced: 0,
-    studentsInInternship: 0,
-  }
 
   return (
     <DashboardLayout userRole="admin">
@@ -185,10 +169,10 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FY">FY</SelectItem>
-                <SelectItem value="SY">SY</SelectItem>
-                <SelectItem value="TY">TY</SelectItem>
-                <SelectItem value="LY">LY</SelectItem>
+                <SelectItem value="fy">FY</SelectItem>
+                <SelectItem value="sy">SY</SelectItem>
+                <SelectItem value="ty">TY</SelectItem>
+                <SelectItem value="ly">LY</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -202,7 +186,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.totalStudents}</div>
+              <div className="text-2xl font-bold">{metrics.totalStudents}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +12% from last semester
@@ -216,7 +200,7 @@ export default function AdminDashboard() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.activeCompanies}</div>
+              <div className="text-2xl font-bold">{metrics.activeCompanies}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +8 new this month
@@ -230,7 +214,7 @@ export default function AdminDashboard() {
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.studentsPlaced}</div>
+              <div className="text-2xl font-bold">{metrics.studentsPlaced}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +15% from last semester
@@ -244,7 +228,7 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.studentsInInternship ?? 0}</div>
+              <div className="text-2xl font-bold">{metrics.studentsInInternship ?? 0}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +22% from last year

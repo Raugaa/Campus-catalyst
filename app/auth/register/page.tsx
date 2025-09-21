@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/lib/convex-hooks"
 import { GraduationCap } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -67,6 +68,8 @@ export default function RegisterPage() {
     return newErrors
   }
 
+  const { registerCompany } = useAuth()
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -79,32 +82,17 @@ export default function RegisterPage() {
     }
 
     try {
-      const res = await fetch('/api/auth/register-company', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password,
-          name: formData.name.trim(),
-          location: formData.location.trim(),
-          website: formData.website.trim() || undefined,
-          industry: formData.industry.trim() || undefined,
-          size: formData.size || undefined, // STARTUP | SMALL | MEDIUM | LARGE | ENTERPRISE
-          description: formData.description.trim() || undefined,
-        }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data?.error || "Registration failed")
+      const data = await registerCompany(formData)
+      if (!data) {
+        toast.error("Registration failed")
         setIsLoading(false)
         return
       }
-
       toast.success("Registration successful! Please wait for admin verification.")
       router.push("/auth/login?role=company")
-    } catch {
-      toast.error("Registration failed. Please try again.")
+    } catch (error) {
+      console.error("Registration error:", error)
+      toast.error(error instanceof Error ? error.message : "Registration failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -206,7 +194,7 @@ export default function RegisterPage() {
               </div>
 
               <Button className="w-full mt-2" type="submit" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Company Account"}
+                {isLoading ? "Redirecting to WorkOS..." : "Continue with WorkOS"}
               </Button>
             </form>
 

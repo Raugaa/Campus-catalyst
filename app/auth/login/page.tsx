@@ -1,5 +1,6 @@
 "use client"
 
+import { useAuth } from "@/lib/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" })
   const [role, setRole] = useState(roleParam)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const { login } = useAuth();
 
   // Set role based on URL parameter
   useEffect(() => {
@@ -67,41 +69,17 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email.trim().toLowerCase(), password: formData.password }),
-      })
+      const result = await login(formData.email, formData.password)
+      console.log("Login result:", result)
 
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data?.error || "Login failed")
-        setIsLoading(false)
-        return
-      }
-
-      const roleFromApi = String(data?.user?.role || '').toUpperCase()
-      switch (roleFromApi) {
-        case "STUDENT":
-          router.push("/student")
-          break
-        case "FACULTY":
-          router.push("/faculty")
-          break
-        case "ADMIN":
-          router.push("/admin")
-          break
-        case "COMPANY":
-          router.push("/company")
-          break
-        default:
-          router.push("/")
-      }
-
-      toast.success("Login successful!")
+      toast.success("Login successful! Redirecting...")
+      router.push(`/${result.user.role.toLowerCase()}`)
+      // The loginWithJWT function handles redirection
+      setIsLoading(false)
+    
     } catch (error) {
-      toast.error("Login failed. Please check your credentials.")
-    } finally {
+      console.error("Login error:", error)
+      toast.error(error instanceof Error ? error.message : "Login failed. Please check your credentials.")
       setIsLoading(false)
     }
   }
@@ -156,7 +134,7 @@ export default function LoginPage() {
               </div>
               {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
               <Button className="w-full mt-4" type="submit" disabled={isLoading}>
-                {isLoading ? "Signing In..." : "Sign In"}
+                {isLoading ? "Redirecting to WorkOS..." : "Continue with WorkOS"}
               </Button>
             </form>
             <div className="text-center text-sm">

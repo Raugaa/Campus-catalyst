@@ -5,47 +5,38 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import "./globals.css"
-import { AuthProvider } from "@/lib/contexts/AuthContext"
+import { AuthProvider } from '@/lib/contexts/AuthContext'
+import ConvexProviderWrapper from "@/components/ConvexClientProvider"
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-})
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Campus Internship Portal",
-  description: "Integrated Campus Internship & Placement Portal",
-  generator: "v0.app",
+  title: 'Campus Internship Portal',
+  description: 'Connect students with internship opportunities',
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans ${inter.variable} ${jetbrainsMono.variable}`}>
-        <Suspense fallback={null}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
+      <body className={inter.className}>
+        
+          <ConvexProviderWrapper>
             <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+              disableTransitionOnChange
+            >
               {children}
+            </ThemeProvider>
             </AuthProvider>
-          </ThemeProvider>
-          <Analytics />
-        </Suspense>
+          </ConvexProviderWrapper>
+          
       </body>
     </html>
   )

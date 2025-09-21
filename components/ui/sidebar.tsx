@@ -1,5 +1,4 @@
 "use client"
-
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -8,12 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import {
   Home, User, Briefcase, FileText, Bell, Settings, LogOut,
   GraduationCap, BookOpen, Building2, Users, BarChart3,
-  CheckCircle2, AlertCircle,
+  CheckCircle2, AlertCircle, Loader2
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useMemo } from "react"
-import { useAuth } from "@/lib/contexts/AuthContext"
+import { useAuth } from "../../lib/contexts/AuthContext"
 
 interface SidebarProps {
   userRole: "student" | "company" | "faculty" | "admin"
@@ -61,15 +60,28 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const items = navigationItems[userRole]
-  const { user, loading } = useAuth()
+  
+  // Destructure the hook properly
+  const { user, loading, logout } = useAuth();
 
   const { displayName, subtitle, avatarFallback, badgeNode } = useMemo(() => {
-    if (loading || !user) {
+    // Show loading state
+    if (loading) {
       return {
         displayName: "Loading...",
         subtitle: "",
-        avatarFallback: "L",
-        badgeNode: <Badge variant="secondary" className="text-xs">...</Badge>
+        avatarFallback: <Loader2 className="h-4 w-4 animate-spin" />,
+        badgeNode: <Badge variant="secondary" className="text-xs">Loading...</Badge>
+      }
+    }
+
+    // Show not authenticated state
+    if (!user) {
+      return {
+        displayName: "Not authenticated",
+        subtitle: "",
+        avatarFallback: "?",
+        badgeNode: <Badge variant="destructive" className="text-xs">Guest</Badge>
       }
     }
 
@@ -79,36 +91,66 @@ export function Sidebar({ userRole, className }: SidebarProps) {
     let companyVerified: boolean | null = null
 
     const role = user.role
-    if (role === "STUDENT" && user.student) {
-      const fn = user.student.firstName
-      const ln = user.student.lastName
-      name = `${fn} ${ln}`.trim()
-      sub = `${user.student.department} • ${user.student.year}`
-      fallback = `${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST"
-    } else if (role === "FACULTY" && user.faculty) {
-      const nm = user.faculty.name
-      name = nm
-      sub = `${user.faculty.department}${user.faculty.designation ? " • " + user.faculty.designation : ""}`
-      fallback = nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "FA"
-    } else if (role === "ADMIN" && user.admin) {
-      const nm = user.admin.name
-      name = nm
-      sub = `${user.admin.college.name} (${user.admin.college.code})`
-      fallback = nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "AD"
-    } else if (role === "COMPANY" && user.company) {
-      const nm = user.company.name
-      name = nm
-      sub = user.company.location || "Company"
-      companyVerified = Boolean(user.company.isVerified)
-      fallback = nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "CO"
-    } else {
-      name = user.email
-      sub = ""
-      fallback = user.email?.slice(0, 2).toUpperCase() || "U"
+    const profile = user.profile
+
+    // ✅ Better fallback handling
+    if (role === "STUDENT") {
+      if (profile) {
+        const fn = profile.firstName || ""
+        const ln = profile.lastName || ""
+        name = `${fn} ${ln}`.trim()
+        sub = `${profile.department || ""} • ${profile.year || ""}`
+        fallback = `${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST"
+      } else {
+        // Fallback when profile isn't loaded yet
+        name = user.email?.split('@')[0] || "Student"
+        sub = "Student"
+        fallback = "ST"
+      }
+    } else if (role === "FACULTY") {
+      if (profile) {
+        const nm = profile.name || ""
+        name = nm
+        sub = `${profile.department || ""}${profile.designation ? " • " + profile.designation : ""}`
+        fallback = nm.split(" ").map((s: any) => s[0]).slice(0, 2).join("").toUpperCase() || "FA"
+      } else {
+        name = user.email?.split('@')[0] || "Faculty"
+        sub = "Faculty"
+        fallback = "FA"
+      }
+    } else if (role === "ADMIN") {
+      if (profile) {
+        const nm = profile.name || ""
+        name = nm
+        sub = `${profile.department || "Admin"}`
+        fallback = nm.split(" ").map((s: any) => s[0]).slice(0, 2).join("").toUpperCase() || "AD"
+      } else {
+        name = user.email?.split('@')[0] || "Admin"
+        sub = "Admin"
+        fallback = "AD"
+      }
+    } else if (role === "COMPANY") {
+      if (profile) {
+        const nm = profile.name || ""
+        name = nm
+        sub = profile.location || "Company"
+        companyVerified = Boolean(profile.isVerified)
+        fallback = nm.split(" ").map((s: any) => s[0]).slice(0, 2).join("").toUpperCase() || "CO"
+      } else {
+        name = user.email?.split('@')[0] || "Company"
+        sub = "Company"
+        fallback = "CO"
+      }
+    }
+
+    // ✅ Ensure we always have a display name
+    if (!name.trim()) {
+      name = user.email?.split('@')[0] || "User"
     }
 
     const label = userRole.charAt(0).toUpperCase() + userRole.slice(1)
     let badge
+
     if (userRole === "company") {
       if (companyVerified === true) {
         badge = (
@@ -132,20 +174,12 @@ export function Sidebar({ userRole, className }: SidebarProps) {
     }
 
     return {
-      displayName: name || "User",
+      displayName: name,
       subtitle: sub,
       avatarFallback: fallback,
       badgeNode: badge
     }
   }, [user, loading, userRole])
-
-  const onLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" })
-    } finally {
-      router.push("/auth/login")
-    }
-  }
 
   return (
     <div className={cn("pb-12 w-64 relative", className)}>
@@ -161,13 +195,19 @@ export function Sidebar({ userRole, className }: SidebarProps) {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-6">
             <Avatar className="w-10 h-10">
               <AvatarImage src="/placeholder.svg?height=40&width=40" />
-              <AvatarFallback>{avatarFallback}</AvatarFallback>
+              <AvatarFallback>
+                {typeof avatarFallback === 'string' ? avatarFallback : avatarFallback}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{displayName}</p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {badgeNode}
-                {subtitle && <span className="text-xs text-muted-foreground truncate">• {subtitle}</span>}
+                {subtitle && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {subtitle.includes('•') ? subtitle : `• ${subtitle}`}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -194,7 +234,12 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       </div>
 
       <div className="absolute bottom-4 left-3 right-3">
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={onLogout}>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-muted-foreground" 
+          onClick={logout}
+          disabled={loading}
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </Button>
