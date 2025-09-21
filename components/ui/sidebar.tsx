@@ -22,26 +22,20 @@ interface SidebarProps {
 const navigationItems = {
   student: [
     { name: "Dashboard", href: "/student", icon: Home },
-    { name: "Profile", href: "/student/profile", icon: User },
     { name: "Opportunities", href: "/student/opportunities", icon: Briefcase },
-    { name: "Applications", href: "/student/applications", icon: FileText },
     { name: "Training", href: "/student/training", icon: BookOpen },
     { name: "Notifications", href: "/student/notifications", icon: Bell },
     { name: "Settings", href: "/student/settings", icon: Settings },
   ],
   company: [
     { name: "Dashboard", href: "/company", icon: Home },
-    { name: "Profile", href: "/company/profile", icon: Building2 },
     { name: "Job Posts", href: "/company/jobs", icon: Briefcase },
-    { name: "Applications", href: "/company/applications", icon: FileText },
     { name: "Notifications", href: "/company/notifications", icon: Bell },
     { name: "Settings", href: "/company/settings", icon: Settings },
   ],
   faculty: [
     { name: "Dashboard", href: "/faculty", icon: Home },
-    { name: "Profile", href: "/faculty/profile", icon: User },
     { name: "Students", href: "/faculty/students", icon: Users },
-    { name: "Applications", href: "/faculty/applications", icon: FileText },
     { name: "Notifications", href: "/faculty/notifications", icon: Bell },
     { name: "Settings", href: "/faculty/settings", icon: Settings },
   ],

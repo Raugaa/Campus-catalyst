@@ -1,9 +1,6 @@
 "use client"
 
-<<<<<<< HEAD
 import { useRouter } from "next/navigation"
-=======
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,17 +36,10 @@ const mockJobData = {
   title: "Software Engineering Intern",
   jobType: "Internship",
   department: "Engineering",
-<<<<<<< HEAD
   location: "Mumbai, Maharashtra",
   workType: "Hybrid",
   duration: "3 months",
   stipend: "₹25,000/month",
-=======
-  location: "San Francisco, CA",
-  workType: "Hybrid",
-  duration: "3 months",
-  stipend: "$2,000/month",
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
   positions: 2,
   description: "We are seeking a talented and motivated Software Engineering Intern to join our dynamic team. As an intern, you will work alongside experienced engineers and actively contribute to software design, development, testing, and deployment. This is an excellent opportunity to learn from industry professionals and contribute to innovative solutions.",
   responsibilities: "• Develop and maintain web applications using React and Node.js\n• Collaborate with design teams to implement user interfaces\n• Write clean, efficient, and well-documented code\n• Participate in code reviews and team meetings\n• Troubleshoot and debug applications",
@@ -80,19 +70,11 @@ const mockJobData = {
 
 // Mock data for applicants
 const mockApplicants = [
-<<<<<<< HEAD
   { id: 1, name: "Rahul Sharma", dateApplied: "2023-08-25", status: "Applied" },
   { id: 2, name: "Priya Patel", dateApplied: "2023-08-17", status: "Interview Scheduled" },
   { id: 3, name: "Amit Kumar", dateApplied: "2023-08-18", status: "Rejected" },
   { id: 4, name: "Sneha Desai", dateApplied: "2023-08-19", status: "Applied" },
   { id: 5, name: "Vikram Singh", dateApplied: "2023-08-20", status: "Hired" }
-=======
-  { id: 1, name: "Ethan Harper", dateApplied: "2023-08-25", status: "Applied" },
-  { id: 2, name: "Olivia Bennett", dateApplied: "2023-08-17", status: "Interview Scheduled" },
-  { id: 3, name: "Noah Carter", dateApplied: "2023-08-18", status: "Rejected" },
-  { id: 4, name: "Ava Mitchell", dateApplied: "2023-08-19", status: "Applied" },
-  { id: 5, name: "Liam Foster", dateApplied: "2023-08-20", status: "Hired" }
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
 ]
 
 // Mock data for analytics
@@ -141,7 +123,6 @@ export default function DetailedJobPosting({ params }: { params: { id: string } 
     setIsEditing(false)
   }
 
-<<<<<<< HEAD
   const router = useRouter();
   const handleDelete = (id: number) => {
   if (confirm("Are you sure you want to delete this job posting?")) {
@@ -151,8 +132,6 @@ export default function DetailedJobPosting({ params }: { params: { id: string } 
   }
 }
 
-=======
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
   const handleInputChange = (field: string, value: string | boolean | number) => {
     setEditedJob({ ...editedJob, [field]: value })
   }
@@ -205,7 +184,6 @@ export default function DetailedJobPosting({ params }: { params: { id: string } 
                   </Button>
                 </>
               ) : (
-<<<<<<< HEAD
                 <>
                   <Button
                     variant="secondary"
@@ -224,12 +202,6 @@ export default function DetailedJobPosting({ params }: { params: { id: string } 
                     Delete
                   </Button>
                 </>
-=======
-                <Button variant="secondary" className="bg-white/90 hover:bg-white" onClick={handleEdit}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
               )}
             </div>
           </div>
