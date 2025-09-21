@@ -1,3 +1,5 @@
+"use client"
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -7,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Search,
-  Filter,
   BookOpen,
   Clock,
   Users,
@@ -21,10 +22,24 @@ import {
   Shield,
   Network,
   Code,
+  Check,
 } from "lucide-react"
 import Link from "next/link"
+import { useState, useMemo, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function StudentTraining() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedDomain, setSelectedDomain] = useState("all")
+  const [selectedLevel, setSelectedLevel] = useState("all")
+  const [activeDomain, setActiveDomain] = useState("All Domains")
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
+  
+  // Get search params to check for enrollment success
+  const searchParams = useSearchParams()
+  const enrollmentSuccess = searchParams.get('enrolled') === 'true'
+  const enrolledCourseId = searchParams.get('courseId')
+
   const trainingCourses = [
     {
       id: 1,
@@ -116,19 +131,67 @@ export default function StudentTraining() {
     { name: "Cloud Computing", icon: Network, count: 5 },
   ]
 
+  // Load enrolled courses from localStorage on component mount
+  useEffect(() => {
+    const savedEnrolledCourses = localStorage.getItem('enrolledCourses')
+    if (savedEnrolledCourses) {
+      setEnrolledCourses(JSON.parse(savedEnrolledCourses))
+    }
+    
+    // If we just enrolled in a course, add it to enrolled courses
+    if (enrollmentSuccess && enrolledCourseId) {
+      const courseId = parseInt(enrolledCourseId)
+      const course = trainingCourses.find(c => c.id === courseId)
+      if (course && !enrolledCourses.some((c: any) => c.id === courseId)) {
+        const newEnrolledCourses = [...enrolledCourses, { ...course, progress: 0, lessons: "0/0 lessons" }]
+        setEnrolledCourses(newEnrolledCourses)
+        localStorage.setItem('enrolledCourses', JSON.stringify(newEnrolledCourses))
+      }
+    }
+  }, [enrollmentSuccess, enrolledCourseId])
+
+  // Filter courses based on search, domain, and level
+  const filteredCourses = useMemo(() => {
+    return trainingCourses.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           course.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
+      
+      const matchesDomain = selectedDomain === "all" || course.domain === selectedDomain
+      const matchesLevel = selectedLevel === "all" || course.level.toLowerCase() === selectedLevel
+      const matchesActiveDomain = activeDomain === "All Domains" || course.domain === activeDomain
+      
+      return matchesSearch && matchesDomain && matchesLevel && matchesActiveDomain
+    })
+  }, [trainingCourses, searchQuery, selectedDomain, selectedLevel, activeDomain])
+
+  // Handle domain card click
+  const handleDomainClick = (domainName: string) => {
+    setActiveDomain(domainName)
+  }
+
   return (
     <DashboardLayout userRole="student">
       <div className="space-y-6">
+        {/* Enrollment Success Message */}
+        {enrollmentSuccess && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+            <Check className="h-5 w-5 text-green-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-green-800">Enrollment Successful!</h3>
+              <p className="text-green-700 text-sm">
+                You have been successfully enrolled in the course. You can access it from your enrolled courses.
+              </p>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Industry Training Courses</h1>
             <p className="text-muted-foreground">Enhance your skills with industry-recognized training programs</p>
           </div>
-          <Button variant="outline">
-            <Filter className="w-4 h-4 mr-2" />
-            Advanced Filters
-          </Button>
         </div>
 
         {/* Search and Filters */}
@@ -138,25 +201,30 @@ export default function StudentTraining() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input placeholder="Search training courses..." className="pl-10" />
+                  <Input 
+                    placeholder="Search training courses..." 
+                    className="pl-10" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
               </div>
               <div className="flex gap-2">
-                <Select>
+                <Select value={selectedDomain} onValueChange={setSelectedDomain}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Domain" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Domains</SelectItem>
-                    <SelectItem value="frontend">Frontend Development</SelectItem>
-                    <SelectItem value="backend">Backend Development</SelectItem>
-                    <SelectItem value="data-science">Data Science</SelectItem>
-                    <SelectItem value="design">Design</SelectItem>
-                    <SelectItem value="cybersecurity">Cybersecurity</SelectItem>
-                    <SelectItem value="cloud">Cloud Computing</SelectItem>
+                    <SelectItem value="Frontend Development">Frontend Development</SelectItem>
+                    <SelectItem value="Backend Development">Backend Development</SelectItem>
+                    <SelectItem value="Data Science">Data Science</SelectItem>
+                    <SelectItem value="Design">Design</SelectItem>
+                    <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                    <SelectItem value="Cloud Computing">Cloud Computing</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select>
+                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Level" />
                   </SelectTrigger>
@@ -177,7 +245,11 @@ export default function StudentTraining() {
           {domains.map((domain, index) => {
             const IconComponent = domain.icon
             return (
-              <Card key={index} className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card 
+                key={index} 
+                className={`hover:shadow-md transition-shadow cursor-pointer ${activeDomain === domain.name ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => handleDomainClick(domain.name)}
+              >
                 <CardContent className="p-4 text-center">
                   <IconComponent className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
                   <h3 className="font-medium text-sm mb-1">{domain.name}</h3>
@@ -200,7 +272,7 @@ export default function StudentTraining() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {trainingCourses.map((course) => {
+            {filteredCourses.map((course) => {
               const IconComponent = course.icon
               return (
                 <Card key={course.id} className="hover:shadow-md transition-shadow">
@@ -244,12 +316,14 @@ export default function StudentTraining() {
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">{course.domain}</div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Play className="w-4 h-4 mr-1" />
-                          Preview
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/student/training/${course.id}`}>
+                            <Play className="w-4 h-4 mr-1" />
+                            Preview
+                          </Link>
                         </Button>
                         <Button size="sm" asChild>
-                          <Link href={`/student/training/${course.id}`}>Enroll Now</Link>
+                          <Link href={`/student/training/${course.id}?enroll=true`}>Enroll Now</Link>
                         </Button>
                       </div>
                     </div>
@@ -258,6 +332,12 @@ export default function StudentTraining() {
               )
             })}
           </div>
+          
+          {filteredCourses.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No courses found matching your criteria.</p>
+            </div>
+          )}
         </div>
 
         {/* Progress Section */}
@@ -267,44 +347,38 @@ export default function StudentTraining() {
             <CardDescription>Continue your journey with these ongoing courses</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {[
-              {
-                title: "JavaScript Fundamentals",
-                provider: "CodeAcademy",
-                progress: 75,
-                lessons: "12/16 lessons",
-              },
-              {
-                title: "React Basics",
-                provider: "TechSkills",
-                progress: 45,
-                lessons: "9/20 lessons",
-              },
-            ].map((course, index) => (
-              <div key={index} className="p-4 rounded-lg border">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium">{course.title}</h4>
-                    <p className="text-sm text-muted-foreground">{course.provider}</p>
+            {enrolledCourses.length > 0 ? (
+              enrolledCourses.map((course: any, index: number) => (
+                <div key={index} className="p-4 rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-medium">{course.title}</h4>
+                      <p className="text-sm text-muted-foreground">{course.provider}</p>
+                    </div>
+                    <span className="text-sm font-medium">{course.progress || 0}%</span>
                   </div>
-                  <span className="text-sm font-medium">{course.progress}%</span>
-                </div>
-                <div className="mb-2">
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full" 
-                      style={{ width: `${course.progress}%` }}
-                    ></div>
+                  <div className="mb-2">
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full" 
+                        style={{ width: `${course.progress || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{course.lessons || "0/0 lessons"} completed</span>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/student/training/${course.id}`}>Continue</Link>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{course.lessons} completed</span>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/student/training/continue/${index+1}`}>Continue</Link>
-                  </Button>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
+                <p className="text-sm text-muted-foreground mt-2">Enroll in a course to start tracking your progress.</p>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </div>

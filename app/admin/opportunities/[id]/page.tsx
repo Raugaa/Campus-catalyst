@@ -11,107 +11,61 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, X, Save, Eye, Briefcase, MapPin, Clock, DollarSign } from "lucide-react"
+import { ArrowLeft, Save, Eye, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
-// Preview component for opportunity posting
-function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
-  return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-lg">
-        <h2 className="text-2xl font-bold">{opportunityData.title || "Opportunity Title"}</h2>
-        <p className="text-blue-100">Posted by Admin</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-blue-600" />
-          <span>{opportunityData.jobType || "Opportunity Type"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-blue-600" />
-          <span>{opportunityData.location || "Location"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-blue-600" />
-          <span>{opportunityData.duration || "Duration"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-blue-600" />
-          <span>{opportunityData.stipend || "₹25,000/month"}</span>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold text-lg mb-2">Opportunity Description</h3>
-        <p className="text-gray-600 whitespace-pre-line">{opportunityData.description || "Opportunity description will appear here..."}</p>
-      </div>
-
-      <div>
-        <h3 className="font-semibold text-lg mb-2">Key Responsibilities</h3>
-        <p className="text-gray-600 whitespace-pre-line">{opportunityData.responsibilities || "Responsibilities will appear here..."}</p>
-      </div>
-
-      <div>
-        <h3 className="font-semibold text-lg mb-2">Required Skills</h3>
-        <div className="flex flex-wrap gap-2">
-          {opportunityData.skills && opportunityData.skills.length > 0 ? (
-            opportunityData.skills.map((skill: string, index: number) => (
-              <Badge key={index} variant="secondary">{skill}</Badge>
-            ))
-          ) : (
-            <span className="text-gray-500">Skills will appear here...</span>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold text-lg mb-2">Application Requirements</h3>
-        <ul className="list-disc list-inside text-gray-600 space-y-1">
-          <li>{opportunityData.applicationRequirements?.resume ? "Resume required" : "Resume optional"}</li>
-          <li>{opportunityData.applicationRequirements?.coverLetter ? "Cover letter required" : "Cover letter optional"}</li>
-        </ul>
-      </div>
-    </div>
-  )
+// Mock data for the opportunity
+const mockOpportunity = {
+  id: 1,
+  title: "Software Engineering Intern",
+  company: "TCS",
+  companyLogo: "TC",
+  location: "Mumbai, Maharashtra",
+  type: "Internship",
+  department: "Engineering",
+  workType: "onsite",
+  duration: "3 months",
+  salary: "₹25,000/month",
+  positions: "5",
+  description: "We are looking for a Software Engineering Intern to join our team. You will be working on real projects and gain hands-on experience in software development.",
+  responsibilities: "• Develop and maintain web applications\n• Collaborate with senior developers\n• Participate in code reviews\n• Write unit tests",
+  benefits: "• Flexible work hours\n• Mentorship from senior engineers\n• Certificate of completion\n• Potential for full-time employment",
+  requirements: "• Currently pursuing B.Tech/BE in Computer Science or related field\n• Knowledge of JavaScript, HTML, CSS\n• Familiarity with React is a plus",
+  preferred: "• Experience with Node.js\n• Understanding of database concepts\n• Good problem-solving skills",
+  skills: ["JavaScript", "React", "Node.js"],
+  experienceLevel: "entry",
+  educationLevel: "bachelor",
+  deadline: "2024-02-15",
+  startDate: "2024-03-01",
+  applicationRequirements: {
+    resume: true,
+    coverLetter: true,
+    portfolio: false,
+    transcript: false
+  },
+  visibility: {
+    public: true,
+    featured: false,
+    notifications: true
+  },
+  specialInstructions: "Please mention any relevant projects in your application."
 }
 
-export default function NewOpportunity() {
-  const [skills, setSkills] = useState<string[]>(["React", "Node.js", "JavaScript"])
+export default function EditOpportunityPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const [skills, setSkills] = useState<string[]>(["JavaScript", "React", "Node.js"])
   const [newSkill, setNewSkill] = useState("")
   // State for form data
-  const [opportunityData, setOpportunityData] = useState({
-    title: "",
-    jobType: "",
-    department: "",
-    location: "",
-    workType: "",
-    duration: "",
-    stipend: "",
-    positions: "",
-    description: "",
-    responsibilities: "",
-    benefits: "",
-    requirements: "",
-    preferred: "",
-    experienceLevel: "",
-    educationLevel: "",
-    deadline: "",
-    startDate: "",
-    applicationRequirements: {
-      resume: true,
-      coverLetter: false,
-      portfolio: false,
-      transcript: false
-    },
-    visibility: {
-      public: true,
-      featured: false,
-      notifications: true
-    },
-    specialInstructions: ""
-  })
+  const [opportunityData, setOpportunityData] = useState(mockOpportunity)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
+  useEffect(() => {
+    // In a real application, you would fetch the opportunity data based on the ID
+    console.log("Fetching opportunity with ID:", params.id)
+    // For now, we're using mock data
+  }, [params.id])
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -138,6 +92,82 @@ export default function NewOpportunity() {
     })
   }
 
+  const handleSave = () => {
+    // In a real application, you would save the data to the backend
+    console.log("Saving opportunity:", opportunityData)
+    alert("Opportunity saved successfully!")
+    router.push("/admin/opportunities")
+  }
+
+  const handleDelete = () => {
+    // In a real application, you would delete the opportunity from the backend
+    console.log("Deleting opportunity with ID:", params.id)
+    alert("Opportunity deleted successfully!")
+    router.push("/admin/opportunities")
+  }
+
+  // Preview component for opportunity posting
+  function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-lg">
+          <h2 className="text-2xl font-bold">{opportunityData.title || "Opportunity Title"}</h2>
+          <p className="text-blue-100">Posted by {opportunityData.company || "Company Name"}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Type:</span>
+            <span>{opportunityData.type || "Internship"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Location:</span>
+            <span>{opportunityData.location || "Location"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Duration:</span>
+            <span>{opportunityData.duration || "Duration"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Salary/Stipend:</span>
+            <span>{opportunityData.salary || "₹0/month"}</span>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-lg mb-2">Description</h3>
+          <p className="text-gray-600 whitespace-pre-line">{opportunityData.description || "Description will appear here..."}</p>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-lg mb-2">Key Responsibilities</h3>
+          <p className="text-gray-600 whitespace-pre-line">{opportunityData.responsibilities || "Responsibilities will appear here..."}</p>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-lg mb-2">Required Skills</h3>
+          <div className="flex flex-wrap gap-2">
+            {opportunityData.skills && opportunityData.skills.length > 0 ? (
+              opportunityData.skills.map((skill: string, index: number) => (
+                <Badge key={index} variant="secondary">{skill}</Badge>
+              ))
+            ) : (
+              <span className="text-gray-500">Skills will appear here...</span>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-lg mb-2">Application Requirements</h3>
+          <ul className="list-disc list-inside text-gray-600 space-y-1">
+            <li>{opportunityData.applicationRequirements?.resume ? "Resume required" : "Resume optional"}</li>
+            <li>{opportunityData.applicationRequirements?.coverLetter ? "Cover letter required" : "Cover letter optional"}</li>
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <DashboardLayout userRole="admin">
       <div className="space-y-6">
@@ -153,13 +183,13 @@ export default function NewOpportunity() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Create New Opportunity</h1>
-            <p className="text-muted-foreground">Post a new internship or job opportunity</p>
+            <h1 className="text-3xl font-bold">Edit Opportunity</h1>
+            <p className="text-muted-foreground">Update internship or job opportunity details</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Save className="w-4 h-4 mr-2" />
-              Save Draft
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
             </Button>
             <Dialog>
               <DialogTrigger asChild>
@@ -170,21 +200,24 @@ export default function NewOpportunity() {
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Opportunity Posting Preview</DialogTitle>
+                  <DialogTitle>Opportunity Preview</DialogTitle>
                 </DialogHeader>
                 <div className="max-h-[70vh] overflow-y-auto pr-2">
                   <OpportunityPreview opportunityData={{...opportunityData, skills}} />
                 </div>
               </DialogContent>
             </Dialog>
-            <Button>Publish Opportunity</Button>
+            <Button onClick={handleSave}>
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
           </div>
         </div>
 
         <Tabs defaultValue="basic" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="details">Opportunity Details</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="requirements">Requirements</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -194,13 +227,13 @@ export default function NewOpportunity() {
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Enter the basic details about the position</CardDescription>
+                <CardDescription>Update the basic details about the position</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Opportunity Title *</Label>
+                  <Label htmlFor="title">Opportunity Title *</Label>
                   <Input 
-                    id="jobTitle" 
+                    id="title" 
                     placeholder="e.g., Software Engineering Intern" 
                     value={opportunityData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
@@ -209,8 +242,8 @@ export default function NewOpportunity() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="jobType">Opportunity Type *</Label>
-                    <Select value={opportunityData.jobType} onValueChange={(value) => handleInputChange('jobType', value)}>
+                    <Label htmlFor="type">Opportunity Type *</Label>
+                    <Select value={opportunityData.type} onValueChange={(value) => handleInputChange('type', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select opportunity type" />
                       </SelectTrigger>
@@ -244,7 +277,7 @@ export default function NewOpportunity() {
                     <Label htmlFor="location">Location *</Label>
                     <Input 
                       id="location" 
-                      placeholder="e.g., San Francisco, CA or Remote" 
+                      placeholder="e.g., Mumbai, Maharashtra or Remote" 
                       value={opportunityData.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
                     />
@@ -275,12 +308,12 @@ export default function NewOpportunity() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="stipend">Stipend/Salary</Label>
+                    <Label htmlFor="salary">Salary/Stipend</Label>
                     <Input 
-                      id="stipend" 
+                      id="salary" 
                       placeholder="e.g., ₹25,000/month" 
-                      value={opportunityData.stipend}
-                      onChange={(e) => handleInputChange('stipend', e.target.value)}
+                      value={opportunityData.salary}
+                      onChange={(e) => handleInputChange('salary', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -298,7 +331,7 @@ export default function NewOpportunity() {
             </Card>
           </TabsContent>
 
-          {/* Opportunity Details */}
+          {/* Details */}
           <TabsContent value="details" className="space-y-6">
             <Card>
               <CardHeader>
@@ -307,7 +340,7 @@ export default function NewOpportunity() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="description">Opportunity Description *</Label>
+                  <Label htmlFor="description">Description *</Label>
                   <Textarea
                     id="description"
                     rows={6}
@@ -378,7 +411,7 @@ export default function NewOpportunity() {
                     {skills.map((skill) => (
                       <Badge key={skill} variant="secondary" className="px-3 py-1">
                         {skill}
-                        <X className="w-3 h-3 ml-2 cursor-pointer" onClick={() => removeSkill(skill)} />
+                        <span className="ml-2 cursor-pointer" onClick={() => removeSkill(skill)}>×</span>
                       </Badge>
                     ))}
                   </div>
@@ -390,7 +423,7 @@ export default function NewOpportunity() {
                       onKeyPress={(e) => e.key === "Enter" && addSkill()}
                     />
                     <Button type="button" variant="outline" onClick={addSkill}>
-                      <Plus className="w-4 h-4" />
+                      Add
                     </Button>
                   </div>
                 </div>
@@ -504,7 +537,7 @@ export default function NewOpportunity() {
                         checked={opportunityData.visibility.public}
                         onCheckedChange={(checked) => handleNestedInputChange('visibility', 'public', checked as boolean)}
                       />
-                      <Label htmlFor="public">Make opportunity post public</Label>
+                      <Label htmlFor="public">Make opportunity public</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox 
@@ -512,7 +545,7 @@ export default function NewOpportunity() {
                         checked={opportunityData.visibility.featured}
                         onCheckedChange={(checked) => handleNestedInputChange('visibility', 'featured', checked as boolean)}
                       />
-                      <Label htmlFor="featured">Feature this opportunity post</Label>
+                      <Label htmlFor="featured">Feature this opportunity</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox 
@@ -539,11 +572,37 @@ export default function NewOpportunity() {
             </Card>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline">Save as Draft</Button>
-              <Button>Publish Opportunity</Button>
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(true)}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Opportunity
+              </Button>
+              <Button onClick={handleSave}>
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Opportunity</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p>Are you sure you want to delete this opportunity? This action cannot be undone.</p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

@@ -14,41 +14,41 @@ export default function FacultyPage() {
   const facultyData = [
     {
       id: 1,
-      name: "Dr. Sarah Johnson",
+      name: "Dr. Rahul Verma",
       department: "Computer Science",
-      email: "s.johnson@university.edu",
+      email: "r.verma@iitb.ac.in",
       assignedStudents: 45,
       status: "Active"
     },
     {
       id: 2,
-      name: "Prof. Michael Chen",
+      name: "Prof. Priya Patel",
       department: "Electrical Engineering",
-      email: "m.chen@university.edu",
+      email: "p.patel@iitd.ac.in",
       assignedStudents: 38,
       status: "Active"
     },
     {
       id: 3,
-      name: "Dr. Emily Rodriguez",
+      name: "Dr. Amit Kumar",
       department: "Mechanical Engineering",
-      email: "e.rodriguez@university.edu",
+      email: "a.kumar@iitm.ac.in",
       assignedStudents: 42,
       status: "On Leave"
     },
     {
       id: 4,
-      name: "Prof. David Wilson",
+      name: "Prof. Sneha Desai",
       department: "Information Technology",
-      email: "d.wilson@university.edu",
+      email: "s.desai@bitspilani.ac.in",
       assignedStudents: 35,
       status: "Active"
     },
     {
       id: 5,
-      name: "Dr. Priya Sharma",
+      name: "Dr. Vikram Singh",
       department: "Electronics & Communication",
-      email: "p.sharma@university.edu",
+      email: "v.singh@iitkgp.ac.in",
       assignedStudents: 40,
       status: "Active"
     }

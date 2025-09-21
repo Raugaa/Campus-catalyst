@@ -1,3 +1,5 @@
+"use client"
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,8 +20,12 @@ import {
   Video,
   File,
   Book,
+  Check,
 } from "lucide-react"
 import Link from "next/link"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 // Mock data for training courses
 const trainingCourses = [
@@ -43,8 +49,8 @@ const trainingCourses = [
       { id: 5, title: "Advanced Patterns", duration: "2 hours", lessons: 8 },
     ],
     instructor: {
-      name: "Alex Johnson",
-      title: "Senior Frontend Engineer at TechCorp",
+      name: "Rajesh Kumar",
+      title: "Senior Frontend Engineer at TCS",
       bio: "10+ years of experience in frontend development with expertise in React ecosystem.",
       avatar: "/placeholder-instructor.jpg",
     },
@@ -75,8 +81,8 @@ const trainingCourses = [
       { id: 5, title: "Advanced ML Techniques", duration: "4 hours", lessons: 15 },
     ],
     instructor: {
-      name: "Dr. Sarah Williams",
-      title: "Data Science Lead at AnalyticsPro",
+      name: "Dr. Priya Sharma",
+      title: "Data Science Lead at Infosys",
       bio: "PhD in Data Science with 8 years of industry experience. Specializes in machine learning and big data analytics.",
       avatar: "/placeholder-instructor.jpg",
     },
@@ -93,6 +99,53 @@ export default function TrainingCourseDetail({ params }: { params: { id: string 
   // Find the course based on the ID
   const courseId = parseInt(params.id)
   const course = trainingCourses.find(c => c.id === courseId)
+  
+  // State for enrollment status
+  const [isEnrolled, setIsEnrolled] = useState(false)
+  
+  // Router for navigation
+  const router = useRouter()
+  
+  // Get search params to check for enrollment request
+  const searchParams = useSearchParams()
+  const enrollRequested = searchParams.get('enroll') === 'true'
+  
+  // Check if already enrolled in localStorage
+  useEffect(() => {
+    const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]')
+    const isCourseEnrolled = enrolledCourses.some((c: any) => c.id === courseId)
+    if (isCourseEnrolled) {
+      setIsEnrolled(true)
+    }
+    
+    // If enrollment was requested, automatically enroll the user
+    if (enrollRequested && !isEnrolled && !isCourseEnrolled) {
+      handleEnroll()
+    }
+  }, [enrollRequested, courseId])
+
+  // Handle enrollment
+  const handleEnroll = () => {
+    // In a real app, this would make an API call to enroll the student
+    // For now, we'll just set the state to show the success message
+    setIsEnrolled(true)
+    
+    // Save enrolled course to localStorage
+    if (course) {
+      const enrolledCourses = JSON.parse(localStorage.getItem('enrolledCourses') || '[]')
+      const isAlreadyEnrolled = enrolledCourses.some((c: any) => c.id === course.id)
+      
+      if (!isAlreadyEnrolled) {
+        const updatedEnrolledCourses = [...enrolledCourses, { ...course, progress: 0, lessons: "0/0 lessons" }]
+        localStorage.setItem('enrolledCourses', JSON.stringify(updatedEnrolledCourses))
+      }
+    }
+    
+    // Redirect back to training page with success message after a short delay
+    setTimeout(() => {
+      router.push(`/student/training?enrolled=true&courseId=${courseId}`)
+    }, 2000)
+  }
   
   // If course not found, show a message
   if (!course) {
@@ -123,6 +176,20 @@ export default function TrainingCourseDetail({ params }: { params: { id: string 
           <ChevronRight className="w-4 h-4" />
           <span className="text-foreground truncate">{course.title}</span>
         </div>
+
+        {/* Enrollment Success Message */}
+        {isEnrolled && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+            <Check className="h-5 w-5 text-green-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-green-800">Enrollment Successful!</h3>
+              <p className="text-green-700 text-sm">
+                You have been successfully enrolled in <span className="font-semibold">{course.title}</span>. 
+                Redirecting to your courses page...
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Course Header */}
         <div className="grid gap-6 lg:grid-cols-3">
@@ -175,10 +242,17 @@ export default function TrainingCourseDetail({ params }: { params: { id: string 
                         </div>
                         
                         <div className="space-y-3 mb-4">
-                          <Button className="w-full">
-                            <Play className="w-4 h-4 mr-2" />
-                            Enroll Now
-                          </Button>
+                          {!isEnrolled ? (
+                            <Button className="w-full" onClick={handleEnroll}>
+                              <Play className="w-4 h-4 mr-2" />
+                              Enroll Now
+                            </Button>
+                          ) : (
+                            <Button className="w-full" disabled>
+                              <Check className="w-4 h-4 mr-2" />
+                              Already Enrolled
+                            </Button>
+                          )}
                           <Button variant="outline" className="w-full">
                             <Calendar className="w-4 h-4 mr-2" />
                             Schedule Demo

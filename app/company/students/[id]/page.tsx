@@ -23,9 +23,9 @@ import { useRouter } from "next/navigation"
 // Mock student data - in a real app this would come from an API
 const mockStudentData = {
   id: 1,
-  name: "Ethan Carter",
-  email: "ethan.carter@university.edu",
-  phone: "+1 (555) 123-4567",
+  name: "Rahul Sharma",
+  email: "rahul.sharma@university.edu",
+  phone: "+91 98765 43210",
   college: "KJ Somaiya College of Engineering",
   department: "Computer Science",
   year: "TY",
@@ -36,16 +36,16 @@ const mockStudentData = {
     {
       id: 1,
       title: "Web Developer Intern",
-      company: "TechStart Inc.",
+      company: "TCS",
       duration: "Jun 2023 - Aug 2023",
       description: "Developed responsive web applications using React and Node.js"
     },
     {
       id: 2,
-      title: "Teaching Assistant",
-      company: "University CS Department",
-      duration: "Sep 2022 - Present",
-      description: "Assisted in teaching Data Structures and Algorithms course"
+      title: "Software Engineer Intern",
+      company: "Infosys",
+      duration: "Jan 2023 - Mar 2023",
+      description: "Worked on backend services using Java and Spring Boot"
     }
   ],
   education: [
@@ -55,7 +55,7 @@ const mockStudentData = {
       field: "Computer Science",
       institution: "KJ Somaiya College of Engineering",
       duration: "2021 - 2025",
-      gpa: "3.8/4.0"
+      gpa: "8.5/10"
     }
   ],
   projects: [
@@ -63,13 +63,13 @@ const mockStudentData = {
       id: 1,
       title: "E-commerce Platform",
       description: "Full-stack e-commerce solution with payment integration",
-      technologies: ["React", "Node.js", "MongoDB"]
+      technologies: ["React", "Node.js", "MongoDB", "Express"]
     },
     {
       id: 2,
       title: "Task Management App",
       description: "Collaborative task management application with real-time updates",
-      technologies: ["React Native", "Firebase"]
+      technologies: ["React Native", "Firebase", "Redux"]
     }
   ]
 }

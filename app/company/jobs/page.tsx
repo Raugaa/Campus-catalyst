@@ -49,14 +49,14 @@ interface Job {
 }
 
 export default function CompanyJobs() {
-  const [jobs] = useState<Job[]>([
+  const [jobs, setJobs] = useState<Job[]>([
     {
       id: 1,
       title: "Software Engineering Intern",
-      location: "San Francisco, CA",
+      location: "Mumbai, Maharashtra",
       type: "Internship",
       duration: "3 months",
-      stipend: "$2,000/month",
+      stipend: "₹25,000/month",
       posted: "2 weeks ago",
       deadline: "Dec 15, 2024",
       status: "Active",
@@ -71,7 +71,7 @@ export default function CompanyJobs() {
       location: "Remote",
       type: "Internship",
       duration: "6 months",
-      stipend: "$1,800/month",
+      stipend: "₹30,000/month",
       posted: "1 week ago",
       deadline: "Dec 20, 2024",
       status: "Active",
@@ -83,10 +83,10 @@ export default function CompanyJobs() {
     {
       id: 3,
       title: "Frontend Developer Intern",
-      location: "New York, NY",
+      location: "Bangalore, Karnataka",
       type: "Internship",
       duration: "4 months",
-      stipend: "$2,200/month",
+      stipend: "₹28,000/month",
       posted: "3 weeks ago",
       deadline: "Dec 10, 2024",
       status: "Closing Soon",
@@ -98,10 +98,10 @@ export default function CompanyJobs() {
     {
       id: 4,
       title: "Backend Developer Intern",
-      location: "Austin, TX",
+      location: "Hyderabad, Telangana",
       type: "Internship",
       duration: "3 months",
-      stipend: "$1,900/month",
+      stipend: "₹27,000/month",
       posted: "1 month ago",
       deadline: "Nov 30, 2024",
       status: "Closed",
@@ -113,10 +113,10 @@ export default function CompanyJobs() {
     {
       id: 5,
       title: "Marketing Intern",
-      location: "Los Angeles, CA",
+      location: "Pune, Maharashtra",
       type: "Internship",
       duration: "3 months",
-      stipend: "$1,500/month",
+      stipend: "₹20,000/month",
       posted: "5 days ago",
       deadline: "Jan 15, 2025",
       status: "Draft",
@@ -128,10 +128,10 @@ export default function CompanyJobs() {
     {
       id: 6,
       title: "Product Manager",
-      location: "Seattle, WA",
+      location: "Chennai, Tamil Nadu",
       type: "Full-time",
       duration: "Permanent",
-      stipend: "$120,000/year",
+      stipend: "₹12,00,000/year",
       posted: "2 days ago",
       deadline: "Jan 30, 2025",
       status: "Paused",
@@ -258,9 +258,33 @@ export default function CompanyJobs() {
     }
   }
 
+  // Function to toggle job status between Active and Paused
   const toggleJobStatus = (jobId: number) => {
-    // This would typically update the job in your state management or send to API
-    console.log(`Toggling status for job ${jobId}`)
+    setJobs(prevJobs => 
+      prevJobs.map(job => {
+        if (job.id === jobId) {
+          // If job is Active, pause it. If job is Paused, activate it.
+          if (job.status === "Active") {
+            return { ...job, status: "Paused" }
+          } else if (job.status === "Paused") {
+            return { ...job, status: "Active" }
+          }
+        }
+        return job
+      })
+    )
+  }
+
+  // Function to publish a draft job
+  const publishJob = (jobId: number) => {
+    setJobs(prevJobs => 
+      prevJobs.map(job => {
+        if (job.id === jobId && job.status === "Draft") {
+          return { ...job, status: "Active" }
+        }
+        return job
+      })
+    )
   }
 
   const renderJobCard = (job: Job) => (
@@ -348,7 +372,11 @@ export default function CompanyJobs() {
                 )}
               </Button>
             )}
-            {job.status === "Draft" && <Button size="sm">Publish</Button>}
+            {job.status === "Draft" && (
+              <Button size="sm" onClick={() => publishJob(job.id)}>
+                Publish
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

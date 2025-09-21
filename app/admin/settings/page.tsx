@@ -51,15 +51,15 @@ export default function AdminSettings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="institution-name">Institution Name</Label>
-                    <Input id="institution-name" defaultValue="University of Technology" />
+                    <Input id="institution-name" defaultValue="IIT Bombay" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admin-email">Admin Email</Label>
-                    <Input id="admin-email" type="email" defaultValue="admin@university.edu" />
+                    <Input id="admin-email" type="email" defaultValue="admin@iitb.ac.in" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="support-email">Support Email</Label>
-                    <Input id="support-email" type="email" defaultValue="support@university.edu" />
+                    <Input id="support-email" type="email" defaultValue="support@iitb.ac.in" />
                   </div>
                 </div>
 
@@ -166,7 +166,7 @@ export default function AdminSettings() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="smtp-server">SMTP Server</Label>
-                    <Input id="smtp-server" defaultValue="smtp.university.edu" />
+                    <Input id="smtp-server" defaultValue="smtp.iitb.ac.in" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="smtp-port">SMTP Port</Label>
@@ -380,11 +380,11 @@ export default function AdminSettings() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="smtp-host">SMTP Host</Label>
-                        <Input id="smtp-host" defaultValue="smtp.university.edu" />
+                        <Input id="smtp-host" defaultValue="smtp.iitb.ac.in" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="smtp-username">Username</Label>
-                        <Input id="smtp-username" defaultValue="noreply@university.edu" />
+                        <Input id="smtp-username" defaultValue="noreply@iitb.ac.in" />
                       </div>
                     </div>
                   </div>

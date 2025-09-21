@@ -68,20 +68,6 @@ const navigationItems = {
   ],
 }
 
-type MeResponse =
-  | {
-      user: {
-        id: string
-        email: string
-        role: "STUDENT" | "FACULTY" | "ADMIN" | "COMPANY"
-        student?: { firstName: string; lastName: string; rollNumber: string; department: string; year: string } | null
-        faculty?: { name: string; department: string; designation: string | null } | null
-        admin?: { name: string; department: string | null; college: { name: string; code: string } } | null
-        company?: { name: string; isVerified: boolean; location: string | null } | null
-      }
-    }
-  | { error: string }
-
 export function Sidebar({ userRole, className }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -92,51 +78,34 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   const [companyVerified, setCompanyVerified] = useState<boolean | null>(null)
 
   useEffect(() => {
-    let ignore = false
-    const load = async () => {
-      try {
-        const res = await fetch("/api/auth/me", { method: "GET", credentials: "include" })
-        if (!res.ok) return
-        const data: MeResponse = await res.json()
-        if ("error" in data || !data.user || ignore) return
-
-        const role = data.user.role
-        if (role === "STUDENT" && data.user.student) {
-          const fn = data.user.student.firstName
-          const ln = data.user.student.lastName
-          setDisplayName(`${fn} ${ln}`.trim())
-          setSubtitle(`${data.user.student.department} • ${data.user.student.year}`)
-          setAvatarFallback(`${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST")
-        } else if (role === "FACULTY" && data.user.faculty) {
-          const nm = data.user.faculty.name
-          setDisplayName(nm)
-          setSubtitle(`${data.user.faculty.department}${data.user.faculty.designation ? " • " + data.user.faculty.designation : ""}`)
-          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "FA")
-        } else if (role === "ADMIN" && data.user.admin) {
-          const nm = data.user.admin.name
-          setDisplayName(nm)
-          setSubtitle(`${data.user.admin.college.name} (${data.user.admin.college.code})`)
-          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "AD")
-        } else if (role === "COMPANY" && data.user.company) {
-          const nm = data.user.company.name
-          setDisplayName(nm)
-          setSubtitle(data.user.company.location || "Company")
-          setCompanyVerified(Boolean(data.user.company.isVerified))
-          setAvatarFallback(nm.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() || "CO")
-        } else {
-          setDisplayName(data.user.email)
-          setSubtitle("")
-          setAvatarFallback(data.user.email?.slice(0, 2).toUpperCase() || "U")
-        }
-      } catch {
-        // ignore
-      }
+    // Set mock user data based on role
+    switch (userRole) {
+      case "student":
+        setDisplayName("Rahul Sharma")
+        setSubtitle("Computer Science • Senior")
+        setAvatarFallback("RS")
+        break
+      case "faculty":
+        setDisplayName("Dr. Priya Patel")
+        setSubtitle("Computer Science • Professor")
+        setAvatarFallback("PP")
+        break
+      case "admin":
+        setDisplayName("Placement Cell")
+        setSubtitle("IIT Bombay (IITB)")
+        setAvatarFallback("PC")
+        break
+      case "company":
+        setDisplayName("TCS")
+        setSubtitle("Mumbai, India")
+        setCompanyVerified(true)
+        setAvatarFallback("TC")
+        break
+      default:
+        setDisplayName("User")
+        setAvatarFallback("U")
     }
-    load()
-    return () => {
-      ignore = true
-    }
-  }, [])
+  }, [userRole])
 
   const badgeNode = useMemo(() => {
     const label = userRole.charAt(0).toUpperCase() + userRole.slice(1)
@@ -165,12 +134,9 @@ export function Sidebar({ userRole, className }: SidebarProps) {
     )
   }, [userRole, companyVerified])
 
-  const onLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" })
-    } finally {
-      router.push("/auth/login")
-    }
+  const onLogout = () => {
+    // Redirect to home page instead of login page
+    router.push("/")
   }
 
   return (

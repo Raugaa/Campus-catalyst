@@ -4,7 +4,6 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
-import { AuthProvider } from "@/lib/contexts/AuthContext"
 import "./globals.css"
 
 const inter = Inter({
@@ -40,9 +39,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            {children}
           </ThemeProvider>
           <Analytics />
         </Suspense>

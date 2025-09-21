@@ -36,10 +36,10 @@ const mockJobData = {
   title: "Software Engineering Intern",
   jobType: "Internship",
   department: "Engineering",
-  location: "San Francisco, CA",
+  location: "Mumbai, Maharashtra",
   workType: "Hybrid",
   duration: "3 months",
-  stipend: "$2,000/month",
+  stipend: "₹25,000/month",
   positions: 2,
   description: "We are seeking a talented and motivated Software Engineering Intern to join our dynamic team. As an intern, you will work alongside experienced engineers and actively contribute to software design, development, testing, and deployment. This is an excellent opportunity to learn from industry professionals and contribute to innovative solutions.",
   responsibilities: "• Develop and maintain web applications using React and Node.js\n• Collaborate with design teams to implement user interfaces\n• Write clean, efficient, and well-documented code\n• Participate in code reviews and team meetings\n• Troubleshoot and debug applications",
@@ -70,11 +70,11 @@ const mockJobData = {
 
 // Mock data for applicants
 const mockApplicants = [
-  { id: 1, name: "Ethan Harper", dateApplied: "2023-08-25", status: "Applied" },
-  { id: 2, name: "Olivia Bennett", dateApplied: "2023-08-17", status: "Interview Scheduled" },
-  { id: 3, name: "Noah Carter", dateApplied: "2023-08-18", status: "Rejected" },
-  { id: 4, name: "Ava Mitchell", dateApplied: "2023-08-19", status: "Applied" },
-  { id: 5, name: "Liam Foster", dateApplied: "2023-08-20", status: "Hired" }
+  { id: 1, name: "Rahul Sharma", dateApplied: "2023-08-25", status: "Applied" },
+  { id: 2, name: "Priya Patel", dateApplied: "2023-08-17", status: "Interview Scheduled" },
+  { id: 3, name: "Amit Kumar", dateApplied: "2023-08-18", status: "Rejected" },
+  { id: 4, name: "Sneha Desai", dateApplied: "2023-08-19", status: "Applied" },
+  { id: 5, name: "Vikram Singh", dateApplied: "2023-08-20", status: "Hired" }
 ]
 
 // Mock data for analytics

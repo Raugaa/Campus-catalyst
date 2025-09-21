@@ -123,21 +123,21 @@ export default function AdminDashboard() {
     {
       id: 1,
       title: "Software Engineering Intern",
-      company: "TechCorp Inc.",
+      company: "TCS",
       applications: 45,
       status: "Active",
     },
     {
       id: 2,
       title: "Data Science Intern",
-      company: "DataSoft Solutions",
+      company: "Infosys",
       applications: 32,
       status: "Active",
     },
     {
       id: 3,
       title: "Frontend Developer Intern",
-      company: "WebFlow Agency",
+      company: "Wipro",
       applications: 28,
       status: "Closing Soon",
     },
@@ -212,18 +212,7 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground">Overview of campus internship and placement activities</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/admin/analytics">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                View Analytics
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/admin/opportunities/new">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Opportunity
-              </Link>
-            </Button>
+
           </div>
         </div>
 
@@ -325,12 +314,6 @@ export default function AdminDashboard() {
                     <CardTitle>Top Opportunities</CardTitle>
                     <CardDescription>Most popular internship opportunities</CardDescription>
                   </div>
-                  <Button asChild>
-                    <Link href="/admin/opportunities/new">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Opportunity
-                    </Link>
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -485,11 +468,11 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {[
-                  { name: "TechCorp Inc.", positions: 12, logo: "TC" },
-                  { name: "DataSoft Solutions", positions: 8, logo: "DS" },
-                  { name: "WebFlow Agency", positions: 6, logo: "WA" },
-                  { name: "CloudTech Systems", positions: 5, logo: "CS" },
-                  { name: "AI Dynamics", positions: 4, logo: "AD" },
+                  { name: "TCS", positions: 12, logo: "TC" },
+                  { name: "Infosys", positions: 8, logo: "IS" },
+                  { name: "Wipro", positions: 6, logo: "WP" },
+                  { name: "Tech Mahindra", positions: 5, logo: "TM" },
+                  { name: "HCL Technologies", positions: 4, logo: "HCL" },
                 ].map((company, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">

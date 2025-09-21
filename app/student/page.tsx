@@ -18,52 +18,275 @@ import {
   ArrowRight,
   Bell,
   MapPin,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { useAuth } from "@/lib/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
+// Calendar component
+const CalendarComponent = () => {
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  // Events data - in a real app, this would come from an API
+  const events = [
+    { date: new Date(2025, 8, 15), type: 'interview', title: 'UX/UI Design Interview', company: 'TCS', time: '10:00 AM - 10:30 AM' },
+    { date: new Date(2025, 8, 22), type: 'deadline', title: 'Application Deadline', company: 'Google', time: '11:59 PM' },
+    { date: new Date(2025, 8, 28), type: 'event', title: 'Career Fair', company: 'Campus Event', time: '2:00 PM - 5:00 PM' },
+    { date: new Date(2025, 9, 5), type: 'interview', title: 'Backend Developer Interview', company: 'Infosys', time: '9:00 AM - 9:45 AM' },
+    { date: new Date(2025, 9, 12), type: 'deadline', title: 'Application Deadline', company: 'Microsoft', time: '11:59 PM' },
+    { date: new Date(2025, 10, 3), type: 'interview', title: 'Data Science Interview', company: 'Wipro', time: '1:00 PM - 1:30 PM' },
+    { date: new Date(2025, 10, 18), type: 'event', title: 'Workshop on Resume Building', company: 'Career Services', time: '4:00 PM - 6:00 PM' },
+    { date: new Date(2025, 11, 1), type: 'deadline', title: 'Internship Application Deadline', company: 'Various Companies', time: '11:59 PM' },
+  ]
+
+  // Get the first day of the month
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+  
+  // Get the last day of the month
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+  
+  // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
+  const firstDayOfWeek = firstDayOfMonth.getDay()
+  
+  // Get the number of days in the month
+  const daysInMonth = lastDayOfMonth.getDate()
+  
+  // Get the month name
+  const monthName = currentDate.toLocaleString('default', { month: 'long' })
+  
+  // Get the year
+  const year = currentDate.getFullYear()
+
+  // Helper function to get month name (to match company calendar)
+  const getMonthName = (date: Date) => {
+    return date.toLocaleString('default', { month: 'long' });
+  }
+
+  // Function to get events for a specific date
+  const getEventsForDate = (date: Date | null) => {
+    if (!date) return []
+    return events.filter(event => 
+      event.date.getDate() === date.getDate() &&
+      event.date.getMonth() === date.getMonth() &&
+      event.date.getFullYear() === date.getFullYear()
+    )
+  }
+
+  // Function to check if a date has events
+  const hasEvents = (date: Date | null) => {
+    if (!date) return false
+    return events.some(event => 
+      event.date.getDate() === date.getDate() &&
+      event.date.getMonth() === date.getMonth() &&
+      event.date.getFullYear() === date.getFullYear()
+    )
+  }
+
+  // Function to go to the previous month
+  const goToPreviousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+  }
+
+  // Function to go to the next month
+  const goToNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+  }
+
+  // Function to check if two dates are the same day
+  const isSameDay = (date1: Date | null, date2: Date | null) => {
+    if (!date1 || !date2) return false
+    return date1.getDate() === date2.getDate() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getFullYear() === date2.getFullYear()
+  }
+
+  // Check if a date is today
+  const isToday = (date: Date | null) => {
+    if (!date) return false
+    const today = new Date()
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear()
+  }
+
+  // Generate calendar days
+  const calendarDays = []
+  
+  // Add empty cells for days before the first day of the month
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    calendarDays.push(null)
+  }
+  
+  // Add cells for each day of the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    calendarDays.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))
+  }
+
+  // Get events for selected date
+  const displayedEvents = selectedDate ? getEventsForDate(selectedDate) : []
+
+  // Handle date selection
+  const handleDateSelect = (day: Date | null) => {
+    if (day === null) return
+    setSelectedDate(isSameDay(selectedDate, day) ? null : day)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={goToPreviousMonth}
+            className="p-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span>{getMonthName(currentDate)} {currentDate.getFullYear()}</span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={goToNextMonth}
+            className="p-1"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+        <Calendar className="w-5 h-5 text-muted-foreground" />
+      </div>
+      <div className="grid grid-cols-7 gap-1 mb-3">
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+          <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
+            {day}
+          </div>
+        ))}
+        {calendarDays.map((day, index) => {
+          const dayEvents = day !== null ? getEventsForDate(day) : []
+          const hasMultipleEvents = dayEvents.length > 1
+          
+          return (
+            <div 
+              key={index} 
+              className={`text-center text-sm p-2 rounded-full relative cursor-pointer transition-all duration-200 ${
+                day === null ? 'invisible' : 
+                isSameDay(selectedDate, day) ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary/30 scale-110' : 
+                isToday(day) ? 'bg-muted font-semibold border-2 border-primary animate-pulse' :
+                dayEvents.length > 0 ? 'bg-blue-100 text-blue-800 font-medium hover:bg-blue-200' : 
+                'text-muted-foreground hover:bg-muted'
+              }`}
+              onClick={() => handleDateSelect(day)}
+            >
+              {day ? day.getDate() : ""}
+              {dayEvents.length > 0 && (
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
+                  {hasMultipleEvents ? (
+                    <div className="flex">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full -ml-0.5"></div>
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full -ml-0.5"></div>
+                    </div>
+                  ) : (
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      
+      <div className="mt-4 pt-4 border-t">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <span className="w-2 h-2 bg-primary rounded-full"></span>
+          {selectedDate 
+            ? `Events on ${getMonthName(selectedDate)} ${selectedDate.getDate()}` 
+            : `Upcoming Events`}
+        </h3>
+        {displayedEvents.length > 0 ? (
+          <div className="space-y-3">
+            {displayedEvents.map((event, index) => (
+              <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={`/placeholder.svg?height=40&width=40&text=${event.company.charAt(0)}`} />
+                  <AvatarFallback>{event.company.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{event.title}</p>
+                  <p className="text-sm text-muted-foreground">{event.company}</p>
+                  <p className="text-xs text-primary">
+                    {getMonthName(event.date)} {event.date.getDate()} at {event.time}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : selectedDate ? (
+          <p className="text-muted-foreground text-sm">
+            No events scheduled for {getMonthName(selectedDate)} {selectedDate.getDate()}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {events
+              .filter(event => event.date >= new Date())
+              .slice(0, 3)
+              .map((event, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={`/placeholder.svg?height=40&width=40&text=${event.company.charAt(0)}`} />
+                    <AvatarFallback>{event.company.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{event.title}</p>
+                    <p className="text-sm text-muted-foreground">{event.company}</p>
+                    <p className="text-xs text-primary">
+                      {getMonthName(event.date)} {event.date.getDate()} at {event.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            {events.filter(event => event.date >= new Date()).length === 0 && (
+              <p className="text-muted-foreground text-sm">No upcoming events</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function StudentDashboard() {
-  const { user } = useAuth()
   const router = useRouter()
-  const [selectedDate, setSelectedDate] = useState<number | null>(null)
   const [appliedJobs, setAppliedJobs] = useState<Set<number>>(new Set())
   
+  // Mock user data
+  const user = {
+    student: {
+      firstName: "Rahul"
+    }
+  }
+  
   // Get user's first name for welcome message
-  const userFirstName = user?.student?.firstName || "Student"
+  const userFirstName = user?.student?.firstName || "Rahul"
 
   // Mock data for interviews
   const interviews = [
     {
       id: 1,
       title: "UX/UI Design Interview",
-      company: "TechSolutions",
+      company: "TCS",
       date: "Nov 8",
       time: "9:00 AM"
     }
   ]
 
-  // Mock data for upcoming dates with events
-  const eventDates = [8, 15, 22]
-
   // Handle job application
   const handleApply = (jobId: number) => {
     // Navigate to the job detail page
     router.push(`/student/opportunities/${jobId}`)
-  }
-
-  // Get current month and year
-  const currentDate = new Date()
-  const currentMonth = currentDate.toLocaleString('default', { month: 'long' })
-  const currentYear = currentDate.getFullYear()
-
-  // Calendar days with events
-  const calendarDays = Array.from({ length: 30 }, (_, i) => i + 1)
-  const events = {
-    8: { type: 'interview', title: 'UX/UI Design Interview', company: 'TechSolutions' },
-    15: { type: 'deadline', title: 'Application Deadline', company: 'Google' },
-    22: { type: 'event', title: 'Career Fair', company: 'Campus Event' }
   }
 
   return (
@@ -133,7 +356,7 @@ export default function StudentDashboard() {
                     id: 1,
                     company: "Google",
                     position: "Software Engineering Intern, Fall 2024",
-                    location: "Mountain View, CA",
+                    location: "Bangalore, India",
                     posted: "2 days ago",
                     match: "95% Match",
                     matchStyle: "bg-blue-100 text-blue-800"
@@ -142,7 +365,7 @@ export default function StudentDashboard() {
                     id: 2,
                     company: "Microsoft",
                     position: "Product Manager Intern",
-                    location: "Redmond, WA",
+                    location: "Hyderabad, India",
                     posted: "3 days ago",
                     match: "88% Match",
                     matchStyle: "bg-blue-500 text-white"
@@ -151,28 +374,28 @@ export default function StudentDashboard() {
                     id: 3,
                     company: "Amazon",
                     position: "Data Scientist Intern",
-                    location: "Seattle, WA",
+                    location: "Chennai, India",
                     posted: "4 days ago",
                     match: "85% Match",
                     matchStyle: "bg-blue-500 text-white"
                   },
                   {
                     id: 4,
-                    company: "Salesforce",
-                    position: "UX Designer Intern",
-                    location: "San Francisco, CA",
+                    company: "TCS",
+                    position: "Software Developer Intern",
+                    location: "Mumbai, India",
                     posted: "5 days ago",
-                    match: "81% Match",
+                    match: "92% Match",
                     matchStyle: "bg-blue-500 text-white"
                   },
                   {
                     id: 5,
-                    company: "Netflix",
-                    position: "Software Engineer Intern",
-                    location: "Los Gatos, CA",
+                    company: "Infosys",
+                    position: "System Engineer Intern",
+                    location: "Pune, India",
                     posted: "1 week ago",
-                    match: "74% Match",
-                    matchStyle: "bg-blue-100 text-blue-800"
+                    match: "89% Match",
+                    matchStyle: "bg-blue-500 text-white"
                   }
                 ].map((job, index) => (
                   <div key={index} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
@@ -209,13 +432,13 @@ export default function StudentDashboard() {
                 {[
                   {
                     position: "Software Engineer Intern",
-                    company: "Innovate Inc",
+                    company: "Infosys",
                     progress: 60,
                     status: "In Progress"
                   },
                   {
                     position: "Data Analyst Intern",
-                    company: "QuantumLeap",
+                    company: "Wipro",
                     progress: 100,
                     status: "Offer Received"
                   }
@@ -254,63 +477,7 @@ export default function StudentDashboard() {
                 <CardTitle>Calendar and Interviews</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="text-center mb-3">
-                    <p className="text-sm font-medium">{currentMonth} {currentYear}</p>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                    <span className="font-medium">Mo</span>
-                    <span className="font-medium">Tu</span>
-                    <span className="font-medium">We</span>
-                    <span className="font-medium">Th</span>
-                    <span className="font-medium">Fr</span>
-                    <span className="font-medium">Sa</span>
-                    <span className="font-medium">Su</span>
-                    
-                    {calendarDays.map(day => (
-                      <span 
-                        key={day}
-                        className={`rounded-full w-6 h-6 flex items-center justify-center mx-auto cursor-pointer ${
-                          selectedDate === day 
-                            ? "bg-blue-500 text-white" 
-                            : eventDates.includes(day) 
-                              ? "bg-blue-100 text-blue-800 border border-blue-300" 
-                              : "text-muted-foreground hover:bg-muted"
-                        }`}
-                        onClick={() => setSelectedDate(selectedDate === day ? null : day)}
-                      >
-                        {day}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  {selectedDate && events[selectedDate as keyof typeof events] ? (
-                    // Show events for the selected date
-                    <div>
-                      <p className="text-sm">
-                        <span className="font-medium">
-                          {events[selectedDate as keyof typeof events].title}
-                        </span>
-                      </p>
-                      <p className="text-sm text-blue-600">
-                        {events[selectedDate as keyof typeof events].company}
-                      </p>
-                    </div>
-                  ) : selectedDate ? (
-                    // Show "No events" message when a date is selected but has no events
-                    <p className="text-sm text-muted-foreground">No events scheduled for this date</p>
-                  ) : interviews.length > 0 ? (
-                    // Show upcoming interviews only when no date is selected and there are interviews
-                    interviews.map((interview) => (
-                      <div key={interview.id}>
-                        <p className="text-sm"><span className="font-medium">Upcoming:</span> {interview.title}</p>
-                        <p className="text-sm text-blue-600">{interview.date}, {interview.time} with {interview.company}</p>
-                      </div>
-                    ))
-                  ) : null}
-                </div>
+                <CalendarComponent />
               </CardContent>
             </Card>
 

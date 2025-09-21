@@ -18,7 +18,9 @@ import {
   X,
   Check,
   MoreHorizontal,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
@@ -43,6 +45,16 @@ type Student = {
   department: string;
 };
 
+// Define the interview type
+type Interview = {
+  id: number;
+  name: string;
+  time: string;
+  date: Date;
+  position: string;
+  college: string;
+};
+
 export default function CompanyDashboard() {
   const router = useRouter();
   const [connectedColleges, setConnectedColleges] = useState([
@@ -60,50 +72,75 @@ export default function CompanyDashboard() {
   // State for interview scheduling modal
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [selectedInterviewDate, setSelectedInterviewDate] = useState<number | null>(null);
+  const [selectedInterviewDate, setSelectedInterviewDate] = useState<Date | null>(null);
 
   // Calendar state
-  const [selectedDate, setSelectedDate] = useState<number | null>(null)
-  const [interviews, setInterviews] = useState([
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [interviews, setInterviews] = useState<Interview[]>([
     { 
       id: 1, 
-      name: 'Ethan Carter', 
+      name: 'Rahul Sharma', 
       time: '10:00 AM - 10:30 AM', 
-      date: 3,
+      date: new Date(2025, 8, 3),
       position: 'Software Engineer Intern',
-      college: 'MIT'
+      college: 'IIT Bombay'
     },
     { 
       id: 2, 
-      name: 'Olivia Bennett', 
+      name: 'Priya Patel', 
       time: '2:00 PM - 2:30 PM', 
-      date: 3,
+      date: new Date(2025, 8, 3),
       position: 'Data Analyst Intern',
-      college: 'Stanford'
+      college: 'IIT Delhi'
     },
     { 
       id: 3, 
-      name: 'Liam Harper', 
+      name: 'Amit Kumar', 
       time: '11:00 AM - 11:45 AM', 
-      date: 15,
+      date: new Date(2025, 8, 15),
       position: 'UX Designer',
-      college: 'Harvard'
+      college: 'NIT Trichy'
     },
     { 
       id: 4, 
-      name: 'Ava Foster', 
+      name: 'Sneha Desai', 
       time: '3:30 PM - 4:15 PM', 
-      date: 18,
+      date: new Date(2025, 8, 18),
       position: 'Marketing Intern',
-      college: 'Yale'
+      college: 'IIM Ahmedabad'
     },
     { 
       id: 5, 
-      name: 'Noah Patel', 
+      name: 'Vikram Singh', 
       time: '9:00 AM - 9:30 AM', 
-      date: 22,
+      date: new Date(2025, 8, 22),
       position: 'Backend Developer',
-      college: 'IIT Bombay'
+      college: 'IIT Madras'
+    },
+    { 
+      id: 6, 
+      name: 'Anjali Mehta', 
+      time: '1:00 PM - 1:30 PM', 
+      date: new Date(2025, 9, 5),
+      position: 'Frontend Developer',
+      college: 'BITS Pilani'
+    },
+    { 
+      id: 7, 
+      name: 'Rohan Gupta', 
+      time: '10:30 AM - 11:00 AM', 
+      date: new Date(2025, 9, 12),
+      position: 'Data Scientist',
+      college: 'IIT Kharagpur'
+    },
+    { 
+      id: 8, 
+      name: 'Neha Reddy', 
+      time: '4:00 PM - 4:45 PM', 
+      date: new Date(2025, 10, 8),
+      position: 'Product Manager',
+      college: 'IIM Bangalore'
     }
   ])
 
@@ -116,14 +153,14 @@ export default function CompanyDashboard() {
 
   // Sample student data
   const [students, setStudents] = useState([
-    { id: 1, name: 'Ethan Carter', match: 95, progress: 'Applied', college: 'KJ Somaiya College of Engineering', position: 'Software Engineering Intern', year: 'TY', department: 'Computer Science' },
-    { id: 2, name: 'Olivia Bennett', match: 88, progress: 'Interview', college: 'DY Patil Institute', position: 'Data Science Intern', year: 'LY', department: 'Data Science' },
-    { id: 3, name: 'Liam Harper', match: 92, progress: 'Approved', college: 'Veermata Jijabai Technological Institute', position: 'UX Designer', year: 'SY', department: 'Design' },
-    { id: 4, name: 'Ava Foster', match: 78, progress: 'Hired', college: 'KJ Somaiya College of Engineering', position: 'Marketing Intern', year: 'TY', department: 'Marketing' },
-    { id: 5, name: 'Noah Patel', match: 85, progress: 'Applied', college: 'DY Patil Institute', position: 'Backend Developer', year: 'LY', department: 'Computer Science' },
-    { id: 6, name: 'Emma Johnson', match: 90, progress: 'Interview', college: 'Veermata Jijabai Technological Institute', position: 'Business Analyst', year: 'SY', department: 'Business' },
-    { id: 7, name: 'James Wilson', match: 82, progress: 'Applied', college: 'College of Engineering', position: 'Frontend Developer', year: 'TY', department: 'Computer Science' },
-    { id: 8, name: 'Sophia Garcia', match: 89, progress: 'Interview', college: 'Business School', position: 'Financial Analyst', year: 'LY', department: 'Finance' }
+    { id: 1, name: 'Rahul Sharma', match: 95, progress: 'Applied', college: 'KJ Somaiya College of Engineering', position: 'Software Engineering Intern', year: 'TY', department: 'Computer Science' },
+    { id: 2, name: 'Priya Patel', match: 88, progress: 'Interview', college: 'DY Patil Institute', position: 'Data Science Intern', year: 'LY', department: 'Data Science' },
+    { id: 3, name: 'Amit Kumar', match: 92, progress: 'Approved', college: 'Veermata Jijabai Technological Institute', position: 'UX Designer', year: 'SY', department: 'Design' },
+    { id: 4, name: 'Sneha Desai', match: 78, progress: 'Hired', college: 'KJ Somaiya College of Engineering', position: 'Marketing Intern', year: 'TY', department: 'Marketing' },
+    { id: 5, name: 'Vikram Singh', match: 85, progress: 'Applied', college: 'DY Patil Institute', position: 'Backend Developer', year: 'LY', department: 'Computer Science' },
+    { id: 6, name: 'Anjali Mehta', match: 90, progress: 'Interview', college: 'Veermata Jijabai Technological Institute', position: 'Business Analyst', year: 'SY', department: 'Business' },
+    { id: 7, name: 'Rohan Gupta', match: 82, progress: 'Applied', college: 'College of Engineering', position: 'Frontend Developer', year: 'TY', department: 'Computer Science' },
+    { id: 8, name: 'Neha Reddy', match: 89, progress: 'Interview', college: 'Business School', position: 'Financial Analyst', year: 'LY', department: 'Finance' }
   ])
 
   const handleRejectCollege = (collegeName: string) => {
@@ -139,43 +176,90 @@ export default function CompanyDashboard() {
     setConnectedColleges(connectedColleges.filter(college => college !== collegeName))
   }
 
-  // Get current date for dynamic calendar
-  const today = new Date()
-  const currentMonth = today.toLocaleString('default', { month: 'long' })
-  const currentYear = today.getFullYear()
-  const currentDate = today.getDate()
+  // Calendar functions
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+  }
+
+  const getLastDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  }
+
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }
+
+  const getMonthName = (date: Date) => {
+    return date.toLocaleString('default', { month: 'long' });
+  }
+
+  // Navigate to previous month
+  const goToPreviousMonth = () => {
+    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1));
+  }
+
+  // Navigate to next month
+  const goToNextMonth = () => {
+    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1));
+  }
+
+  // Get interviews for a specific date
+  const getInterviewsForDate = (date: Date | null) => {
+    if (!date) return [];
+    return interviews.filter(interview => 
+      interview.date.getDate() === date.getDate() &&
+      interview.date.getMonth() === date.getMonth() &&
+      interview.date.getFullYear() === date.getFullYear()
+    );
+  }
+
+  // Check if two dates are the same day
+  const isSameDay = (date1: Date | null, date2: Date | null) => {
+    if (!date1 || !date2) return false;
+    return date1.getDate() === date2.getDate() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getFullYear() === date2.getFullYear();
+  }
+
+  // Check if a date is today
+  const isToday = (date: Date | null) => {
+    if (!date) return false;
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+  }
 
   // Generate calendar days
-  const firstDayOfMonth = new Date(currentYear, today.getMonth(), 1).getDay()
-  const daysInMonth = new Date(currentYear, today.getMonth() + 1, 0).getDate()
+  const firstDayOfMonth = getFirstDayOfMonth(currentCalendarDate);
+  const firstDayOfWeek = firstDayOfMonth.getDay();
+  const daysInMonth = getDaysInMonth(currentCalendarDate);
   
-  const calendarDays = []
+  const calendarDays = [];
   // Add empty cells for days before the first day of the month
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    calendarDays.push(null)
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    calendarDays.push(null);
   }
   // Add days of the month
   for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push(i)
+    calendarDays.push(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), i));
   }
 
-  // Get interviews for selected date or today
-  const displayedInterviews = selectedDate 
-    ? interviews.filter(interview => interview.date === selectedDate)
-    : interviews.filter(interview => interview.date === currentDate)
+  // Get interviews for selected date
+  const displayedInterviews = selectedDate ? getInterviewsForDate(selectedDate) : [];
 
   // Handle date selection
-  const handleDateSelect = (day: number | null) => {
-    if (day === null) return
-    setSelectedDate(day === selectedDate ? null : day)
+  const handleDateSelect = (day: Date | null) => {
+    if (day === null) return;
+    setSelectedDate(isSameDay(selectedDate, day) ? null : day);
   }
 
   // Filter students based on selected filters
   const filteredStudents = students.filter(student => {
-    if (filters.college !== 'all' && student.college !== filters.college) return false
-    if (filters.year !== 'all' && student.year !== filters.year) return false
-    if (filters.department !== 'all' && student.department !== filters.department) return false
-    return true
+    if (filters.college !== 'all' && student.college !== filters.college) return false;
+    if (filters.year !== 'all' && student.year !== filters.year) return false;
+    if (filters.department !== 'all' && student.department !== filters.department) return false;
+    return true;
   })
 
   // Get unique values for filter options
@@ -185,6 +269,31 @@ export default function CompanyDashboard() {
 
   // Get count of new applications
   const newApplicationsCount = students.filter(s => s.progress === 'Applied').length
+
+  // Helper function to calculate end time
+  function calculateEndTime(startTime: string): string {
+    // Simple implementation - add 30 minutes
+    const [time, period] = startTime.split(' ');
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    let newHours = hours;
+    let newMinutes = minutes + 30;
+    let newPeriod = period;
+    
+    if (newMinutes >= 60) {
+      newMinutes -= 60;
+      newHours += 1;
+      
+      if (newHours === 12) {
+        newPeriod = period === 'AM' ? 'PM' : 'AM';
+      } else if (newHours > 12) {
+        newHours -= 12;
+        newPeriod = period === 'AM' ? 'PM' : 'AM';
+      }
+    }
+    
+    return `${newHours}:${newMinutes.toString().padStart(2, '0')} ${newPeriod}`;
+  }
 
   return (
     <DashboardLayout userRole="company">
@@ -260,7 +369,25 @@ export default function CompanyDashboard() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between">
-                <span>{currentMonth} {currentYear}</span>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={goToPreviousMonth}
+                    className="p-1"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span>{getMonthName(currentCalendarDate)} {currentCalendarDate.getFullYear()}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={goToNextMonth}
+                    className="p-1"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
                 <Calendar className="w-5 h-5 text-muted-foreground" />
               </CardTitle>
             </CardHeader>
@@ -272,7 +399,7 @@ export default function CompanyDashboard() {
                   </div>
                 ))}
                 {calendarDays.map((day, index) => {
-                  const dayInterviews = day !== null ? interviews.filter(interview => interview.date === day) : [];
+                  const dayInterviews = day !== null ? getInterviewsForDate(day) : [];
                   const hasMultipleInterviews = dayInterviews.length > 1;
                   
                   return (
@@ -280,14 +407,14 @@ export default function CompanyDashboard() {
                       key={index} 
                       className={`text-center text-sm p-2 rounded-full relative cursor-pointer transition-all duration-200 ${
                         day === null ? 'invisible' : 
-                        day === selectedDate ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary/30 scale-110' : 
-                        day === currentDate ? 'bg-muted font-semibold border-2 border-primary animate-pulse' :
+                        isSameDay(selectedDate, day) ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary/30 scale-110' : 
+                        isToday(day) ? 'bg-muted font-semibold border-2 border-primary animate-pulse' :
                         dayInterviews.length > 0 ? 'bg-blue-100 text-blue-800 font-medium hover:bg-blue-200' : 
                         'text-muted-foreground hover:bg-muted'
                       }`}
                       onClick={() => handleDateSelect(day)}
                     >
-                      {day}
+                      {day ? day.getDate() : ""}
                       {dayInterviews.length > 0 && (
                         <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
                           {hasMultipleInterviews ? (
@@ -310,8 +437,8 @@ export default function CompanyDashboard() {
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <span className="w-2 h-2 bg-primary rounded-full"></span>
                   {selectedDate 
-                    ? `Interviews on ${currentMonth} ${selectedDate}` 
-                    : `Interviews Today (${currentMonth} ${currentDate})`}: 
+                    ? `Interviews on ${getMonthName(selectedDate)} ${selectedDate.getDate()}` 
+                    : `Interviews This Month`}
                 </h3>
                 {displayedInterviews.length > 0 ? (
                   <div className="space-y-3">
@@ -330,12 +457,40 @@ export default function CompanyDashboard() {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : selectedDate ? (
                   <p className="text-muted-foreground text-sm">
-                    {selectedDate 
-                      ? `No interviews scheduled for ${currentMonth} ${selectedDate}` 
-                      : 'No interviews scheduled for today'}
+                    No interviews scheduled for {getMonthName(selectedDate)} {selectedDate.getDate()}
                   </p>
+                ) : (
+                  <div className="space-y-3">
+                    {interviews
+                      .filter(interview => 
+                        interview.date.getMonth() === currentCalendarDate.getMonth() && 
+                        interview.date.getFullYear() === currentCalendarDate.getFullYear()
+                      )
+                      .slice(0, 3)
+                      .map((interview) => (
+                        <div key={interview.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={`/placeholder.svg?height=40&width=40&text=${interview.name.charAt(0)}`} />
+                            <AvatarFallback>{interview.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{interview.name}</p>
+                            <p className="text-sm text-muted-foreground">{interview.position}</p>
+                            <p className="text-xs text-primary">
+                              {getMonthName(interview.date)} {interview.date.getDate()} at {interview.time}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    {interviews.filter(interview => 
+                      interview.date.getMonth() === currentCalendarDate.getMonth() && 
+                      interview.date.getFullYear() === currentCalendarDate.getFullYear()
+                    ).length === 0 && (
+                      <p className="text-muted-foreground text-sm">No interviews scheduled for this month</p>
+                    )}
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -621,7 +776,7 @@ export default function CompanyDashboard() {
               </div>
               
               <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">{currentMonth} {currentYear}</h3>
+                <h3 className="font-medium mb-2">{getMonthName(currentCalendarDate)} {currentCalendarDate.getFullYear()}</h3>
                 <div className="grid grid-cols-7 gap-1">
                   {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                     <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-1">
@@ -633,12 +788,12 @@ export default function CompanyDashboard() {
                       key={index} 
                       className={`text-center text-sm p-1 rounded-full cursor-pointer ${
                         day === null ? 'invisible' : 
-                        day === selectedInterviewDate ? 'bg-primary text-primary-foreground' : 
+                        isSameDay(selectedInterviewDate, day) ? 'bg-primary text-primary-foreground' : 
                         'text-muted-foreground hover:bg-muted'
                       }`}
                       onClick={() => day !== null && setSelectedInterviewDate(day)}
                     >
-                      {day}
+                      {day ? day.getDate() : ""}
                     </div>
                   ))}
                 </div>
@@ -655,21 +810,23 @@ export default function CompanyDashboard() {
                         size="sm"
                         onClick={() => {
                           // Add interview to calendar
-                          const newInterview = {
-                            id: interviews.length + 1,
-                            name: selectedStudent.name,
-                            time: `${time} - ${calculateEndTime(time)}`,
-                            date: selectedInterviewDate,
-                            position: selectedStudent.position,
-                            college: selectedStudent.college
-                          };
-                          setInterviews([...interviews, newInterview]);
-                          setStudents(students.map(s => 
-                            s.id === selectedStudent.id ? {...s, progress: 'Interview'} : s
-                          ));
-                          setIsSchedulingModalOpen(false);
-                          setSelectedInterviewDate(null);
-                          console.log(`Interview scheduled for ${selectedStudent.name} on ${currentMonth} ${selectedInterviewDate} at ${time}`);
+                          if (selectedStudent && selectedInterviewDate) {
+                            const newInterview: Interview = {
+                              id: interviews.length + 1,
+                              name: selectedStudent.name,
+                              time: `${time} - ${calculateEndTime(time)}`,
+                              date: selectedInterviewDate,
+                              position: selectedStudent.position,
+                              college: selectedStudent.college
+                            };
+                            setInterviews([...interviews, newInterview]);
+                            setStudents(students.map(s => 
+                              s.id === selectedStudent.id ? {...s, progress: 'Interview'} : s
+                            ));
+                            setIsSchedulingModalOpen(false);
+                            setSelectedInterviewDate(null);
+                            console.log(`Interview scheduled for ${selectedStudent.name} on ${getMonthName(selectedInterviewDate)} ${selectedInterviewDate.getDate()} at ${time}`);
+                          }
                         }}
                       >
                         {time}
@@ -690,29 +847,4 @@ export default function CompanyDashboard() {
       </Dialog>
     </DashboardLayout>
   )
-}
-
-// Helper function to calculate end time
-function calculateEndTime(startTime: string): string {
-  // Simple implementation - add 30 minutes
-  const [time, period] = startTime.split(' ');
-  const [hours, minutes] = time.split(':').map(Number);
-  
-  let newHours = hours;
-  let newMinutes = minutes + 30;
-  let newPeriod = period;
-  
-  if (newMinutes >= 60) {
-    newMinutes -= 60;
-    newHours += 1;
-    
-    if (newHours === 12) {
-      newPeriod = period === 'AM' ? 'PM' : 'AM';
-    } else if (newHours > 12) {
-      newHours -= 12;
-      newPeriod = period === 'AM' ? 'PM' : 'AM';
-    }
-  }
-  
-  return `${newHours}:${newMinutes.toString().padStart(2, '0')} ${newPeriod}`;
 }

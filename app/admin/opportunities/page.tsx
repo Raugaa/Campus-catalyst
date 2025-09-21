@@ -1,3 +1,5 @@
+"use client"
+
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,15 +23,44 @@ import {
   AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface Opportunity {
+  id: number
+  title: string
+  company: string
+  companyLogo: string
+  location: string
+  type: string
+  duration: string
+  applications: number
+  views: number
+  status: string
+  postedDate: string
+  deadline: string
+  salary: string
+  skills: string[]
+}
 
 export default function AdminOpportunities() {
-  const opportunities = [
+  const router = useRouter()
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([
     {
       id: 1,
       title: "Software Engineering Intern",
-      company: "TechCorp Inc.",
+      company: "TCS",
       companyLogo: "TC",
-      location: "San Francisco, CA",
+      location: "Mumbai, Maharashtra",
       type: "Internship",
       duration: "3 months",
       applications: 45,
@@ -37,15 +68,15 @@ export default function AdminOpportunities() {
       status: "Active",
       postedDate: "2024-01-10",
       deadline: "2024-02-15",
-      salary: "$5000/month",
+      salary: "₹25,000/month",
       skills: ["JavaScript", "React", "Node.js"],
     },
     {
       id: 2,
       title: "Data Science Intern",
-      company: "DataSoft Solutions",
-      companyLogo: "DS",
-      location: "New York, NY",
+      company: "Infosys",
+      companyLogo: "IS",
+      location: "Bangalore, Karnataka",
       type: "Internship",
       duration: "4 months",
       applications: 32,
@@ -53,14 +84,14 @@ export default function AdminOpportunities() {
       status: "Active",
       postedDate: "2024-01-08",
       deadline: "2024-02-20",
-      salary: "$4800/month",
+      salary: "₹30,000/month",
       skills: ["Python", "Machine Learning", "SQL"],
     },
     {
       id: 3,
       title: "Frontend Developer Intern",
-      company: "WebFlow Agency",
-      companyLogo: "WA",
+      company: "Wipro",
+      companyLogo: "WP",
       location: "Remote",
       type: "Internship",
       duration: "3 months",
@@ -69,15 +100,15 @@ export default function AdminOpportunities() {
       status: "Closing Soon",
       postedDate: "2024-01-05",
       deadline: "2024-01-25",
-      salary: "$4500/month",
+      salary: "₹28,000/month",
       skills: ["React", "TypeScript", "CSS"],
     },
     {
       id: 4,
       title: "DevOps Engineering Intern",
-      company: "CloudTech Systems",
-      companyLogo: "CS",
-      location: "Austin, TX",
+      company: "Tech Mahindra",
+      companyLogo: "TM",
+      location: "Hyderabad, Telangana",
       type: "Internship",
       duration: "6 months",
       applications: 19,
@@ -85,15 +116,15 @@ export default function AdminOpportunities() {
       status: "Under Review",
       postedDate: "2024-01-12",
       deadline: "2024-03-01",
-      salary: "$5200/month",
+      salary: "₹32,000/month",
       skills: ["AWS", "Docker", "Kubernetes"],
     },
     {
       id: 5,
       title: "UX Design Intern",
-      company: "DesignStudio Pro",
-      companyLogo: "DP",
-      location: "Los Angeles, CA",
+      company: "HCL Technologies",
+      companyLogo: "HCL",
+      location: "Chennai, Tamil Nadu",
       type: "Internship",
       duration: "4 months",
       applications: 41,
@@ -101,10 +132,41 @@ export default function AdminOpportunities() {
       status: "Paused",
       postedDate: "2024-01-03",
       deadline: "2024-02-10",
-      salary: "$4200/month",
+      salary: "₹22,000/month",
       skills: ["Figma", "User Research", "Prototyping"],
     },
-  ]
+  ])
+
+  const [viewingOpportunity, setViewingOpportunity] = useState<Opportunity | null>(null)
+  const [deletingOpportunity, setDeletingOpportunity] = useState<Opportunity | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [typeFilter, setTypeFilter] = useState("all")
+
+  // Filter opportunities based on search and filters
+  const filteredOpportunities = useMemo(() => {
+    return opportunities.filter(opportunity => {
+      const matchesSearch = 
+        opportunity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        opportunity.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        opportunity.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        opportunity.skills.some(skill => 
+          skill.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      
+      const matchesStatus = 
+        statusFilter === "all" || 
+        opportunity.status.toLowerCase().includes(statusFilter.toLowerCase())
+      
+      const matchesType = 
+        typeFilter === "all" || 
+        opportunity.type.toLowerCase().includes(typeFilter.toLowerCase())
+      
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [opportunities, searchTerm, statusFilter, typeFilter])
 
   const stats = [
     { title: "Total Opportunities", value: "156", change: "+12 this month", icon: Briefcase },
@@ -112,6 +174,29 @@ export default function AdminOpportunities() {
     { title: "Total Applications", value: "2,341", change: "+234 this week", icon: Users },
     { title: "Pending Reviews", value: "23", change: "7 urgent", icon: AlertCircle },
   ]
+
+  const handleViewOpportunity = (opportunity: Opportunity) => {
+    setViewingOpportunity(opportunity)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleEditOpportunity = (opportunityId: number) => {
+    // Navigate to edit page using Next.js router
+    router.push(`/admin/opportunities/${opportunityId}`)
+  }
+
+  const handleDeleteOpportunity = (opportunity: Opportunity) => {
+    setDeletingOpportunity(opportunity)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteOpportunity = () => {
+    if (deletingOpportunity) {
+      setOpportunities(opportunities.filter(opp => opp.id !== deletingOpportunity.id))
+      setIsDeleteDialogOpen(false)
+      setDeletingOpportunity(null)
+    }
+  }
 
   return (
     <DashboardLayout userRole="admin">
@@ -157,12 +242,34 @@ export default function AdminOpportunities() {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search opportunities..." className="pl-8 w-64" />
+                <Input 
+                  placeholder="Search opportunities..." 
+                  className="pl-8 w-64" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="closing soon">Closing Soon</SelectItem>
+                  <SelectItem value="under review">Under Review</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="internship">Internship</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -174,7 +281,7 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {opportunities.map((opportunity) => (
+                  {filteredOpportunities.map((opportunity) => (
                     <div
                       key={opportunity.id}
                       className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -244,11 +351,11 @@ export default function AdminOpportunities() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleViewOpportunity(opportunity)}>
                           <Eye className="w-4 h-4 mr-1" />
                           View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleEditOpportunity(opportunity.id)}>
                           <Edit className="w-4 h-4 mr-1" />
                           Edit
                         </Button>
@@ -256,6 +363,7 @@ export default function AdminOpportunities() {
                           variant="outline"
                           size="sm"
                           className="text-destructive hover:text-destructive bg-transparent"
+                          onClick={() => handleDeleteOpportunity(opportunity)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -275,7 +383,7 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {opportunities
+                  {filteredOpportunities
                     .filter((opp) => opp.status === "Active")
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
@@ -309,7 +417,7 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {opportunities
+                  {filteredOpportunities
                     .filter((opp) => opp.status === "Under Review")
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
@@ -353,6 +461,155 @@ export default function AdminOpportunities() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* View Opportunity Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Opportunity Details</DialogTitle>
+              <DialogDescription>
+                Detailed information for {viewingOpportunity?.title}
+              </DialogDescription>
+            </DialogHeader>
+            {viewingOpportunity && (
+              <div className="space-y-6 py-4">
+                <div className="flex items-start gap-4">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage
+                      src={`/placeholder-icon.png?height=64&width=64&text=${viewingOpportunity.companyLogo}`}
+                    />
+                    <AvatarFallback className="text-xl">{viewingOpportunity.companyLogo}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold">{viewingOpportunity.title}</h3>
+                    <p className="text-lg text-muted-foreground">{viewingOpportunity.company}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge
+                        variant={
+                          viewingOpportunity.status === "Active"
+                            ? "default"
+                            : viewingOpportunity.status === "Closing Soon"
+                              ? "destructive"
+                              : viewingOpportunity.status === "Under Review"
+                                ? "secondary"
+                                : "outline"
+                        }
+                      >
+                        {viewingOpportunity.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Location</h4>
+                    <p className="text-muted-foreground flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      {viewingOpportunity.location}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Type</h4>
+                    <p className="text-muted-foreground">{viewingOpportunity.type}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Duration</h4>
+                    <p className="text-muted-foreground flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {viewingOpportunity.duration}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Salary/Stipend</h4>
+                    <p className="text-muted-foreground font-medium">{viewingOpportunity.salary}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Deadline</h4>
+                    <p className="text-muted-foreground">
+                      {new Date(viewingOpportunity.deadline).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Posted Date</h4>
+                    <p className="text-muted-foreground">
+                      {new Date(viewingOpportunity.postedDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Skills Required</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingOpportunity.skills.map((skill) => (
+                      <Badge key={skill} variant="secondary">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <Users className="w-6 h-6 mx-auto text-muted-foreground" />
+                      <p className="text-2xl font-bold mt-2">{viewingOpportunity.applications}</p>
+                      <p className="text-sm text-muted-foreground">Applications</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <Eye className="w-6 h-6 mx-auto text-muted-foreground" />
+                      <p className="text-2xl font-bold mt-2">{viewingOpportunity.views}</p>
+                      <p className="text-sm text-muted-foreground">Views</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <TrendingUp className="w-6 h-6 mx-auto text-muted-foreground" />
+                      <p className="text-2xl font-bold mt-2">
+                        {viewingOpportunity.applications && viewingOpportunity.views
+                          ? Math.round((viewingOpportunity.applications / viewingOpportunity.views) * 100)
+                          : 0}
+                        %
+                      </p>
+                      <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Opportunity</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this opportunity? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            {deletingOpportunity && (
+              <div className="space-y-4">
+                <div className="p-4 bg-destructive/10 rounded-lg">
+                  <p className="text-destructive font-medium">
+                    Warning: This will permanently delete the opportunity "{deletingOpportunity.title}" and all associated data.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={confirmDeleteOpportunity}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
