@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 // Dynamically import Recharts components to avoid SSR issues
 const RechartsComponent = dynamic(
@@ -35,87 +35,45 @@ const RechartsComponent = dynamic(
 
 export default function AdminDashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("ly")
+  const [metrics, setMetrics] = useState<any | null>(null)
+  const [departments, setDepartments] = useState<Array<{ name: string; total: number; placed: number; percentage: number }>>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock data that changes based on selected year
-  const getDepartmentStats = () => {
-    switch (selectedYear) {
-      case "fy":
-        return [
-          { department: "Computer Science", placed: 35, total: 180, rate: 19 },
-          { department: "Electrical Engineering", placed: 25, total: 120, rate: 21 },
-          { department: "Mechanical Engineering", placed: 20, total: 95, rate: 21 },
-          { department: "Information Technology", placed: 22, total: 100, rate: 22 },
-          { department: "Electronics & Communication", placed: 15, total: 85, rate: 18 },
-        ]
-      case "sy":
-        return [
-          { department: "Computer Science", placed: 75, total: 180, rate: 42 },
-          { department: "Electrical Engineering", placed: 55, total: 120, rate: 46 },
-          { department: "Mechanical Engineering", placed: 45, total: 95, rate: 47 },
-          { department: "Information Technology", placed: 50, total: 100, rate: 50 },
-          { department: "Electronics & Communication", placed: 35, total: 85, rate: 41 },
-        ]
-      case "ty":
-        return [
-          { department: "Computer Science", placed: 110, total: 180, rate: 61 },
-          { department: "Electrical Engineering", placed: 75, total: 120, rate: 63 },
-          { department: "Mechanical Engineering", placed: 60, total: 95, rate: 63 },
-          { department: "Information Technology", placed: 65, total: 100, rate: 65 },
-          { department: "Electronics & Communication", placed: 45, total: 85, rate: 53 },
-        ]
-      case "ly":
-      default:
-        return [
-          { department: "Computer Science", placed: 145, total: 180, rate: 81 },
-          { department: "Electrical Engineering", placed: 89, total: 120, rate: 74 },
-          { department: "Mechanical Engineering", placed: 67, total: 95, rate: 71 },
-          { department: "Information Technology", placed: 78, total: 100, rate: 78 },
-          { department: "Electronics & Communication", placed: 56, total: 85, rate: 66 },
-        ]
-    }
-  }
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    // Pass the selected year as a query parameter
+    fetch(`/api/admin/dashboard?year=${selectedYear}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to load dashboard')
+        return res.json()
+      })
+      .then((data) => {
+        if (!isMounted) return
+        setMetrics(data.metrics)
+        setDepartments(data.departments || [])
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+    return () => { isMounted = false }
+  }, [selectedYear]) // Add selectedYear to dependency array
 
-  const getMetricsData = () => {
-    switch (selectedYear) {
-      case "fy":
-        return {
-          totalStudents: 1247,
-          activeCompanies: 89,
-          studentsPlaced: 215,
-          studentsInInternship: 95,
-        }
-      case "sy":
-        return {
-          totalStudents: 1247,
-          activeCompanies: 89,
-          studentsPlaced: 365,
-          studentsInInternship: 142,
-        }
-      case "ty":
-        return {
-          totalStudents: 1247,
-          activeCompanies: 89,
-          studentsPlaced: 415,
-          studentsInInternship: 168,
-        }
-      case "ly":
-      default:
-        return {
-          totalStudents: 1247,
-          activeCompanies: 89,
-          studentsPlaced: 435,
-          studentsInInternship: 189,
-        }
-    }
-  }
-
-  const getBarChartData = () => {
-    const departmentStats = getDepartmentStats()
-    return departmentStats.map(dept => ({
-      name: dept.department,
+  const barChartData = useMemo(() => {
+    if (!departments?.length) return []
+    return departments.map((dept) => ({
+      name: dept.name,
       placed: dept.placed,
-      unplaced: dept.total - dept.placed
+      unplaced: Math.max(dept.total - dept.placed, 0),
     }))
+  }, [departments])
+
+  const generateCSVReport = () => {
+    console.log('Generating CSV report...')
+  }
+
+  const sendBulkEmail = () => {
+    console.log('Sending bulk email...')
   }
 
   // Mock data for top opportunities
@@ -186,20 +144,12 @@ export default function AdminDashboard() {
     }
   }
 
-  const departmentStats = getDepartmentStats()
-  const metrics = getMetricsData()
-  const barChartData = getBarChartData()
-
-  // Function to generate CSV report
-  const generateCSVReport = () => {
-    console.log("Generating CSV report...")
-    // In a real implementation, this would generate and download a CSV file
-  }
-
-  // Function to send bulk email
-  const sendBulkEmail = () => {
-    console.log("Sending bulk email...")
-    // In a real implementation, this would open an email composer or trigger an email sending process
+  // Fallback UI values while loading
+  const safeMetrics = metrics ?? {
+    totalStudents: 0,
+    activeCompanies: 0,
+    studentsPlaced: 0,
+    studentsInInternship: 0,
   }
 
   return (
@@ -224,10 +174,10 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fy">FY</SelectItem>
-                <SelectItem value="sy">SY</SelectItem>
-                <SelectItem value="ty">TY</SelectItem>
-                <SelectItem value="ly">LY</SelectItem>
+                <SelectItem value="FY">FY</SelectItem>
+                <SelectItem value="SY">SY</SelectItem>
+                <SelectItem value="TY">TY</SelectItem>
+                <SelectItem value="LY">LY</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -241,7 +191,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalStudents}</div>
+              <div className="text-2xl font-bold">{safeMetrics.totalStudents}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +12% from last semester
@@ -255,7 +205,7 @@ export default function AdminDashboard() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.activeCompanies}</div>
+              <div className="text-2xl font-bold">{safeMetrics.activeCompanies}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +8 new this month
@@ -269,7 +219,7 @@ export default function AdminDashboard() {
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.studentsPlaced}</div>
+              <div className="text-2xl font-bold">{safeMetrics.studentsPlaced}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +15% from last semester
@@ -283,7 +233,7 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.studentsInInternship}</div>
+              <div className="text-2xl font-bold">{safeMetrics.studentsInInternship ?? 0}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
                 +22% from last year
@@ -446,15 +396,15 @@ export default function AdminDashboard() {
                 <CardDescription>Placement rates by academic department</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {departmentStats.map((dept, index) => (
+                {departments.map((dept, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{dept.department}</span>
+                      <span className="text-sm font-medium">{dept.name}</span>
                       <span className="text-sm text-muted-foreground">
-                        {dept.placed}/{dept.total} ({dept.rate}%)
+                        {dept.placed}/{dept.total} ({dept.percentage}%)
                       </span>
                     </div>
-                    <Progress value={dept.rate} className="h-2" />
+                    <Progress value={dept.percentage} className="h-2" />
                   </div>
                 ))}
               </CardContent>

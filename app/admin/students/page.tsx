@@ -31,32 +31,39 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+<<<<<<< HEAD
 import { useState, useMemo } from "react"
 import { Switch } from "@/components/ui/switch"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
+=======
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Switch } from "@/components/ui/switch"
+import { Progress } from "@/components/ui/progress"
+import { useSearchParams, useRouter } from "next/navigation"
+>>>>>>> admin
 
-interface Student {
-  id: number
+interface UIStudent {
+  id: string
   name: string
   email: string
-  phone: string
-  university: string
+  phone?: string
   department: string
   year: string
-  gpa: string
+  cgpa?: string | number
   status: "Active" | "Placed" | "Inactive"
   applications: number
   interviews: number
   offers: number
   skills: string[]
-  lastActive: string
+  lastActive?: string
   profileCompletion: number
   username?: string
   password?: string
 }
 
 export default function AdminStudents() {
+<<<<<<< HEAD
   const [students, setStudents] = useState<Student[]>([
     {
       id: 1,
@@ -170,6 +177,85 @@ export default function AdminStudents() {
       return matchesSearch && matchesDepartment && matchesStatus && matchesYear
     })
   }, [students, searchTerm, departmentFilter, statusFilter, yearFilter])
+=======
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const tab = (searchParams.get('tab') || 'all') as 'all'|'active'|'placed'|'inactive'|'pending'
+  const q = searchParams.get('q') || ''
+  const dept = searchParams.get('department') || 'all'
+  const year = searchParams.get('year') || 'all'
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string|undefined>()
+  const [total, setTotal] = useState(0)
+  const [students, setStudents] = useState<UIStudent[]>([])
+
+  const statusFilter = useMemo(() => {
+    if (tab === 'active') return 'active'
+    if (tab === 'placed') return 'placed'
+    if (tab === 'inactive') return 'inactive'
+    return undefined
+  }, [tab])
+
+  const buildQuery = useCallback(() => {
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (dept !== 'all') params.set('department', dept)
+    if (year !== 'all') params.set('year', year)
+    if (statusFilter) params.set('status', statusFilter)
+    params.set('take', '20')
+    params.set('skip', '0')
+    return params.toString()
+  }, [q, dept, year, statusFilter])
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError(undefined)
+    fetch(`/api/admin/students?${buildQuery()}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to load students')
+        return res.json()
+      })
+      .then((data) => {
+        if (!isMounted) return
+        const mapped: UIStudent[] = data.students.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          phone: s.phone,
+          department: s.department,
+          year: s.year,
+          cgpa: s.cgpa,
+          status: s.isPlaced ? 'Placed' : (s.status === 'Active' ? 'Active' : 'Inactive'),
+          applications: s.recentApplications?.length ?? 0,
+          interviews: 0,
+          offers: s.placement ? 1 : 0,
+          skills: s.skills ?? [],
+          lastActive: undefined,
+          profileCompletion: 0,
+        }))
+        setStudents(mapped)
+        setTotal(data.total || mapped.length)
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+    return () => { isMounted = false }
+  }, [buildQuery])
+
+  const setParam = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value && value !== 'all') params.set(key, value)
+    else params.delete(key)
+    if (key !== 'tab') params.set('tab', tab)
+    router.push(`/admin/students?${params.toString()}`)
+  }
+
+  const setTab = (value: string) => {
+    setParam('tab', value)
+  }
+>>>>>>> admin
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -197,12 +283,20 @@ export default function AdminStudents() {
     }
   }
 
-  const handleViewStudent = (student: Student) => {
+  // editing/view dialogs state preserved
+  const [editingStudent, setEditingStudent] = useState<UIStudent | null>(null)
+  const [viewingStudent, setViewingStudent] = useState<UIStudent | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [deactivatingStudent, setDeactivatingStudent] = useState<UIStudent | null>(null)
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false)
+
+  const handleViewStudent = (student: UIStudent) => {
     setViewingStudent(student)
     setIsViewDialogOpen(true)
   }
 
-  const handleEditStudent = (student: Student) => {
+  const handleEditStudent = (student: UIStudent) => {
     setEditingStudent(student)
     setIsEditDialogOpen(true)
   }
@@ -215,7 +309,7 @@ export default function AdminStudents() {
     }
   }
 
-  const handleDeactivateStudent = (student: Student) => {
+  const handleDeactivateStudent = (student: UIStudent) => {
     setDeactivatingStudent(student)
     setIsDeactivateDialogOpen(true)
   }
@@ -232,7 +326,7 @@ export default function AdminStudents() {
     }
   }
 
-  const handleActivateStudent = (studentId: number) => {
+  const handleActivateStudent = (studentId: string) => {
     setStudents(students.map(s => 
       s.id === studentId 
         ? { ...s, status: "Active" } 
@@ -240,7 +334,7 @@ export default function AdminStudents() {
     ))
   }
 
-  const updateEditingStudent = (field: keyof Student, value: any) => {
+  const updateEditingStudent = (field: keyof UIStudent, value: any) => {
     if (editingStudent) {
       setEditingStudent({ ...editingStudent, [field]: value })
     }
@@ -265,7 +359,7 @@ export default function AdminStudents() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats (static for now) */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
@@ -326,25 +420,41 @@ export default function AdminStudents() {
                   <Input 
                     placeholder="Search students..." 
                     className="pl-10" 
+<<<<<<< HEAD
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+=======
+                    defaultValue={q}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value)
+                    }}
+>>>>>>> admin
                   />
                 </div>
               </div>
               <div className="flex gap-2">
+<<<<<<< HEAD
                 <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
                   <SelectTrigger className="w-[140px]">
+=======
+                <Select defaultValue={dept} onValueChange={(v) => setParam('department', v)}>
+                  <SelectTrigger className="w-[160px]">
+>>>>>>> admin
                     <SelectValue placeholder="Department" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
                     <SelectItem value="Computer Science">Computer Science</SelectItem>
+<<<<<<< HEAD
                     <SelectItem value="Data Science">Data Science</SelectItem>
+=======
+>>>>>>> admin
                     <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
                     <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
                     <SelectItem value="Information Technology">Information Technology</SelectItem>
                   </SelectContent>
                 </Select>
+<<<<<<< HEAD
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Status" />
@@ -358,14 +468,25 @@ export default function AdminStudents() {
                 </Select>
                 <Select value={yearFilter} onValueChange={setYearFilter}>
                   <SelectTrigger className="w-[100px]">
+=======
+                <Select defaultValue={year} onValueChange={(v) => setParam('year', v)}>
+                  <SelectTrigger className="w-[120px]">
+>>>>>>> admin
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Years</SelectItem>
+<<<<<<< HEAD
                     <SelectItem value="Freshman">Freshman</SelectItem>
                     <SelectItem value="Sophomore">Sophomore</SelectItem>
                     <SelectItem value="Junior">Junior</SelectItem>
                     <SelectItem value="Senior">Senior</SelectItem>
+=======
+                    <SelectItem value="FY">FY</SelectItem>
+                    <SelectItem value="SY">SY</SelectItem>
+                    <SelectItem value="TY">TY</SelectItem>
+                    <SelectItem value="LY">LY</SelectItem>
+>>>>>>> admin
                   </SelectContent>
                 </Select>
               </div>
@@ -373,7 +494,7 @@ export default function AdminStudents() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="all" className="space-y-6">
+        <Tabs defaultValue={tab} value={tab} onValueChange={setTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="all">All Students</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
@@ -383,7 +504,17 @@ export default function AdminStudents() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
+<<<<<<< HEAD
             {filteredStudents.map((student) => (
+=======
+            {loading && (
+              <div className="text-sm text-muted-foreground">Loading students...</div>
+            )}
+            {error && (
+              <div className="text-sm text-destructive">{error}</div>
+            )}
+            {!loading && !error && students.map((student) => (
+>>>>>>> admin
               <Card key={student.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-4">
@@ -402,21 +533,30 @@ export default function AdminStudents() {
                             <Mail className="w-3 h-3" />
                             {student.email}
                           </div>
+<<<<<<< HEAD
                           <div className="flex items-center gap-1">
                             <Phone className="w-3 h-3" />
                             {student.phone}
                           </div>
                           <div>Username: {student.username || "Not set"}</div>
+=======
+                          {student.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {student.phone}
+                            </div>
+                          )}
+                          <div>{student.department}</div>
+>>>>>>> admin
                           <div>
-                            {student.department} • {student.year}
+                            {student.year}
                           </div>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <span>GPA: {student.gpa}</span>
+                          {student.cgpa && <span>CGPA: {student.cgpa}</span>}
                           <span>{student.applications} applications</span>
                           <span>{student.interviews} interviews</span>
                           <span>{student.offers} offers</span>
-                          <span>Profile: {student.profileCompletion}%</span>
                         </div>
                         <div className="flex flex-wrap gap-1 mb-2">
                           {student.skills.slice(0, 4).map((skill) => (
@@ -430,7 +570,6 @@ export default function AdminStudents() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
                       </div>
                     </div>
                     <Badge variant="secondary" className="px-3 py-1">
@@ -441,6 +580,7 @@ export default function AdminStudents() {
 
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex gap-2">
+<<<<<<< HEAD
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -459,6 +599,260 @@ export default function AdminStudents() {
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
+=======
+                      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleViewStudent(student)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Profile
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Student Profile</DialogTitle>
+                            <DialogDescription>
+                              Detailed information for {student.name}
+                            </DialogDescription>
+                          </DialogHeader>
+                          {viewingStudent && (
+                            <div className="space-y-6 py-4">
+                              <div className="flex flex-col md:flex-row gap-6">
+                                <div className="flex flex-col items-center">
+                                  <Avatar className="w-24 h-24 mb-4">
+                                    <AvatarImage src={`/placeholder-40x40.png?height=96&width=96&text=${viewingStudent.name[0]}`} />
+                                    <AvatarFallback className="text-2xl">{viewingStudent.name[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <Badge variant="secondary" className="px-3 py-1">
+                                    <div className={`w-2 h-2 rounded-full ${getStatusColor(viewingStudent.status)} mr-2`} />
+                                    {viewingStudent.status}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="flex-1 space-y-4">
+                                  <div>
+                                    <h3 className="text-2xl font-bold">{viewingStudent.name}</h3>
+                                    <p className="text-muted-foreground">{viewingStudent.department}</p>
+                                  </div>
+                                  
+                                  <div className="grid gap-2 md:grid-cols-2">
+                                    <div>
+                                      <Label className="text-sm font-medium">Email</Label>
+                                      <p className="text-sm">{viewingStudent.email}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Phone</Label>
+                                      <p className="text-sm">{viewingStudent.phone}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Department</Label>
+                                      <p className="text-sm">{viewingStudent.department}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Year</Label>
+                                      <p className="text-sm">{viewingStudent.year}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">CGPA</Label>
+                                      <p className="text-sm">{String(viewingStudent.cgpa ?? '')}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-sm font-medium">Profile Completion</Label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Progress value={viewingStudent.profileCompletion} className="w-full" />
+                                      <span className="text-sm font-medium">{viewingStudent.profileCompletion}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-4">
+                                <div>
+                                  <h4 className="text-lg font-semibold mb-2">Skills</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {viewingStudent.skills.map((skill) => (
+                                      <Badge key={skill} variant="secondary">
+                                        {skill}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                <div className="grid gap-4 md:grid-cols-3">
+                                  <Card>
+                                    <CardContent className="pt-4">
+                                      <div className="text-center">
+                                        <p className="text-2xl font-bold">{viewingStudent.applications}</p>
+                                        <p className="text-sm text-muted-foreground">Applications</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card>
+                                    <CardContent className="pt-4">
+                                      <div className="text-center">
+                                        <p className="text-2xl font-bold">{viewingStudent.interviews}</p>
+                                        <p className="text-sm text-muted-foreground">Interviews</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card>
+                                    <CardContent className="pt-4">
+                                      <div className="text-center">
+                                        <p className="text-2xl font-bold">{viewingStudent.offers}</p>
+                                        <p className="text-sm text-muted-foreground">Offers</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+                                
+                                <div>
+                                  <h4 className="text-lg font-semibold mb-2">Activity</h4>
+                                  <p className="text-sm text-muted-foreground">Last active: {viewingStudent.lastActive}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <div className="flex gap-2">
+                      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleEditStudent(student)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Edit Student Profile</DialogTitle>
+                            <DialogDescription>
+                              Update information for {student.name}
+                            </DialogDescription>
+                          </DialogHeader>
+                          {editingStudent && (
+                            <div className="space-y-6 py-4">
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor="name">Full Name</Label>
+                                  <Input
+                                    id="name"
+                                    value={editingStudent.name}
+                                    onChange={(e) => updateEditingStudent("name", e.target.value)}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="email">Email</Label>
+                                  <Input
+                                    id="email"
+                                    type="email"
+                                    value={editingStudent.email}
+                                    onChange={(e) => updateEditingStudent("email", e.target.value)}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor="phone">Phone Number</Label>
+                                  <Input
+                                    id="phone"
+                                    value={editingStudent.phone}
+                                    onChange={(e) => updateEditingStudent("phone", e.target.value)}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="department2">Department</Label>
+                                  <Input
+                                    id="department2"
+                                    value={editingStudent.department}
+                                    onChange={(e) => updateEditingStudent("department", e.target.value)}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor="year">Year</Label>
+                                  <Select
+                                    value={editingStudent.year}
+                                    onValueChange={(value) => updateEditingStudent("year", value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Freshman">Freshman</SelectItem>
+                                      <SelectItem value="Sophomore">Sophomore</SelectItem>
+                                      <SelectItem value="Junior">Junior</SelectItem>
+                                      <SelectItem value="Senior">Senior</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="cgpa">CGPA</Label>
+                                  <Input
+                                    id="cgpa"
+                                    value={String(editingStudent.cgpa ?? '')}
+                                    onChange={(e) => updateEditingStudent("cgpa", e.target.value)}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor="status">Status</Label>
+                                  <Select
+                                    value={editingStudent.status}
+                                    onValueChange={(value: "Active" | "Placed" | "Inactive") => 
+                                      updateEditingStudent("status", value)
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Active">Active</SelectItem>
+                                      <SelectItem value="Placed">Placed</SelectItem>
+                                      <SelectItem value="Inactive">Inactive</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="skills">Skills (comma separated)</Label>
+                                <Textarea
+                                  id="skills"
+                                  value={editingStudent.skills.join(", ")}
+                                  onChange={(e) => updateEditingStudent("skills", e.target.value.split(",").map(s => s.trim()))}
+                                />
+                              </div>
+
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                                  Cancel
+                                </Button>
+                                <Button onClick={handleSaveStudent}>
+                                  Save Changes
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+>>>>>>> admin
 
                       {student.status === "Inactive" && (
                         <Button 
@@ -484,6 +878,7 @@ export default function AdminStudents() {
             ))}
           </TabsContent>
 
+          {/* The other tabs keep placeholder text for now */}
           <TabsContent value="active" className="space-y-4">
             {filteredStudents.filter(student => student.status === "Active").length > 0 ? (
               filteredStudents.filter(student => student.status === "Active").map((student) => (
