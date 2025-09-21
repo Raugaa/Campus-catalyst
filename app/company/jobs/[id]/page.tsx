@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -122,6 +123,15 @@ export default function DetailedJobPosting({ params }: { params: { id: string } 
     setIsEditing(false)
   }
 
+  const router = useRouter();
+  const handleDelete = (id: number) => {
+  if (confirm("Are you sure you want to delete this job posting?")) {
+    // TODO: call your API to delete the job
+    console.log("Deleted job with id:", id);
+    router.push("/company/jobs");
+  }
+}
+
   const handleInputChange = (field: string, value: string | boolean | number) => {
     setEditedJob({ ...editedJob, [field]: value })
   }
@@ -174,10 +184,24 @@ export default function DetailedJobPosting({ params }: { params: { id: string } 
                   </Button>
                 </>
               ) : (
-                <Button variant="secondary" className="bg-white/90 hover:bg-white" onClick={handleEdit}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
+                <>
+                  <Button
+                    variant="secondary"
+                    className="bg-white/90 hover:bg-white"
+                    onClick={handleEdit}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="bg-red-600 hover:bg-red-700"
+                    onClick={() => handleDelete(job.id)}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </>
               )}
             </div>
           </div>
