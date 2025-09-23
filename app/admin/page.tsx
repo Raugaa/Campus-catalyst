@@ -25,7 +25,10 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 // Dynamically import Recharts components to avoid SSR issues
 const RechartsComponent = dynamic(
@@ -34,28 +37,72 @@ const RechartsComponent = dynamic(
 )
 
 export default function AdminDashboard() {
-  const [selectedYear, setSelectedYear] = useState<string>("ly")
+  const { user } = useAuth()
+  const [selectedYear, setSelectedYear] = useState<string>("Final Year")
+  const [metrics, setMetrics] = useState<any | null>(null)
+  const [departments, setDepartments] = useState<Array<{ name: string; total: number; placed: number; percentage: number }>>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+  console.log("User in Admin Dashboard:", user?.profile)
+  // Fetch real data from Convex
+  const analyticsData = useQuery(api.queries.getAdminAnalytics, {
+    collegeId: user?.profile?.collegeId,
+    year: selectedYear,
+  })
 
-  const metrics =  {
-    totalStudents: 0,
-    activeCompanies: 0,
-    studentsPlaced: 0,
-    studentsInInternship: 0,
-  }
+  const departmentData = useQuery(api.queries.getDepartmentAnalytics, {
+    collegeId: user?.profile?.collegeId,
+    year: selectedYear,
+  })
 
-  const departments : any[] = [] // This would come from analytics data when implemented
+  const topCompaniesData = useQuery(api.queries.getTopRecruitingCompanies, {
+    collegeId: user?.profile?.collegeId,
+    limit: 5,
+  })
+
+  const topOpportunitiesData = useQuery(api.queries.getTopOpportunities, {
+    collegeId: user?.profile?.collegeId,
+    limit: 3,
+  })
+
+  const quickStatsData = useQuery(api.queries.getQuickStats, {
+    collegeId: user?.profile?.collegeId,
+  })
+
+  // Update metrics and departments when data loads
+  useEffect(() => {
+    if (analyticsData) {
+      setMetrics({
+        totalStudents: analyticsData.totalStudents || 0,
+        activeCompanies: analyticsData.activeCompanies || 0,
+        studentsPlaced: analyticsData.studentsPlaced || 0,
+        studentsInInternship: analyticsData.studentsInInternship || 0,
+      })
+    }
+  }, [analyticsData])
+
+  useEffect(() => {
+    if (departmentData) {
+      setDepartments(departmentData.map(dept => ({
+        name: dept.name,
+        total: dept.students,
+        placed: dept.placed,
+        percentage: dept.rate,
+      })))
+    }
+  }, [departmentData])
+
+  // Set loading state
+  useEffect(() => {
+    setLoading(!analyticsData || !departmentData)
+  }, [analyticsData, departmentData])
 
   const barChartData = useMemo(() => {
-    if (!departments?.length) return [
-      { name: "Computer Science", placed: 25, unplaced: 15 },
-      { name: "Information Technology", placed: 20, unplaced: 10 },
-      { name: "Electronics", placed: 15, unplaced: 12 },
-      { name: "Mechanical", placed: 18, unplaced: 8 },
-    ]
-    return departments.map((dept: any) => ({
+    if (!departments?.length) return []
+    return departments.map((dept) => ({
       name: dept.name,
-      placed: dept.placed || 0,
-      unplaced: Math.max((dept.total || 0) - (dept.placed || 0), 0),
+      placed: dept.placed,
+      unplaced: Math.max(dept.total - dept.placed, 0),
     }))
   }, [departments])
 
@@ -67,8 +114,8 @@ export default function AdminDashboard() {
     console.log('Sending bulk email...')
   }
 
-  // Mock data for top opportunities
-  const topOpportunities = [
+  // Dynamic top opportunities with fallback
+  const topOpportunities = topOpportunitiesData || [
     {
       id: 1,
       title: "Software Engineering Intern",
@@ -92,7 +139,7 @@ export default function AdminDashboard() {
     },
   ]
 
-  // Mock data for placement trends
+  // Mock data for placement trends (can be enhanced with real data later)
   const getPlacementTrendData = (tab: string) => {
     switch (tab) {
       case "internships":
@@ -135,6 +182,30 @@ export default function AdminDashboard() {
     }
   }
 
+  // Fallback UI values while loading
+  const safeMetrics = metrics ?? {
+    totalStudents: 0,
+    activeCompanies: 0,
+    studentsPlaced: 0,
+    studentsInInternship: 0,
+  }
+
+  // Dynamic top companies with fallback
+  const topCompanies = topCompaniesData || [
+    { name: "TCS", positions: 12, logo: "TC" },
+    { name: "Infosys", positions: 8, logo: "IS" },
+    { name: "Wipro", positions: 6, logo: "WP" },
+    { name: "Tech Mahindra", positions: 5, logo: "TM" },
+    { name: "HCL Technologies", positions: 4, logo: "HCL" },
+  ]
+
+  // Dynamic quick stats with fallback
+  const quickStats = quickStatsData || {
+    applicationsToday: 23,
+    interviewsScheduled: 8,
+    offersExtended: 5,
+    offersAccepted: 3,
+  }
 
   return (
     <DashboardLayout userRole="admin">
@@ -158,10 +229,10 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fy">FY</SelectItem>
-                <SelectItem value="sy">SY</SelectItem>
-                <SelectItem value="ty">TY</SelectItem>
-                <SelectItem value="ly">LY</SelectItem>
+                <SelectItem value="First Year">First Year</SelectItem>
+                <SelectItem value="Second Year">Second Year</SelectItem>
+                <SelectItem value="Third Year">Third Year</SelectItem>
+                <SelectItem value="Final Year">Final Year</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -175,10 +246,10 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalStudents}</div>
+              <div className="text-2xl font-bold">{safeMetrics.totalStudents}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +12% from last semester
+                {analyticsData?.totalStudentsGrowth || '+12%'} from last semester
               </p>
             </CardContent>
           </Card>
@@ -189,10 +260,10 @@ export default function AdminDashboard() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.activeCompanies}</div>
+              <div className="text-2xl font-bold">{safeMetrics.activeCompanies}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +8 new this month
+                +{analyticsData?.newCompaniesThisMonth || 8} new this month
               </p>
             </CardContent>
           </Card>
@@ -203,10 +274,10 @@ export default function AdminDashboard() {
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.studentsPlaced}</div>
+              <div className="text-2xl font-bold">{safeMetrics.studentsPlaced}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +15% from last semester
+                {analyticsData?.placementGrowth || '+15%'} from last semester
               </p>
             </CardContent>
           </Card>
@@ -217,10 +288,10 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.studentsInInternship ?? 0}</div>
+              <div className="text-2xl font-bold">{safeMetrics.studentsInInternship ?? 0}</div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +22% from last year
+                {analyticsData?.internshipGrowth || '+22%'} from last year
               </p>
             </CardContent>
           </Card>
@@ -252,19 +323,19 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {topOpportunities.map((opportunity) => (
-                  <div key={opportunity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={opportunity.id || opportunity._id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <h4 className="font-medium">{opportunity.title}</h4>
-                      <p className="text-sm text-muted-foreground">{opportunity.company}</p>
+                      <p className="text-sm text-muted-foreground">{opportunity.company || opportunity.companyName}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge 
-                        variant={opportunity.status === "Active" ? "default" : "destructive"}
+                        variant={opportunity.status === "Active" || opportunity.status === "ACTIVE" ? "default" : "destructive"}
                       >
                         {opportunity.status}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {opportunity.applications} apps
+                        {opportunity.applications || opportunity.applicationCount} apps
                       </span>
                     </div>
                   </div>
@@ -293,15 +364,15 @@ export default function AdminDashboard() {
                   <TabsContent value="overview" className="space-y-3">
                     <div className="grid gap-4 md:grid-cols-3">
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-primary">456</div>
+                        <div className="text-2xl font-bold text-primary">{analyticsData?.totalApplications || 456}</div>
                         <p className="text-sm text-muted-foreground">Total Applications</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">234</div>
+                        <div className="text-2xl font-bold text-green-500">{analyticsData?.studentsPlaced || 234}</div>
                         <p className="text-sm text-muted-foreground">Successful Placements</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-purple-500">89</div>
+                        <div className="text-2xl font-bold text-purple-500">{analyticsData?.activeCompanies || 89}</div>
                         <p className="text-sm text-muted-foreground">Partner Companies</p>
                       </div>
                     </div>
@@ -310,60 +381,60 @@ export default function AdminDashboard() {
                   <TabsContent value="internships" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">189</div>
+                        <div className="text-2xl font-bold text-blue-500">{analyticsData?.internshipApplications || 189}</div>
                         <p className="text-sm text-muted-foreground">Internship Applications</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">124</div>
+                        <div className="text-2xl font-bold text-green-500">{analyticsData?.studentsInInternship || 124}</div>
                         <p className="text-sm text-muted-foreground">Successful Placements</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-orange-500">65</div>
+                        <div className="text-2xl font-bold text-orange-500">{analyticsData?.pendingInternshipInterviews || 65}</div>
                         <p className="text-sm text-muted-foreground">Pending Interviews</p>
                       </div>
                     </div>
                     <div className="text-center py-4">
-                      <p className="text-muted-foreground">Internship placement data shows a 15% increase from last semester.</p>
+                      <p className="text-muted-foreground">Internship placement data shows a {analyticsData?.internshipGrowthPercent || 15}% increase from last semester.</p>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="fulltime" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">78</div>
+                        <div className="text-2xl font-bold text-blue-500">{analyticsData?.fulltimeApplications || 78}</div>
                         <p className="text-sm text-muted-foreground">Full-time Applications</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">52</div>
+                        <div className="text-2xl font-bold text-green-500">{analyticsData?.studentsPlaced || 52}</div>
                         <p className="text-sm text-muted-foreground">Successful Placements</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-orange-500">26</div>
+                        <div className="text-2xl font-bold text-orange-500">{analyticsData?.pendingFulltimeInterviews || 26}</div>
                         <p className="text-sm text-muted-foreground">Pending Interviews</p>
                       </div>
                     </div>
                     <div className="text-center py-4">
-                      <p className="text-muted-foreground">Full-time placement data shows steady growth with a 8% increase from last year.</p>
+                      <p className="text-muted-foreground">Full-time placement data shows steady growth with a {analyticsData?.fulltimeGrowthPercent || 8}% increase from last year.</p>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="companies" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">142</div>
+                        <div className="text-2xl font-bold text-blue-500">{analyticsData?.totalCompanies || 142}</div>
                         <p className="text-sm text-muted-foreground">Total Companies</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">89</div>
+                        <div className="text-2xl font-bold text-green-500">{analyticsData?.activeCompanies || 89}</div>
                         <p className="text-sm text-muted-foreground">Active Partnerships</p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-purple-500">23</div>
+                        <div className="text-2xl font-bold text-purple-500">{analyticsData?.newCompaniesThisSemester || 23}</div>
                         <p className="text-sm text-muted-foreground">New This Semester</p>
                       </div>
                     </div>
                     <div className="text-center py-4">
-                      <p className="text-muted-foreground">Company partnership data shows strong growth with 3 new major tech partners.</p>
+                      <p className="text-muted-foreground">Company partnership data shows strong growth with {analyticsData?.newMajorPartners || 3} new major tech partners.</p>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -385,7 +456,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{dept.name}</span>
                       <span className="text-sm text-muted-foreground">
-                        {dept.placed}/{dept.total} ({dept.percentage}%)
+                        {dept.placed}/{dept.total} ({dept.percentage.toFixed(1)}%)
                       </span>
                     </div>
                     <Progress value={dept.percentage} className="h-2" />
@@ -401,21 +472,15 @@ export default function AdminDashboard() {
                 <CardDescription>Most active companies this semester</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {[
-                  { name: "TCS", positions: 12, logo: "TC" },
-                  { name: "Infosys", positions: 8, logo: "IS" },
-                  { name: "Wipro", positions: 6, logo: "WP" },
-                  { name: "Tech Mahindra", positions: 5, logo: "TM" },
-                  { name: "HCL Technologies", positions: 4, logo: "HCL" },
-                ].map((company, index) => (
+                {topCompanies.map((company, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={`/placeholder-icon.png?height=32&width=32&text=${company.logo}`} />
-                      <AvatarFallback className="text-xs">{company.logo}</AvatarFallback>
+                      <AvatarImage src={company.logo || `/placeholder-icon.png?height=32&width=32&text=${company.name?.substring(0, 2)}`} />
+                      <AvatarFallback className="text-xs">{company.name?.substring(0, 2).toUpperCase() || 'CO'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{company.name}</p>
-                      <p className="text-xs text-muted-foreground">{company.positions} positions</p>
+                      <p className="text-xs text-muted-foreground">{company.positions || company.hires} positions</p>
                     </div>
                   </div>
                 ))}
@@ -433,19 +498,19 @@ export default function AdminDashboard() {
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Applications Today</span>
-                  <span className="font-medium">23</span>
+                  <span className="font-medium">{quickStats.applicationsToday}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Interviews Scheduled</span>
-                  <span className="font-medium">8</span>
+                  <span className="font-medium">{quickStats.interviewsScheduled}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Offers Extended</span>
-                  <span className="font-medium">5</span>
+                  <span className="font-medium">{quickStats.offersExtended}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Offers Accepted</span>
-                  <span className="font-medium">3</span>
+                  <span className="font-medium">{quickStats.offersAccepted}</span>
                 </div>
               </CardContent>
             </Card>

@@ -1,3 +1,5 @@
+"use client"
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -5,9 +7,108 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart3, TrendingUp, GraduationCap, Download, Calendar, ArrowUp, ArrowDown } from "lucide-react"
+import { 
+  BarChart3, 
+  TrendingUp, 
+  Download, 
+  ArrowUp, 
+  ArrowDown,
+  Target,
+  Award,
+  Clock
+} from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import { useMemo, useState } from "react"
+import dynamic from 'next/dynamic'
+
+// Dynamically import chart components to avoid SSR issues
+const SalaryTrendsChart = dynamic(
+  () => import('@/components/admin/charts/salary-trends-chart').then(mod => ({ default: mod.SalaryTrendsChart })),
+  { ssr: false }
+)
+
+const ApplicationTrendsChart = dynamic(
+  () => import('@/components/admin/charts/application-trends-chart').then(mod => ({ default: mod.ApplicationTrendsChart })),
+  { ssr: false }
+)
 
 export default function AdminAnalytics() {
+  const { user } = useAuth()
+  const [timePeriod, setTimePeriod] = useState("semester")
+  
+  // Get all analytics data from database
+  const analyticsData = useQuery(api.queries.getAdminAnalytics, {
+    collegeId: user?.profile?.collegeId,
+  })
+
+  const departmentData = useQuery(api.queries.getDepartmentAnalytics, {
+    collegeId: user?.profile?.collegeId,
+  })
+
+  const topCompanies = useQuery(api.queries.getTopRecruitingCompanies, {
+    collegeId: user?.profile?.collegeId,
+    limit: 5,
+  })
+
+  const industryDistribution = useQuery(api.queries.getIndustryDistribution, {
+    collegeId: user?.profile?.collegeId,
+  })
+
+  const applicationTrends = useQuery(api.queries.getApplicationTrends, {
+    collegeId: user?.profile?.collegeId,
+  })
+
+  const salaryTrends = useQuery(api.queries.getSalaryTrends, {
+    collegeId: user?.profile?.collegeId,
+  })
+
+  const loading = !analyticsData || !departmentData || !topCompanies || !industryDistribution
+
+  // Calculate derived metrics
+  const metrics = useMemo(() => {
+    if (!analyticsData) return null
+
+    const placementRate = analyticsData.totalStudents > 0 
+      ? (analyticsData.studentsPlaced / analyticsData.totalStudents) * 100 
+      : 0
+
+    const internshipRate = analyticsData.totalStudents > 0
+      ? (analyticsData.studentsInInternship / analyticsData.totalStudents) * 100
+      : 0
+
+    const applicationSuccessRate = analyticsData.totalApplications > 0
+      ? ((analyticsData.studentsPlaced / analyticsData.totalApplications) * 100)
+      : 0
+
+    const avgApplicationsPerStudent = analyticsData.totalStudents > 0 
+      ? analyticsData.totalApplications / analyticsData.totalStudents
+      : 0
+
+    return {
+      placementRate: placementRate.toFixed(1),
+      internshipRate: internshipRate.toFixed(1),
+      applicationSuccessRate: applicationSuccessRate.toFixed(1),
+      avgApplicationsPerStudent: avgApplicationsPerStudent.toFixed(1),
+    }
+  }, [analyticsData])
+
+  const handleExportReport = () => {
+    // Implement export functionality
+    console.log("Exporting report...")
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout userRole="admin">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading analytics...</div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout userRole="admin">
       <div className="space-y-6">
@@ -15,10 +116,10 @@ export default function AdminAnalytics() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-            <p className="text-muted-foreground">Comprehensive insights into placement activities and trends</p>
+            <p className="text-muted-foreground">Real-time insights from your placement database</p>
           </div>
           <div className="flex gap-2">
-            <Select>
+            <Select value={timePeriod} onValueChange={setTimePeriod}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Time Period" />
               </SelectTrigger>
@@ -29,7 +130,7 @@ export default function AdminAnalytics() {
                 <SelectItem value="year">This Year</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportReport}>
               <Download className="w-4 h-4 mr-2" />
               Export Report
             </Button>
@@ -41,624 +142,335 @@ export default function AdminAnalytics() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Placement Rate</CardTitle>
-              <GraduationCap className="h-4 w-4 text-muted-foreground" />
+              <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">78.5%</div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +5.2% from last semester
-              </p>
+              <div className="text-2xl font-bold">{metrics?.placementRate}%</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span>{analyticsData?.studentsPlaced}/{analyticsData?.totalStudents} students</span>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Time to Placement</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Internship Rate</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">42 days</div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowDown className="w-3 h-3 mr-1 text-green-500" />
-                -8 days from last semester
-              </p>
+              <div className="text-2xl font-bold">{metrics?.internshipRate}%</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span>{analyticsData?.studentsInInternship} active internships</span>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Application Success Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24.3%</div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +2.1% from last month
-              </p>
+              <div className="text-2xl font-bold">{metrics?.applicationSuccessRate}%</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span>Applications to placements ratio</span>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Salary Offered</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg Applications</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹6.5L</div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +₹30K from last year
-              </p>
+              <div className="text-2xl font-bold">{metrics?.avgApplicationsPerStudent}</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span>Per student average</span>
+              </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Detailed Analytics */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="departments">Departments</TabsTrigger>
             <TabsTrigger value="companies">Companies</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
-          {/* Overview */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview">
             <div className="grid gap-6 md:grid-cols-2">
+              {/* Overall Statistics */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Placement Statistics</CardTitle>
-                  <CardDescription>Current semester placement overview</CardDescription>
+                  <CardTitle>Overall Statistics</CardTitle>
+                  <CardDescription>Complete breakdown from database</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Students Placed</span>
-                      <span className="text-sm text-muted-foreground">234 / 298 (78.5%)</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{analyticsData?.totalStudents}</div>
+                      <div className="text-sm text-blue-800">Total Students</div>
                     </div>
-                    <Progress value={78.5} className="h-2" />
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{analyticsData?.studentsPlaced}</div>
+                      <div className="text-sm text-green-800">Students Placed</div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Internships</span>
-                      <span className="text-sm text-muted-foreground">156 / 200 (78%)</span>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">Placements</span>
+                        <span className="text-sm">{metrics?.placementRate}%</span>
+                      </div>
+                      <Progress value={parseFloat(metrics?.placementRate || "0")} />
                     </div>
-                    <Progress value={78} className="h-2" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Full-time Positions</span>
-                      <span className="text-sm text-muted-foreground">78 / 98 (79.6%)</span>
+                    
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">Internships</span>
+                        <span className="text-sm">{metrics?.internshipRate}%</span>
+                      </div>
+                      <Progress value={parseFloat(metrics?.internshipRate || "0")} className="bg-blue-100" />
                     </div>
-                    <Progress value={79.6} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Application Metrics */}
               <Card>
                 <CardHeader>
                   <CardTitle>Application Metrics</CardTitle>
-                  <CardDescription>Student application activity</CardDescription>
+                  <CardDescription>Real student application data</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 grid-cols-2">
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-2xl font-bold text-blue-500">2,456</div>
-                      <p className="text-sm text-muted-foreground">Total Applications</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-xl font-bold">{analyticsData?.totalApplications}</div>
+                      <div className="text-xs text-muted-foreground">Total Applications</div>
                     </div>
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-2xl font-bold text-green-500">598</div>
-                      <p className="text-sm text-muted-foreground">Successful Applications</p>
+                    <div>
+                      <div className="text-xl font-bold">{analyticsData?.pendingApplications}</div>
+                      <div className="text-xs text-muted-foreground">Pending Review</div>
                     </div>
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-2xl font-bold text-purple-500">8.2</div>
-                      <p className="text-sm text-muted-foreground">Avg. Applications/Student</p>
+                    <div>
+                      <div className="text-xl font-bold">{metrics?.avgApplicationsPerStudent}</div>
+                      <div className="text-xs text-muted-foreground">Avg per Student</div>
                     </div>
-                    <div className="text-center p-3 border rounded-lg">
-                      <div className="text-2xl font-bold text-orange-500">24.3%</div>
-                      <p className="text-sm text-muted-foreground">Success Rate</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Success Rate</span>
+                      <Badge variant="outline">{metrics?.applicationSuccessRate}%</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Active Opportunities</span>
+                      <Badge variant="secondary">{analyticsData?.activeOpportunities}</Badge>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Performing Companies</CardTitle>
-                <CardDescription>Companies with highest hiring rates this semester</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { name: "TCS", hires: 18, applications: 67, rate: 26.9 },
-                    { name: "Infosys", hires: 12, applications: 45, rate: 26.7 },
-                    { name: "Wipro", hires: 15, applications: 58, rate: 25.9 },
-                    { name: "Tech Mahindra", hires: 8, applications: 32, rate: 25.0 },
-                    { name: "HCL Technologies", hires: 6, applications: 28, rate: 21.4 },
-                  ].map((company, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{company.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {company.hires} hires from {company.applications} applications
-                        </p>
-                      </div>
-                      <Badge variant="secondary">{company.rate}% success rate</Badge>
+              {/* Faculty Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Faculty Management</CardTitle>
+                  <CardDescription>Real faculty statistics</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{analyticsData?.totalFaculty}</div>
+                      <div className="text-sm text-muted-foreground">Total Faculty</div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{analyticsData?.activeFaculty}</div>
+                      <div className="text-sm text-muted-foreground">Active Faculty</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Student-Faculty Ratio</span>
+                      <span className="text-sm font-medium">
+                        {analyticsData?.totalFaculty ? 
+                          Math.round(analyticsData.totalStudents / analyticsData.totalFaculty) : 0}:1
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Total Internships</span>
+                      <span className="text-sm font-medium">{analyticsData?.totalInternships}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Company Partnerships */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Company Partnerships</CardTitle>
+                  <CardDescription>Real industry collaboration data</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{analyticsData?.activeCompanies}</div>
+                      <div className="text-sm text-muted-foreground">Active Partners</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{analyticsData?.pendingCompanies}</div>
+                      <div className="text-sm text-muted-foreground">Pending Approval</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Verification Rate</span>
+                      <span className="text-sm">
+                        {analyticsData?.totalCompanies ? 
+                          ((analyticsData.activeCompanies / analyticsData.totalCompanies) * 100).toFixed(1) : 0}%
+                      </span>
+                    </div>
+                    <Progress value={
+                      analyticsData?.totalCompanies ? 
+                        (analyticsData.activeCompanies / analyticsData.totalCompanies) * 100 : 0
+                    } />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          {/* Departments */}
-          <TabsContent value="departments" className="space-y-6">
+          <TabsContent value="departments">
             <Card>
               <CardHeader>
                 <CardTitle>Department-wise Performance</CardTitle>
-                <CardDescription>Placement statistics by academic department</CardDescription>
+                <CardDescription>Real placement statistics by department</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {[
-                    {
-                      name: "Computer Science",
-                      students: 180,
-                      placed: 145,
-                      rate: 80.6,
-                      avgSalary: "₹7.2L",
-                      topCompanies: ["TCS", "Infosys", "Wipro"],
-                    },
-                    {
-                      name: "Electrical Engineering",
-                      students: 120,
-                      placed: 89,
-                      rate: 74.2,
-                      avgSalary: "₹6.8L",
-                      topCompanies: ["PowerTech", "CircuitCorp", "ElectroSoft"],
-                    },
-                    {
-                      name: "Mechanical Engineering",
-                      students: 95,
-                      placed: 67,
-                      rate: 70.5,
-                      avgSalary: "₹6.5L",
-                      topCompanies: ["MechCorp", "AutoTech", "ManufacturePro"],
-                    },
-                    {
-                      name: "Information Technology",
-                      students: 100,
-                      placed: 78,
-                      rate: 78.0,
-                      avgSalary: "₹6.9L",
-                      topCompanies: ["InfoSys", "TechSolutions", "DataFlow"],
-                    },
-                  ].map((dept, index) => (
-                    <div key={index} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold">{dept.name}</h4>
-                        <Badge variant="outline">{dept.rate}% placed</Badge>
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-4 mb-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Students</p>
-                          <p className="font-medium">{dept.students}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Students Placed</p>
-                          <p className="font-medium">{dept.placed}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Avg. Salary</p>
-                          <p className="font-medium">{dept.avgSalary}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Top Companies</p>
-                          <p className="font-medium text-xs">{dept.topCompanies.join(", ")}</p>
+                <div className="space-y-4">
+                  {departmentData?.map((dept) => (
+                    <div key={dept.name} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{dept.name}</h4>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                          <span>{dept.students} students</span>
+                          <span>{dept.placed} placed</span>
                         </div>
                       </div>
-                      <Progress value={dept.rate} className="h-2" />
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-lg font-bold">{dept.rate.toFixed(1)}%</div>
+                          <div className="text-xs text-muted-foreground">placement rate</div>
+                        </div>
+                        <div className="w-24">
+                          <Progress value={dept.rate} />
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  )) || (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No department data available
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Companies */}
-          <TabsContent value="companies" className="space-y-6">
+          <TabsContent value="companies">
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Company Engagement</CardTitle>
-                  <CardDescription>Active companies and their hiring statistics</CardDescription>
+                  <CardTitle>Top Recruiting Companies</CardTitle>
+                  <CardDescription>Real companies with highest hiring from your database</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { name: "TCS", positions: 25, applications: 180, hires: 18, responseRate: "85%" },
-                      { name: "Infosys", positions: 18, applications: 135, hires: 12, responseRate: "78%" },
-                      { name: "Wipro", positions: 22, applications: 165, hires: 15, responseRate: "82%" },
-                      { name: "Tech Mahindra", positions: 12, applications: 96, hires: 8, responseRate: "75%" },
-                      { name: "HCL Technologies", positions: 15, applications: 112, hires: 6, responseRate: "70%" },
-                    ].map((company, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{company.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {company.positions} positions • {company.hires} hires
-                          </p>
+                  <div className="space-y-3">
+                    {topCompanies?.map((company, index) => (
+                      <div key={company.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium">
+                            {index + 1}
+                          </div>
+                          <span className="font-medium">{company.name}</span>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{company.responseRate}</p>
-                          <p className="text-sm text-muted-foreground">Response Rate</p>
+                          <div className="font-bold">{company.hires}</div>
+                          <div className="text-xs text-muted-foreground">hires</div>
                         </div>
                       </div>
-                    ))}
+                    )) || (
+                      <div className="text-center py-4 text-muted-foreground">
+                        No company data available
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Company Categories</CardTitle>
-                  <CardDescription>Distribution of companies by industry</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { category: "Technology", count: 24, percentage: 35 },
-                      { category: "Finance", count: 12, percentage: 18 },
-                      { category: "Healthcare", count: 8, percentage: 12 },
-                      { category: "Manufacturing", count: 15, percentage: 22 },
-                      { category: "Consulting", count: 9, percentage: 13 },
-                    ].map((cat, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>{cat.category}</span>
-                          <span>{cat.count} companies</span>
-                        </div>
-                        <Progress value={cat.percentage} className="h-2" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Hiring Companies</CardTitle>
-                <CardDescription>Companies with the highest number of student hires</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Company</th>
-                        <th className="text-right py-2">Positions</th>
-                        <th className="text-right py-2">Applications</th>
-                        <th className="text-right py-2">Hires</th>
-                        <th className="text-right py-2">Success Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { name: "TCS", positions: 25, applications: 180, hires: 18 },
-                        { name: "Infosys", positions: 18, applications: 135, hires: 12 },
-                        { name: "Wipro", positions: 22, applications: 165, hires: 15 },
-                        { name: "Tech Mahindra", positions: 12, applications: 96, hires: 8 },
-                        { name: "HCL Technologies", positions: 15, applications: 112, hires: 6 },
-                      ].map((company, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-3">{company.name}</td>
-                          <td className="text-right py-3">{company.positions}</td>
-                          <td className="text-right py-3">{company.applications}</td>
-                          <td className="text-right py-3">{company.hires}</td>
-                          <td className="text-right py-3 font-medium">
-                            {((company.hires / company.applications) * 100).toFixed(1)}%
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Trends */}
-          <TabsContent value="trends" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Placement Trends Over Time</CardTitle>
-                  <CardDescription>Quarterly placement statistics for the past year</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { quarter: 'Q1 2023', placements: 180, applications: 420, rate: '42.9%' },
-                      { quarter: 'Q2 2023', placements: 210, applications: 480, rate: '43.8%' },
-                      { quarter: 'Q3 2023', placements: 195, applications: 450, rate: '43.3%' },
-                      { quarter: 'Q4 2023', placements: 240, applications: 510, rate: '47.1%' },
-                      { quarter: 'Q1 2024', placements: 225, applications: 490, rate: '45.9%' },
-                      { quarter: 'Q2 2024', placements: 260, applications: 540, rate: '48.1%' },
-                      { quarter: 'Q3 2024', placements: 275, applications: 580, rate: '47.4%' },
-                      { quarter: 'Q4 2024', placements: 290, applications: 620, rate: '46.8%' },
-                    ].map((data, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{data.quarter}</span>
-                          <span>{data.placements} placed / {data.applications} applied ({data.rate})</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <div 
-                            className="h-4 bg-blue-500 rounded" 
-                            style={{ width: `${(data.placements / data.applications) * 100}%` }}
-                          />
-                          <div 
-                            className="h-4 bg-gray-200 rounded flex-1"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Salary Trends</CardTitle>
-                  <CardDescription>Average salary offers by department</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { department: 'Computer Science', avgSalary: 720000, maxSalary: 1200000 },
-                      { department: 'Electrical Engg.', avgSalary: 680000, maxSalary: 1100000 },
-                      { department: 'Mechanical Engg.', avgSalary: 650000, maxSalary: 1000000 },
-                      { department: 'Information Tech.', avgSalary: 690000, maxSalary: 1150000 },
-                      { department: 'Civil Engineering', avgSalary: 620000, maxSalary: 950000 },
-                    ].map((data, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{data.department}</span>
-                          <span>Avg: ₹{(data.avgSalary/100000).toFixed(1)}L | Max: ₹{(data.maxSalary/100000).toFixed(1)}L</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <div 
-                            className="h-4 bg-blue-500 rounded" 
-                            style={{ width: `${(data.avgSalary / 1300000) * 100}%` }}
-                          />
-                          <div 
-                            className="h-4 bg-green-500 rounded" 
-                            style={{ width: `${(data.maxSalary / 1300000) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Internship vs Full-time</CardTitle>
-                  <CardDescription>Placement type distribution</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { type: 'Internships', count: 156 },
-                      { type: 'Full-time', count: 78 },
-                      { type: 'Part-time', count: 45 },
-                    ].map((data, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{data.type}</span>
-                          <span>{data.count} positions</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <div 
-                            className="h-4 bg-purple-500 rounded" 
-                            style={{ width: `${(data.count / 200) * 100}%` }}
-                          />
-                          <div 
-                            className="h-4 bg-gray-200 rounded flex-1"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Application Trends</CardTitle>
-                  <CardDescription>Student application patterns</CardDescription>
+                  <CardTitle>Industry Distribution</CardTitle>
+                  <CardDescription>Real placement data by industry sectors</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {[
-                      { month: 'Jan', applications: 180 },
-                      { month: 'Feb', applications: 210 },
-                      { month: 'Mar', applications: 195 },
-                      { month: 'Apr', applications: 240 },
-                      { month: 'May', applications: 225 },
-                      { month: 'Jun', applications: 260 },
-                      { month: 'Jul', applications: 275 },
-                      { month: 'Aug', applications: 290 },
-                      { month: 'Sep', applications: 310 },
-                      { month: 'Oct', applications: 330 },
-                      { month: 'Nov', applications: 350 },
-                      { month: 'Dec', applications: 380 },
-                    ].map((data, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <span className="w-12 text-sm text-muted-foreground">{data.month}</span>
-                        <div className="flex-1 flex items-center gap-2">
-                          <div 
-                            className="h-2 bg-blue-500 rounded" 
-                            style={{ width: `${(data.applications / 400) * 100}%` }}
-                          />
-                          <span className="text-sm w-10">{data.applications}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Geographic Distribution</CardTitle>
-                  <CardDescription>Placement locations</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { location: 'Mumbai', count: 45 },
-                      { location: 'Bangalore', count: 38 },
-                      { location: 'Delhi', count: 32 },
-                      { location: 'Hyderabad', count: 28 },
-                      { location: 'Chennai', count: 22 },
-                      { location: 'Pune', count: 18 },
-                      { location: 'Kolkata', count: 15 },
-                    ].map((data, index) => (
-                      <div key={index} className="space-y-1">
+                    {industryDistribution?.map((industry) => (
+                      <div key={industry.name} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span className="font-medium">{data.location}</span>
-                          <span>{data.count} placements</span>
+                          <span>{industry.name}</span>
+                          <span>{industry.percentage.toFixed(1)}%</span>
                         </div>
-                        <div className="flex gap-2">
-                          <div 
-                            className="h-3 bg-green-500 rounded" 
-                            style={{ width: `${(data.count / 50) * 100}%` }}
-                          />
-                          <div 
-                            className="h-3 bg-gray-200 rounded flex-1"
-                          />
-                        </div>
+                        <Progress value={industry.percentage} />
                       </div>
-                    ))}
+                    )) || (
+                      <div className="text-center py-4 text-muted-foreground">
+                        No industry data available
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Forecasting</CardTitle>
-                <CardDescription>Predicted placement trends for next semester</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-blue-500">82%</p>
-                    <p className="text-sm text-muted-foreground">Predicted Placement Rate</p>
-                    <p className="text-xs text-green-500 mt-1">↑ 3.5% from current</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-green-500">48 days</p>
-                    <p className="text-sm text-muted-foreground">Avg. Time to Placement</p>
-                    <p className="text-xs text-red-500 mt-1">↑ 6 days from current</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-purple-500">₹6.8L</p>
-                    <p className="text-sm text-muted-foreground">Predicted Avg. Salary</p>
-                    <p className="text-xs text-green-500 mt-1">↑ ₹30K from current</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
-          {/* Reports */}
-          <TabsContent value="reports" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Report Templates</CardTitle>
-                  <CardDescription>Predefined reports for common use cases</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { name: "Monthly Placement Summary", description: "Overview of placements for the month", lastGenerated: "2023-10-01" },
-                      { name: "Department-wise Analysis", description: "Detailed breakdown by department", lastGenerated: "2023-09-28" },
-                      { name: "Company Engagement Report", description: "Analysis of company interactions", lastGenerated: "2023-09-25" },
-                      { name: "Student Performance Metrics", description: "Student application and placement data", lastGenerated: "2023-10-05" },
-                    ].map((report, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{report.name}</p>
-                          <p className="text-sm text-muted-foreground">{report.description}</p>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4 mr-2" />
-                          Generate
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          <TabsContent value="trends">
+            <div className="grid gap-6">
+              {/* Chart visualizations */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Salary Trends Over Time
+                    </CardTitle>
+                    <CardDescription>Yearly salary progression from placement data</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SalaryTrendsChart data={salaryTrends || []} />
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Custom Reports</CardTitle>
-                  <CardDescription>Create and schedule custom reports</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-2">Create New Report</h4>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Select data sources, filters, and format to generate a custom report.
-                      </p>
-                      <Button className="w-full">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Configure Report
-                      </Button>
-                    </div>
-                    
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-2">Scheduled Reports</h4>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Reports automatically generated on a schedule.
-                      </p>
-                      <Button variant="outline" className="w-full">
-                        Manage Schedules
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Application Trends
+                    </CardTitle>
+                    <CardDescription>Monthly application vs success statistics</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ApplicationTrendsChart data={applicationTrends || []} />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Export Data</CardTitle>
-                <CardDescription>Download raw data in various formats</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-4">
-                  {["CSV", "Excel", "PDF", "JSON"].map((format, index) => (
-                    <Button key={index} variant="outline" className="h-20 flex flex-col gap-2">
-                      <Download className="w-6 h-6" />
-                      Export as {format}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>

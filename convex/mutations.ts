@@ -1,58 +1,6 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
 
-// Mutation to create or update user from WorkOS authentication
-export const createOrUpdateUserFromWorkOS = mutation({
-  args: {
-    workOSId: v.string(),
-    email: v.string(),
-    role: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    // Check if user already exists by WorkOS ID
-    let user = await ctx.db
-      .query("users")
-      .withIndex("by_workos_id", (q) => q.eq("workOSId", args.workOSId))
-      .first();
-    
-    if (user) {
-      // Update existing user
-      await ctx.db.patch(user._id, {
-        email: args.email,
-        updatedAt: Date.now(),
-      });
-      return user._id;
-    }
-    
-    // Check if user exists by email (for migration)
-    user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
-    
-    if (user) {
-      // Update existing user with WorkOS ID
-      await ctx.db.patch(user._id, {
-        workOSId: args.workOSId,
-        updatedAt: Date.now(),
-      });
-      return user._id;
-    }
-    
-    // Create new user
-    const userId = await ctx.db.insert("users", {
-      workOSId: args.workOSId,
-      email: args.email,
-      role: args.role || "STUDENT", // Default role
-      isActive: true,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-    
-    return userId;
-  },
-});
 // Admin mutations
 export const updateStudentStatus = mutation({
   args: {
@@ -79,28 +27,25 @@ export const updateStudentStatus = mutation({
 
 export const assignMentor = mutation({
   args: {
-    studentId: v.id("students"),
-    mentorId: v.id("faculty"),
+    studentIds: v.array(v.id("students")),
+    mentorId: v.optional(v.id("faculty")), // Optional for unassigning
   },
   handler: async (ctx, args) => {
-    const { studentId, mentorId } = args;
+    const { studentIds, mentorId } = args;
     
-    const student = await ctx.db.get(studentId);
-    const mentor = await ctx.db.get(mentorId);
+    // Update all students with the new mentor (or remove mentor if mentorId is null)
+    for (const studentId of studentIds) {
+      await ctx.db.patch(studentId, {
+        mentorId: mentorId,
+        updatedAt: Date.now(),
+      });
+    }
     
-    if (!student) {
-      throw new Error("Student not found");
-    }
-    if (!mentor) {
-      throw new Error("Faculty member not found");
-    }
-
-    await ctx.db.patch(studentId, {
-      mentorId,
-      updatedAt: Date.now(),
-    });
-
-    return { success: true };
+    return { 
+      success: true, 
+      assignedCount: studentIds.length,
+      mentorId: mentorId 
+    };
   },
 });
 
@@ -156,8 +101,6 @@ export const updateCompanyStatus = mutation({
   },
 });
 
-
-
 export const updateFaculty = mutation({
   args: {
     facultyId: v.id("faculty"),
@@ -166,23 +109,39 @@ export const updateFaculty = mutation({
     designation: v.optional(v.string()),
     phone: v.optional(v.string()),
     canMentor: v.optional(v.boolean()),
+    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const { facultyId, ...updates } = args;
+    const { facultyId, updatedAt, ...updateData } = args;
     
-    const faculty = await ctx.db.get(facultyId);
-    if (!faculty) {
-      throw new Error("Faculty member not found");
-    }
-
-    const updateData: any = { updatedAt: Date.now() };
-    Object.keys(updates).forEach(key => {
-      if (updates[key as keyof typeof updates] !== undefined) {
-        updateData[key] = updates[key as keyof typeof updates];
-      }
+    // Remove undefined values
+    const cleanedData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    );
+    
+    await ctx.db.patch(facultyId, {
+      ...cleanedData,
+      updatedAt,
     });
 
-    await ctx.db.patch(facultyId, updateData);
+    return { success: true };
+  },
+});
+
+// ✅ Separate mutation for updating user email
+export const updateFacultyUserEmail = mutation({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    updatedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { userId, email, updatedAt } = args;
+    
+    await ctx.db.patch(userId, {
+      email,
+      updatedAt,
+    });
 
     return { success: true };
   },
@@ -192,14 +151,25 @@ export const createOpportunity = mutation({
   args: {
     title: v.string(),
     description: v.string(),
+    type: v.union(v.literal("INTERNSHIP"), v.literal("JOB"), v.literal("BOTH")),
     location: v.string(),
-    type: v.string(),
+    workMode: v.union(v.literal("ONSITE"), v.literal("REMOTE"), v.literal("HYBRID")),
     duration: v.optional(v.string()),
-    stipend: v.optional(v.string()),
-    salary: v.optional(v.string()),
-    requirements: v.optional(v.string()),
-    skills: v.optional(v.array(v.string())),
+    stipend: v.optional(v.number()),
+    salary: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    requirements: v.array(v.string()),
+    skills: v.array(v.string()),
+    eligibleDepartments: v.array(v.string()),
+    eligibleYears: v.array(v.string()),
+    minCGPA: v.optional(v.number()),
     deadline: v.number(),
+    status: v.union(
+      v.literal("DRAFT"),
+      v.literal("ACTIVE"),
+      v.literal("CLOSED"),
+      v.literal("CANCELLED")
+    ),
     companyId: v.id("companies"),
   },
   handler: async (ctx, args) => {
@@ -212,10 +182,9 @@ export const createOpportunity = mutation({
 
     const opportunityId = await ctx.db.insert("opportunities", {
       ...opportunityData,
-      status: "ACTIVE",
-      companyId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      companyId,
     });
 
     return { opportunityId };
@@ -225,7 +194,12 @@ export const createOpportunity = mutation({
 export const updateOpportunityStatus = mutation({
   args: {
     opportunityId: v.id("opportunities"),
-    status: v.string(),
+    status: v.union(
+      v.literal("DRAFT"),
+      v.literal("ACTIVE"),
+      v.literal("CLOSED"),
+      v.literal("CANCELLED")
+    ),
   },
   handler: async (ctx, args) => {
     const { opportunityId, status } = args;
@@ -281,7 +255,6 @@ export const createApplication = mutation({
       adminApproved: false,
       studentId,
       opportunityId,
-      createdAt: Date.now(),
     });
 
     return { applicationId };
@@ -321,91 +294,31 @@ export const updateApplicationStatus = mutation({
   },
 });
 
-export const createInterview = mutation({
+export const createBranch = mutation({
   args: {
-    type: v.string(),
-    mode: v.string(),
-    scheduledAt: v.number(),
-    durationMin: v.optional(v.number()),
-    round: v.number(),
-    interviewerName: v.optional(v.string()),
-    interviewerEmail: v.optional(v.string()),
-    meetingLink: v.optional(v.string()),
-    location: v.optional(v.string()),
-    studentId: v.id("students"),
-    companyId: v.id("companies"),
-    applicationId: v.id("applications"),
+    name: v.string(),
+    code: v.string(),
+    collegeId: v.id("colleges"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const { studentId, companyId, applicationId, ...interviewData } = args;
-    
-    const student = await ctx.db.get(studentId);
-    const company = await ctx.db.get(companyId);
-    const application = await ctx.db.get(applicationId);
-    
-    if (!student) throw new Error("Student not found");
-    if (!company) throw new Error("Company not found");
-    if (!application) throw new Error("Application not found");
-
-    const interviewId = await ctx.db.insert("interviews", {
-      ...interviewData,
-      status: "SCHEDULED",
-      studentId,
-      companyId,
-      applicationId,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
-    return { interviewId };
-  },
-});
-
-export const updateInterviewStatus = mutation({
-  args: {
-    interviewId: v.id("interviews"),
-    status: v.string(),
-    feedback: v.optional(v.string()),
-    result: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { interviewId, status, feedback, result } = args;
-    
-    const interview = await ctx.db.get(interviewId);
-    if (!interview) {
-      throw new Error("Interview not found");
-    }
-
-    const updateData: any = {
-      status,
-      updatedAt: Date.now(),
-    };
-
-    if (feedback !== undefined) updateData.feedback = feedback;
-    if (result !== undefined) updateData.result = result;
-
-    await ctx.db.patch(interviewId, updateData);
-
-    return { success: true };
+    const branchId = await ctx.db.insert("branches", args);
+    return { branchId };
   },
 });
 
 export const createInternship = mutation({
   args: {
-    title: v.string(),
-    startDate: v.number(),
-    endDate: v.number(),
-    stipend: v.optional(v.string()),
-    mentorName: v.optional(v.string()),
-    mentorEmail: v.optional(v.string()),
-    mentorPhone: v.optional(v.string()),
-    workLocation: v.optional(v.string()),
-    workMode: v.string(),
-    description: v.optional(v.string()),
-    learningGoals: v.optional(v.string()),
     studentId: v.id("students"),
+    opportunityId: v.id("opportunities"),
     companyId: v.id("companies"),
     applicationId: v.id("applications"),
+    startDate: v.number(),
+    endDate: v.number(),
+    stipend: v.optional(v.number()),
+    mentorId: v.optional(v.id("faculty")),
+    rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const internshipId = await ctx.db.insert("internships", {
@@ -421,18 +334,19 @@ export const createInternship = mutation({
 
 export const createPlacement = mutation({
   args: {
-    title: v.string(),
-    joiningDate: v.optional(v.number()),
-    salary: v.string(),
+    jobTitle: v.string(),
+    joinDate: v.number(),
+    salary: v.number(),
     location: v.string(),
     workMode: v.string(),
-    department: v.optional(v.string()),
-    reportingManager: v.optional(v.string()),
-    hrContact: v.optional(v.string()),
-    bond: v.optional(v.string()),
-    bondDurationMonths: v.optional(v.number()),
     studentId: v.id("students"),
     companyId: v.id("companies"),
+    status:v.union(
+      v.literal("OFFER_ACCEPTED"),
+      v.literal("JOINED"),
+      v.literal("NOT_JOINED")
+    ),
+    opportunityId: v.id("opportunities"),
     applicationId: v.id("applications"),
   },
   handler: async (ctx, args) => {
@@ -440,7 +354,7 @@ export const createPlacement = mutation({
     
     const placementId = await ctx.db.insert("placements", {
       ...placementData,
-      status: "CONFIRMED",
+      status: "OFFER_ACCEPTED",
       studentId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -462,7 +376,7 @@ export const createUserAndCompany = mutation({
     userData: v.object({
       email: v.string(),
       passwordHash: v.string(),
-      role: v.string(),
+      role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN")),
       isActive: v.boolean(),
       createdAt: v.number(),
       updatedAt: v.number(),
@@ -503,7 +417,7 @@ export const createUserAndFaculty = mutation({
     userData: v.object({
       email: v.string(),
       passwordHash: v.string(),
-      role: v.string(),
+      role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN")),
       isActive: v.boolean(),
       createdAt: v.number(),
       updatedAt: v.number(),
@@ -512,7 +426,7 @@ export const createUserAndFaculty = mutation({
       name: v.string(),
       department: v.string(),
       designation: v.optional(v.string()),
-      phone: v.optional(v.string()),
+      phone: v.string(),
       canMentor: v.boolean(),
       collegeId: v.id("colleges"),
       createdAt: v.number(),
@@ -543,7 +457,7 @@ export const createUserAndStudent = mutation({
     userData: v.object({
       email: v.string(),
       passwordHash: v.string(),
-      role: v.string(),
+      role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN")),
       isActive: v.boolean(),
       createdAt: v.number(),
       updatedAt: v.number(),
@@ -552,12 +466,13 @@ export const createUserAndStudent = mutation({
       firstName: v.string(),
       lastName: v.string(),
       rollNumber: v.string(),
-      phone: v.optional(v.string()),
+      phone: v.string(),
       department: v.string(),
       year: v.string(),
       semester: v.number(),
       cgpa: v.optional(v.number()),
-      skills: v.optional(v.array(v.string())),
+      resumeUrl: v.optional(v.string()),
+      skills: v.array(v.string()),
       isPlaced: v.boolean(),
       collegeId: v.id("colleges"),
       mentorId: v.optional(v.id("faculty")),
@@ -602,7 +517,7 @@ export const createCollege = mutation({
 export const updateUserRole = mutation({
   args: {
     userId: v.id("users"),
-    role: v.string(),
+    role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN")),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.userId, {
@@ -617,7 +532,7 @@ export const createAdminProfile = mutation({
   args: {
     userId: v.id("users"),
     name: v.string(),
-    phone: v.optional(v.string()),
+    phone: v.string(),
     department: v.optional(v.string()),
     collegeId: v.id("colleges"),
   },
@@ -636,14 +551,14 @@ export const createUserAndAdmin = mutation({
     userData: v.object({
       email: v.string(),
       passwordHash: v.string(),
-      role: v.string(),
+      role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN")),
       isActive: v.boolean(),
       createdAt: v.number(),
       updatedAt: v.number(),
     }),
     adminData: v.object({
       name: v.string(),
-      phone: v.optional(v.string()),
+      phone: v.string(),
       department: v.optional(v.string()),
       collegeId: v.id("colleges"),
       createdAt: v.number(),
@@ -666,5 +581,53 @@ export const createUserAndAdmin = mutation({
     });
 
     return { userId, adminId };
+  },
+});
+
+export const updateActive = mutation({
+    args: {
+        userId: v.id("users"),
+        isActive: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const { userId, isActive } = args;
+
+        // Update user status
+        await ctx.db.patch(userId, {
+            isActive,
+            updatedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});
+
+// ✅ New mutation to update faculty user status
+export const updateFacultyUserStatus = mutation({
+  args: {
+    facultyId: v.id("faculty"),
+    userId: v.optional(v.id("users")),
+    isActive: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const { facultyId, userId, isActive } = args;
+    
+    // Update user isActive status
+    if (userId) {
+      await ctx.db.patch(userId, {
+        isActive: isActive,
+        updatedAt: Date.now(),
+      });
+    }
+    const faculty = await ctx.db.get(facultyId);
+    if (!faculty) {
+      throw new Error("Faculty not found");
+    }
+    // If deactivating faculty, optionally update faculty record
+    await ctx.db.patch(facultyId, {
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
   },
 });

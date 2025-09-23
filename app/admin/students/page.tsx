@@ -20,6 +20,8 @@ import {
   Mail,
   Phone,
   Plus,
+  Upload,
+  UserPlus,
 } from "lucide-react"
 import {
   Dialog,
@@ -31,154 +33,20 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-<<<<<<< HEAD
-import { useState, useMemo } from "react"
-import { Switch } from "@/components/ui/switch"
-import { Progress } from "@/components/ui/progress"
-import Link from "next/link"
-
-interface Student {
-  id: number
-  name: string
-  email: string
-  phone: string
-  university: string
-  department: string
-  year: string
-  gpa: string
-  status: "Active" | "Placed" | "Inactive"
-  applications: number
-  interviews: number
-  offers: number
-  skills: string[]
-  lastActive: string
-  profileCompletion: number
-  username?: string
-  password?: string
-}
-
-export default function AdminStudents() {
-  const [students, setStudents] = useState<Student[]>([
-    {
-      id: 1,
-      name: "Rahul Sharma",
-      email: "rahul.sharma@iitb.ac.in",
-      phone: "+91 98765 43210",
-      university: "IIT Bombay",
-      department: "Computer Science",
-      year: "Senior",
-      gpa: "8.5",
-      status: "Active",
-      applications: 5,
-      interviews: 2,
-      offers: 1,
-      skills: ["React", "Node.js", "Python", "Machine Learning"],
-      lastActive: "2 hours ago",
-      profileCompletion: 95,
-      username: "rahul_sharma",
-    },
-    {
-      id: 2,
-      name: "Priya Patel",
-      email: "priya.patel@iitd.ac.in",
-      phone: "+91 98765 43211",
-      university: "IIT Delhi",
-      department: "Data Science",
-      year: "Junior",
-      gpa: "8.9",
-      status: "Active",
-      applications: 8,
-      interviews: 3,
-      offers: 2,
-      skills: ["Python", "R", "SQL", "TensorFlow"],
-      lastActive: "1 day ago",
-      profileCompletion: 88,
-      username: "priya_patel",
-    },
-    {
-      id: 3,
-      name: "Amit Kumar",
-      email: "amit.kumar@iitm.ac.in",
-      phone: "+91 98765 43212",
-      university: "IIT Madras",
-      department: "Electrical Engineering",
-      year: "Senior",
-      gpa: "8.2",
-      status: "Placed",
-      applications: 6,
-      interviews: 4,
-      offers: 3,
-      skills: ["JavaScript", "React", "CSS", "Figma"],
-      lastActive: "3 days ago",
-      profileCompletion: 92,
-      username: "amit_kumar",
-    },
-    {
-      id: 4,
-      name: "Sneha Desai",
-      email: "sneha.desai@bitspilani.ac.in",
-      phone: "+91 98765 43213",
-      university: "BITS Pilani",
-      department: "Computer Science",
-      year: "Junior",
-      gpa: "8.7",
-      status: "Inactive",
-      applications: 3,
-      interviews: 1,
-      offers: 0,
-      skills: ["Java", "Spring", "MySQL", "Docker"],
-      lastActive: "1 week ago",
-      profileCompletion: 65,
-      username: "sneha_desai",
-    },
-  ])
-
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
-  const [viewingStudent, setViewingStudent] = useState<Student | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [deactivatingStudent, setDeactivatingStudent] = useState<Student | null>(null)
-  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [departmentFilter, setDepartmentFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [yearFilter, setYearFilter] = useState("all")
-
-  // Filter students based on search and filters
-  const filteredStudents = useMemo(() => {
-    return students.filter(student => {
-      const matchesSearch = 
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.university.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.skills.some(skill => 
-          skill.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      
-      const matchesDepartment = 
-        departmentFilter === "all" || 
-        student.department.toLowerCase().includes(departmentFilter.toLowerCase())
-      
-      const matchesStatus = 
-        statusFilter === "all" || 
-        student.status.toLowerCase() === statusFilter.toLowerCase()
-      
-      const matchesYear = 
-        yearFilter === "all" || 
-        student.year.toLowerCase() === yearFilter.toLowerCase()
-      
-      return matchesSearch && matchesDepartment && matchesStatus && matchesYear
-    })
-  }, [students, searchTerm, departmentFilter, statusFilter, yearFilter])
-=======
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Switch } from "@/components/ui/switch"
 import { Progress } from "@/components/ui/progress"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useStudents } from "@/lib/convex-hooks"
+import { useAction } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import { toast } from "sonner"
+import Link from "next/link"
+import * as XLSX from 'xlsx'
 
 export default function AdminStudents() {
+  const { user } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -187,31 +55,56 @@ export default function AdminStudents() {
   const dept = searchParams.get('department') || 'all'
   const year = searchParams.get('year') || 'all'
 
-  const statusFilter = useMemo(() => {
-    if (tab === 'active') return 'unplaced'
-    if (tab === 'placed') return 'placed'
-    if (tab === 'inactive') return 'inactive'
-    return undefined
-  }, [tab])
+  // Excel upload states
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [excelFile, setExcelFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const bulkCreateStudents = useAction(api.actions.bulkCreateStudents)
 
-  const queryParams = useMemo(() => ({
-    q: q || undefined,
-    department: dept !== 'all' ? dept : undefined,
-    year: year !== 'all' ? year : undefined,
-    status: statusFilter,
-    take: 20,
-    skip: 0,
-  }), [q, dept, year, statusFilter])
+  // ✅ Create stable query params to prevent infinite re-renders
+  const queryParams = useMemo(() => {
+    const statusFilter = (() => {
+      if (tab === 'active') return 'unplaced'
+      if (tab === 'placed') return 'placed'
+      if (tab === 'inactive') return 'inactive'
+      return undefined
+    })()
 
+    return {
+      q: q || undefined,
+      department: dept !== 'all' ? dept : undefined,
+      year: year !== 'all' ? year : undefined,
+      status: statusFilter,
+      collegeId: user?.profile?.collegeId, // Filter by college
+      take: 100,
+      skip: 0,
+    }
+  }, [q, dept, year, tab, user?.profile?.collegeId])
+
+  // ✅ Call query only once with stable params
   const studentsData = useStudents(queryParams)
+
   const loading = studentsData === undefined
   const error = studentsData === null ? "Failed to load students" : undefined
 
+  // ✅ Normalize the data structure once
   const students = useMemo(() => {
-    if (!studentsData?.students) return []
-    return studentsData.students.map((s: any) => ({
-      id: s.id,
-      name: s.name,
+    if (!studentsData) return []
+    
+    // Handle the nested structure you're getting
+    let studentArray = []
+    if (Array.isArray(studentsData)) {
+      studentArray = studentsData
+    } else if (studentsData.student && Array.isArray(studentsData.student)) {
+      studentArray = studentsData.student
+    } else {
+      console.log("Unexpected data structure:", studentsData)
+      return []
+    }
+
+    return studentArray.map((s: any) => ({
+      id: s.id || s._id,
+      name: s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim(),
       email: s.email,
       phone: s.phone,
       department: s.department,
@@ -222,54 +115,189 @@ export default function AdminStudents() {
       interviews: 0,
       offers: s.placement ? 1 : 0,
       skills: s.skills ?? [],
-      lastActive: undefined,
+      lastActive: s.lastActive || "2024-01-15",
       profileCompletion: Math.floor(Math.random() * 100), // Mock data
+      username: s.username || s.rollNumber,
+      gpa: s.cgpa || "N/A",
     }))
   }, [studentsData])
 
-  const total = studentsData?.total ?? 0
-
-  const setParam = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (value && value !== 'all') params.set(key, value)
-    else params.delete(key)
-    if (key !== 'tab') params.set('tab', tab)
-    router.push(`/admin/students?${params.toString()}`)
+  // Excel upload functions
+  const generateRandomPassword = () => {
+    const length = 8
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    let password = ""
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    }
+    return password
   }
 
-  const setTab = (value: string) => {
-    setParam('tab', value)
-  }
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      toast.error("No File Selected", {
+        description: "Please select an Excel file to upload."
+      })
+      return
+    }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-500"
-      case "Placed":
-        return "bg-blue-500"
-      case "Inactive":
-        return "bg-gray-500"
-      default:
-        return "bg-gray-500"
+    if (!user?.profile?.collegeId) {
+      toast.error("Authentication Error", {
+        description: "Could not determine your college. Please try again."
+      })
+      return
+    }
+
+    setIsUploading(true)
+    toast.loading("Processing Excel file...", { id: "upload-students" })
+
+    try {
+      const data = await excelFile.arrayBuffer()
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+      if (jsonData.length === 0) {
+        toast.error("Empty File", {
+          description: "The Excel file appears to be empty or invalid.",
+          id: "upload-students"
+        })
+        return
+      }
+
+      toast.loading(`Processing ${jsonData.length} students...`, { id: "upload-students" })
+
+      const studentsData = jsonData.map((row: any) => {
+        if (!row.firstName || !row.lastName || !row.email || !row.rollNumber) {
+          throw new Error(`Missing required fields for: ${row.email || 'Unknown'}`)
+        }
+
+        const password = row.password || generateRandomPassword()
+
+        return {
+          email: row.email,
+          password: password,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          rollNumber: row.rollNumber,
+          phone: row.phone || "",
+          department: row.department || "Not Specified",
+          year: row.year || "FY",
+          semester: row.semester ? parseInt(row.semester) : 1,
+          cgpa: row.cgpa ? parseFloat(row.cgpa) : undefined,
+          skills: row.skills ? row.skills.split(',').map((s: string) => s.trim()) : [],
+          resumeUrl: row.resumeUrl || "",
+          collegeId: user.profile.collegeId,
+        }
+      })
+
+      const result = await bulkCreateStudents({ studentsData })
+
+      if (result.successCount > 0) {
+        toast.success("Students Added Successfully!", {
+          description: `${result.successCount} students were created successfully.`,
+          id: "upload-students"
+        })
+
+        if (result.createdStudents && result.createdStudents.length > 0) {
+          const credentialsWs = XLSX.utils.json_to_sheet(result.createdStudents)
+          const credentialsWb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(credentialsWb, credentialsWs, "Student_Credentials")
+          XLSX.writeFile(credentialsWb, "student_credentials.xlsx")
+          
+          toast.success("Credentials Downloaded", {
+            description: "Login credentials file has been downloaded automatically."
+          })
+        }
+      }
+
+      if (result.errorCount > 0) {
+        toast.warning("Some Students Failed", {
+          description: `${result.errorCount} students could not be created. Check console for details.`
+        })
+        
+        if (result.errors) {
+          console.error("Student creation errors:", result.errors)
+        }
+      }
+
+      setIsAddDialogOpen(false)
+      setExcelFile(null)
+    } catch (error) {
+      console.error("Excel upload error:", error)
+      toast.error("Upload Failed", {
+        description: error instanceof Error ? error.message : "Error processing Excel file. Please check the format.",
+        id: "upload-students"
+      })
+    } finally {
+      setIsUploading(false)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Active":
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case "Placed":
-        return <GraduationCap className="w-4 h-4 text-blue-500" />
-      case "Inactive":
-        return <AlertTriangle className="w-4 h-4 text-gray-500" />
-      default:
-        return <XCircle className="w-4 h-4 text-red-500" />
-    }
+  const downloadTemplate = () => {
+    const template = [
+      {
+        firstName: "John",
+        lastName: "Doe",
+        email: "john.doe@example.com",
+        rollNumber: "2021001",
+        department: "Computer Science",
+        year: "TY",
+        semester: 5,
+        cgpa: 8.5,
+        phone: "9876543210",
+        skills: "JavaScript, React, Node.js",
+        resumeUrl: "",
+        password: "optional_password"
+      }
+    ]
+
+    const ws = XLSX.utils.json_to_sheet(template)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Students")
+    XLSX.writeFile(wb, "student_template.xlsx")
+    
+    toast.success("Template Downloaded", {
+      description: "Student template has been downloaded successfully."
+    })
   }
 
-  // editing/view dialogs state preserved
-  const [student, setStudents] = useState<any[]>([])
+  // ✅ Client-side filtering
+  const filteredStudents = useMemo(() => {
+    let filtered = students
+
+    if (q.trim()) {
+      const searchTerm = q.toLowerCase().trim()
+      filtered = filtered.filter(student => 
+        student.name?.toLowerCase().includes(searchTerm) ||
+        student.email?.toLowerCase().includes(searchTerm) ||
+        student.department?.toLowerCase().includes(searchTerm)
+      )
+    }
+
+    if (dept !== 'all') {
+      filtered = filtered.filter(student => student.department === dept)
+    }
+
+    if (year !== 'all') {
+      filtered = filtered.filter(student => student.year === year)
+    }
+
+    return filtered
+  }, [students, q, dept, year])
+
+  // ✅ Filter by tab status on client side
+  const displayStudents = useMemo(() => {
+    if (tab === 'active') return filteredStudents.filter(s => s.status === 'Active')
+    if (tab === 'placed') return filteredStudents.filter(s => s.status === 'Placed')
+    if (tab === 'inactive') return filteredStudents.filter(s => s.status === 'Inactive')
+    return filteredStudents
+  }, [filteredStudents, tab])
+
+  const total = filteredStudents.length
+
+  // ✅ State management for dialogs
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
   const [viewingStudent, setViewingStudent] = useState<any | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -277,54 +305,74 @@ export default function AdminStudents() {
   const [deactivatingStudent, setDeactivatingStudent] = useState<any | null>(null)
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false)
 
-  const handleViewStudent = (student: any) => {
+  // ✅ Stable callbacks
+  const setParam = useCallback((key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value && value !== 'all') params.set(key, value)
+    else params.delete(key)
+    if (key !== 'tab') params.set('tab', tab)
+    router.push(`/admin/students?${params.toString()}`)
+  }, [searchParams, tab, router])
+
+  const setTab = useCallback((value: string) => {
+    setParam('tab', value)
+  }, [setParam])
+
+  const getStatusColor = useCallback((status: string) => {
+    switch (status) {
+      case "Active": return "bg-green-500"
+      case "Placed": return "bg-blue-500"
+      case "Inactive": return "bg-gray-500"
+      default: return "bg-gray-500"
+    }
+  }, [])
+
+  const getStatusIcon = useCallback((status: string) => {
+    switch (status) {
+      case "Active": return <CheckCircle className="w-4 h-4 text-green-500" />
+      case "Placed": return <GraduationCap className="w-4 h-4 text-blue-500" />
+      case "Inactive": return <AlertTriangle className="w-4 h-4 text-gray-500" />
+      default: return <XCircle className="w-4 h-4 text-red-500" />
+    }
+  }, [])
+
+  const handleViewStudent = useCallback((student: any) => {
     setViewingStudent(student)
     setIsViewDialogOpen(true)
-  }
+  }, [])
 
-  const handleEditStudent = (student: any) => {
+  const handleEditStudent = useCallback((student: any) => {
     setEditingStudent(student)
     setIsEditDialogOpen(true)
-  }
+  }, [])
 
-  const handleSaveStudent = () => {
-    if (editingStudent) {
-      setStudents(students.map(s => s.id === editingStudent.id ? editingStudent : s))
-      setIsEditDialogOpen(false)
-      setEditingStudent(null)
-    }
-  }
+  const handleSaveStudent = useCallback(() => {
+    setIsEditDialogOpen(false)
+    setEditingStudent(null)
+  }, [])
 
-  const handleDeactivateStudent = (student: any) => {
+  
+  const handleDeactivateStudent = useCallback((student: any) => {
     setDeactivatingStudent(student)
+    studentsData.updateStudentStatusAction({studentId: student.id, isActive: false})
     setIsDeactivateDialogOpen(true)
-  }
+  }, [])
 
-  const confirmDeactivateStudent = () => {
-    if (deactivatingStudent) {
-      setStudents(students.map(s => 
-        s.id === deactivatingStudent.id 
-          ? { ...s, status: "Inactive" } 
-          : s
-      ))
-      setIsDeactivateDialogOpen(false)
-      setDeactivatingStudent(null)
-    }
-  }
+  const confirmDeactivateStudent = useCallback(() => {
+    // Handle deactivate logic here
+    setIsDeactivateDialogOpen(false)
+    setDeactivatingStudent(null)
+  }, [])
 
-  const handleActivateStudent = (studentId: string) => {
-    setStudents(students.map(s => 
-      s.id === studentId 
-        ? { ...s, status: "Active" } 
-        : s
-    ))
-  }
+  const handleActivateStudent = useCallback((studentId: string) => {
+    studentsData.updateStudentStatusAction({studentId, isActive: true})
+  }, [])
 
-  const updateEditingStudent = (field: keyof any, value: any) => {
+  const updateEditingStudent = useCallback((field: string, value: any) => {
     if (editingStudent) {
-      setEditingStudent({ ...editingStudent, [field]: value })
+      setEditingStudent(prev => ({ ...prev, [field]: value }))
     }
-  }
+  }, [editingStudent])
 
   return (
     <DashboardLayout userRole="admin">
@@ -336,23 +384,85 @@ export default function AdminStudents() {
             <p className="text-muted-foreground">Manage student profiles and track placement progress</p>
           </div>
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/admin/students/new">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Student
-              </Link>
-            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Student
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Students</DialogTitle>
+                  <DialogDescription>
+                    Choose how you want to add students to the system.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Button asChild className="w-full h-16 flex-col gap-2">
+                    <Link href="/admin/students/new">
+                      <UserPlus className="w-6 h-6" />
+                      <span>Add Single Student</span>
+                      <span className="text-xs text-muted-foreground">Fill out a form for one student</span>
+                    </Link>
+                  </Button>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      <Label htmlFor="excel-upload" className="text-base font-medium">
+                        Upload Excel File
+                      </Label>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      onClick={downloadTemplate}
+                      className="w-full text-sm"
+                    >
+                      Download Template
+                    </Button>
+                    
+                    <Input
+                      id="excel-upload"
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => setExcelFile(e.target.files?.[0] || null)}
+                      className="file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-medium"
+                    />
+                    
+                    {excelFile && (
+                      <div className="text-sm text-muted-foreground">
+                        Selected: {excelFile.name}
+                      </div>
+                    )}
+                    
+                    <Button 
+                      onClick={handleExcelUpload} 
+                      className="w-full" 
+                      disabled={!excelFile || isUploading || !user?.profile?.collegeId}
+                    >
+                      {isUploading ? "Processing..." : "Upload and Process Excel"}
+                    </Button>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Random passwords will be generated if not provided. A credentials file will be downloaded.
+                    </p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
-        {/* Stats (static for now) */}
+        {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Students</p>
-                  <p className="text-2xl font-bold">1,247</p>
+                  <p className="text-2xl font-bold">{total}</p>
                 </div>
                 <GraduationCap className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -364,7 +474,7 @@ export default function AdminStudents() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Active Students</p>
-                  <p className="text-2xl font-bold">1,089</p>
+                  <p className="text-2xl font-bold">{filteredStudents.filter(s => s.status === 'Active').length}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
@@ -376,7 +486,7 @@ export default function AdminStudents() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Placed Students</p>
-                  <p className="text-2xl font-bold">234</p>
+                  <p className="text-2xl font-bold">{filteredStudents.filter(s => s.status === 'Placed').length}</p>
                 </div>
                 <GraduationCap className="h-8 w-8 text-blue-500" />
               </div>
@@ -388,7 +498,12 @@ export default function AdminStudents() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Avg. Applications</p>
-                  <p className="text-2xl font-bold">5.2</p>
+                  <p className="text-2xl font-bold">
+                    {filteredStudents.length > 0 ? 
+                      (filteredStudents.reduce((sum, s) => sum + (s.applications || 0), 0) / filteredStudents.length).toFixed(1) : 
+                      '0'
+                    }
+                  </p>
                 </div>
                 <Eye className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -406,73 +521,36 @@ export default function AdminStudents() {
                   <Input 
                     placeholder="Search students..." 
                     className="pl-10" 
-<<<<<<< HEAD
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-=======
                     defaultValue={q}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value)
                     }}
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                   />
                 </div>
               </div>
               <div className="flex gap-2">
-<<<<<<< HEAD
-                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger className="w-[140px]">
-=======
                 <Select defaultValue={dept} onValueChange={(v) => setParam('department', v)}>
                   <SelectTrigger className="w-[160px]">
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                     <SelectValue placeholder="Department" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
                     <SelectItem value="Computer Science">Computer Science</SelectItem>
-<<<<<<< HEAD
-                    <SelectItem value="Data Science">Data Science</SelectItem>
-=======
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                     <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
                     <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
                     <SelectItem value="Information Technology">Information Technology</SelectItem>
                   </SelectContent>
                 </Select>
-<<<<<<< HEAD
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Placed">Placed</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger className="w-[100px]">
-=======
                 <Select defaultValue={year} onValueChange={(v) => setParam('year', v)}>
                   <SelectTrigger className="w-[120px]">
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Years</SelectItem>
-<<<<<<< HEAD
-                    <SelectItem value="Freshman">Freshman</SelectItem>
-                    <SelectItem value="Sophomore">Sophomore</SelectItem>
-                    <SelectItem value="Junior">Junior</SelectItem>
-                    <SelectItem value="Senior">Senior</SelectItem>
-=======
                     <SelectItem value="FY">FY</SelectItem>
                     <SelectItem value="SY">SY</SelectItem>
                     <SelectItem value="TY">TY</SelectItem>
                     <SelectItem value="LY">LY</SelectItem>
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                   </SelectContent>
                 </Select>
               </div>
@@ -482,92 +560,78 @@ export default function AdminStudents() {
 
         <Tabs defaultValue={tab} value={tab} onValueChange={setTab} className="space-y-6">
           <TabsList>
-            <TabsTrigger value="all">All Students</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="placed">Placed</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive</TabsTrigger>
+            <TabsTrigger value="all">All Students ({filteredStudents.length})</TabsTrigger>
+            <TabsTrigger value="active">Active ({filteredStudents.filter(s => s.status === 'Active').length})</TabsTrigger>
+            <TabsTrigger value="placed">Placed ({filteredStudents.filter(s => s.status === 'Placed').length})</TabsTrigger>
+            <TabsTrigger value="inactive">Inactive ({filteredStudents.filter(s => s.status === 'Inactive').length})</TabsTrigger>
             <TabsTrigger value="pending">Pending Approval</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-<<<<<<< HEAD
-            {filteredStudents.map((student) => (
+            {loading && <div className="text-sm text-muted-foreground">Loading students...</div>}
+            {error && <div className="text-sm text-destructive">{error}</div>}
+            {!loading && !error && displayStudents.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No students found.</p>
+              </div>
+            )}
+            {!loading && !error && displayStudents.map((student) => (
               <Card key={student.id} className="hover:shadow-md transition-shadow">
-=======
-            {loading && (
-              <div className="text-sm text-muted-foreground">Loading students...</div>
-            )}
-            {error && (
-              <div className="text-sm text-destructive">{error}</div>
-            )}
-            {!loading && !error && student.map((s) => (
-              <Card key={s.id} className="hover:shadow-md transition-shadow">
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${s.name[0]}`} />
-                        <AvatarFallback>{s.name[0]}</AvatarFallback>
+                        <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name?.[0] || 'S'}`} />
+                        <AvatarFallback>{student.name?.[0] || 'S'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-semibold">{s.name}</h3>
-                          {getStatusIcon(s.status)}
+                          <h3 className="text-lg font-semibold">{student.name}</h3>
+                          {getStatusIcon(student.status)}
                         </div>
                         <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
                           <div className="flex items-center gap-1">
                             <Mail className="w-3 h-3" />
-                            {s.email}
+                            {student.email}
                           </div>
-<<<<<<< HEAD
-                          <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {student.phone}
-                          </div>
-                          <div>Username: {student.username || "Not set"}</div>
-=======
-                          {s.phone && (
+                          {student.phone && (
                             <div className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
-                              {s.phone}
+                              {student.phone}
                             </div>
                           )}
-                          <div>{s.department}</div>
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
-                          <div>
-                            {s.year}
-                          </div>
+                          <div>{student.department}</div>
+                          <div>{student.year}</div>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          {s.cgpa && <span>CGPA: {s.cgpa}</span>}
-                          <span>{s.applications} applications</span>
-                          <span>{s.interviews} interviews</span>
-                          <span>{s.offers} offers</span>
+                          {student.cgpa && <span>CGPA: {student.cgpa}</span>}
+                          <span>{student.applications} applications</span>
+                          <span>{student.interviews} interviews</span>
+                          <span>{student.offers} offers</span>
                         </div>
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {s.skills.slice(0, 4).map((skill : any) => (
-                            <Badge key={skill} variant="secondary" className="text-xs">
+                          {student.skills?.slice(0, 4).map((skill: any, index: number) => (
+                            <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">
                               {skill}
                             </Badge>
                           ))}
-                          {s.skills.length > 4 && (
+                          {student.skills?.length > 4 && (
                             <Badge variant="outline" className="text-xs">
-                              +{s.skills.length - 4} more
+                              +{student.skills.length - 4} more
                             </Badge>
                           )}
                         </div>
+                        <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
                       </div>
                     </div>
                     <Badge variant="secondary" className="px-3 py-1">
-                      <div className={`w-2 h-2 rounded-full ${getStatusColor(s.status)} mr-2`} />
-                      {s.status}
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
+                      {student.status}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex gap-2">
-<<<<<<< HEAD
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -586,271 +650,14 @@ export default function AdminStudents() {
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
-=======
-                      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleViewStudent(s)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Profile
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Student Profile</DialogTitle>
-                            <DialogDescription>
-                              Detailed information for {s.name}
-                            </DialogDescription>
-                          </DialogHeader>
-                          {viewingStudent && (
-                            <div className="space-y-6 py-4">
-                              <div className="flex flex-col md:flex-row gap-6">
-                                <div className="flex flex-col items-center">
-                                  <Avatar className="w-24 h-24 mb-4">
-                                    <AvatarImage src={`/placeholder-40x40.png?height=96&width=96&text=${viewingStudent.name[0]}`} />
-                                    <AvatarFallback className="text-2xl">{viewingStudent.name[0]}</AvatarFallback>
-                                  </Avatar>
-                                  <Badge variant="secondary" className="px-3 py-1">
-                                    <div className={`w-2 h-2 rounded-full ${getStatusColor(viewingStudent.status)} mr-2`} />
-                                    {viewingStudent.status}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="flex-1 space-y-4">
-                                  <div>
-                                    <h3 className="text-2xl font-bold">{viewingStudent.name}</h3>
-                                    <p className="text-muted-foreground">{viewingStudent.department}</p>
-                                  </div>
-                                  
-                                  <div className="grid gap-2 md:grid-cols-2">
-                                    <div>
-                                      <Label className="text-sm font-medium">Email</Label>
-                                      <p className="text-sm">{viewingStudent.email}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium">Phone</Label>
-                                      <p className="text-sm">{viewingStudent.phone}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium">Department</Label>
-                                      <p className="text-sm">{viewingStudent.department}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium">Year</Label>
-                                      <p className="text-sm">{viewingStudent.year}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium">CGPA</Label>
-                                      <p className="text-sm">{String(viewingStudent.cgpa ?? '')}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div>
-                                    <Label className="text-sm font-medium">Profile Completion</Label>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <Progress value={viewingStudent.profileCompletion} className="w-full" />
-                                      <span className="text-sm font-medium">{viewingStudent.profileCompletion}%</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-4">
-                                <div>
-                                  <h4 className="text-lg font-semibold mb-2">Skills</h4>
-                                  <div className="flex flex-wrap gap-2">
-                                    {viewingStudent.skills.map((skill : any) => (
-                                      <Badge key={skill} variant="secondary">
-                                        {skill}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                                
-                                <div className="grid gap-4 md:grid-cols-3">
-                                  <Card>
-                                    <CardContent className="pt-4">
-                                      <div className="text-center">
-                                        <p className="text-2xl font-bold">{viewingStudent.applications}</p>
-                                        <p className="text-sm text-muted-foreground">Applications</p>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                  
-                                  <Card>
-                                    <CardContent className="pt-4">
-                                      <div className="text-center">
-                                        <p className="text-2xl font-bold">{viewingStudent.interviews}</p>
-                                        <p className="text-sm text-muted-foreground">Interviews</p>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                  
-                                  <Card>
-                                    <CardContent className="pt-4">
-                                      <div className="text-center">
-                                        <p className="text-2xl font-bold">{viewingStudent.offers}</p>
-                                        <p className="text-sm text-muted-foreground">Offers</p>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                </div>
-                                
-                                <div>
-                                  <h4 className="text-lg font-semibold mb-2">Activity</h4>
-                                  <p className="text-sm text-muted-foreground">Last active: {viewingStudent.lastActive}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="flex gap-2">
-                      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleEditStudent(student)}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Edit Student Profile</DialogTitle>
-                            <DialogDescription>
-                              Update information for {s.name}
-                            </DialogDescription>
-                          </DialogHeader>
-                          {editingStudent && (
-                            <div className="space-y-6 py-4">
-                              <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                  <Label htmlFor="name">Full Name</Label>
-                                  <Input
-                                    id="name"
-                                    value={editingStudent.name}
-                                    onChange={(e) => updateEditingStudent("name", e.target.value)}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="email">Email</Label>
-                                  <Input
-                                    id="email"
-                                    type="email"
-                                    value={editingStudent.email}
-                                    onChange={(e) => updateEditingStudent("email", e.target.value)}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                  <Label htmlFor="phone">Phone Number</Label>
-                                  <Input
-                                    id="phone"
-                                    value={editingStudent.phone}
-                                    onChange={(e) => updateEditingStudent("phone", e.target.value)}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="department2">Department</Label>
-                                  <Input
-                                    id="department2"
-                                    value={editingStudent.department}
-                                    onChange={(e) => updateEditingStudent("department", e.target.value)}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                  <Label htmlFor="year">Year</Label>
-                                  <Select
-                                    value={editingStudent.year}
-                                    onValueChange={(value) => updateEditingStudent("year", value)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Freshman">Freshman</SelectItem>
-                                      <SelectItem value="Sophomore">Sophomore</SelectItem>
-                                      <SelectItem value="Junior">Junior</SelectItem>
-                                      <SelectItem value="Senior">Senior</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="cgpa">CGPA</Label>
-                                  <Input
-                                    id="cgpa"
-                                    value={String(editingStudent.cgpa ?? '')}
-                                    onChange={(e) => updateEditingStudent("cgpa", e.target.value)}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                  <Label htmlFor="status">Status</Label>
-                                  <Select
-                                    value={editingStudent.status}
-                                    onValueChange={(value: "Active" | "Placed" | "Inactive") => 
-                                      updateEditingStudent("status", value)
-                                    }
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Active">Active</SelectItem>
-                                      <SelectItem value="Placed">Placed</SelectItem>
-                                      <SelectItem value="Inactive">Inactive</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="skills">Skills (comma separated)</Label>
-                                <Textarea
-                                  id="skills"
-                                  value={editingStudent.skills.join(", ")}
-                                  onChange={(e) => updateEditingStudent("skills", e.target.value.split(",").map(s => s.trim()))}
-                                />
-                              </div>
-
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                                  Cancel
-                                </Button>
-                                <Button onClick={handleSaveStudent}>
-                                  Save Changes
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
-
-                      {s.status === "Inactive" && (
+                      {student.status === "Inactive" ? (
                         <Button 
                           size="sm" 
-                          onClick={() => handleActivateStudent(s.id)}
+                          onClick={() => handleActivateStudent(student.id)}
                         >
                           Activate
                         </Button>
-                      )}
-<<<<<<< HEAD
-                      {student.status === "Active" && (
+                      ) : (
                         <Button 
                           size="sm" 
                           variant="outline" 
@@ -858,51 +665,6 @@ export default function AdminStudents() {
                         >
                           Deactivate
                         </Button>
-=======
-                      {s.status === "Active" && (
-                        <Dialog open={isDeactivateDialogOpen} onOpenChange={setIsDeactivateDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => handleDeactivateStudent(s)}
-                            >
-                              Deactivate
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Deactivate Student</DialogTitle>
-                              <DialogDescription>
-                                Are you sure you want to deactivate {s.name}'s account? 
-                                This will prevent them from accessing the platform.
-                              </DialogDescription>
-                            </DialogHeader>
-                            {deactivatingStudent && (
-                              <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                  <Switch id="notify-student" defaultChecked />
-                                  <Label htmlFor="notify-student">Notify student via email</Label>
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    onClick={() => setIsDeactivateDialogOpen(false)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button 
-                                    variant="destructive" 
-                                    onClick={confirmDeactivateStudent}
-                                  >
-                                    Deactivate
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                       )}
                     </div>
                   </div>
@@ -911,85 +673,90 @@ export default function AdminStudents() {
             ))}
           </TabsContent>
 
-          {/* The other tabs keep placeholder text for now */}
           <TabsContent value="active" className="space-y-4">
-            {filteredStudents.filter(student => student.status === "Active").length > 0 ? (
-              filteredStudents.filter(student => student.status === "Active").map((student) => (
-                <Card key={student.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="w-12 h-12">
-                          <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name[0]}`} />
-                          <AvatarFallback>{student.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold">{student.name}</h3>
-                            {getStatusIcon(student.status)}
+            {displayStudents.map((student) => (
+              <Card key={student.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name?.[0] || 'S'}`} />
+                        <AvatarFallback>{student.name?.[0] || 'S'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-semibold">{student.name}</h3>
+                          {getStatusIcon(student.status)}
+                        </div>
+                        <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {student.email}
                           </div>
-                          <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {student.email}
-                            </div>
+                          {student.phone && (
                             <div className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
                               {student.phone}
                             </div>
-                            <div>Username: {student.username || "Not set"}</div>
-                            <div>
-                              {student.department} • {student.year}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <span>GPA: {student.gpa}</span>
-                            <span>{student.applications} applications</span>
-                            <span>{student.interviews} interviews</span>
-                            <span>{student.offers} offers</span>
-                            <span>Profile: {student.profileCompletion}%</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {student.skills.slice(0, 4).map((skill) => (
-                              <Badge key={skill} variant="secondary" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {student.skills.length > 4 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{student.skills.length - 4} more
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
+                          )}
+                          <div>{student.department}</div>
+                          <div>{student.year}</div>
                         </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                          {student.cgpa && <span>CGPA: {student.cgpa}</span>}
+                          <span>{student.applications} applications</span>
+                          <span>{student.interviews} interviews</span>
+                          <span>{student.offers} offers</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {student.skills?.slice(0, 4).map((skill: any, index: number) => (
+                            <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {student.skills?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{student.skills.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
                       </div>
-                      <Badge variant="secondary" className="px-3 py-1">
-                        <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
-                        {student.status}
-                      </Badge>
                     </div>
+                    <Badge variant="secondary" className="px-3 py-1">
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
+                      {student.status}
+                    </Badge>
+                  </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="flex gap-2">
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewStudent(student)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Profile
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleEditStudent(student)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      {student.status === "Inactive" ? (
                         <Button 
-                          variant="outline" 
                           size="sm" 
-                          onClick={() => handleViewStudent(student)}
+                          onClick={() => handleActivateStudent(student.id)}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Profile
+                          Activate
                         </Button>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleEditStudent(student)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
+                      ) : (
                         <Button 
                           size="sm" 
                           variant="outline" 
@@ -997,202 +764,210 @@ export default function AdminStudents() {
                         >
                           Deactivate
                         </Button>
-                      </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No active students found.</p>
-              </div>
-            )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </TabsContent>
 
           <TabsContent value="placed" className="space-y-4">
-            {filteredStudents.filter(student => student.status === "Placed").length > 0 ? (
-              filteredStudents.filter(student => student.status === "Placed").map((student) => (
-                <Card key={student.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="w-12 h-12">
-                          <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name[0]}`} />
-                          <AvatarFallback>{student.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold">{student.name}</h3>
-                            {getStatusIcon(student.status)}
+            {displayStudents.map((student) => (
+              <Card key={student.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name?.[0] || 'S'}`} />
+                        <AvatarFallback>{student.name?.[0] || 'S'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-semibold">{student.name}</h3>
+                          {getStatusIcon(student.status)}
+                        </div>
+                        <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {student.email}
                           </div>
-                          <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {student.email}
-                            </div>
+                          {student.phone && (
                             <div className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
                               {student.phone}
                             </div>
-                            <div>Username: {student.username || "Not set"}</div>
-                            <div>
-                              {student.department} • {student.year}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <span>GPA: {student.gpa}</span>
-                            <span>{student.applications} applications</span>
-                            <span>{student.interviews} interviews</span>
-                            <span>{student.offers} offers</span>
-                            <span>Profile: {student.profileCompletion}%</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {student.skills.slice(0, 4).map((skill) => (
-                              <Badge key={skill} variant="secondary" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {student.skills.length > 4 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{student.skills.length - 4} more
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
+                          )}
+                          <div>{student.department}</div>
+                          <div>{student.year}</div>
                         </div>
-                      </div>
-                      <Badge variant="secondary" className="px-3 py-1">
-                        <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
-                        {student.status}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleViewStudent(student)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Profile
-                        </Button>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleEditStudent(student)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No placed students found.</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="inactive" className="space-y-4">
-            {filteredStudents.filter(student => student.status === "Inactive").length > 0 ? (
-              filteredStudents.filter(student => student.status === "Inactive").map((student) => (
-                <Card key={student.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="w-12 h-12">
-                          <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name[0]}`} />
-                          <AvatarFallback>{student.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold">{student.name}</h3>
-                            {getStatusIcon(student.status)}
-                          </div>
-                          <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {student.email}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {student.phone}
-                            </div>
-                            <div>Username: {student.username || "Not set"}</div>
-                            <div>
-                              {student.department} • {student.year}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <span>GPA: {student.gpa}</span>
-                            <span>{student.applications} applications</span>
-                            <span>{student.interviews} interviews</span>
-                            <span>{student.offers} offers</span>
-                            <span>Profile: {student.profileCompletion}%</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {student.skills.slice(0, 4).map((skill) => (
-                              <Badge key={skill} variant="secondary" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {student.skills.length > 4 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{student.skills.length - 4} more
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                          {student.cgpa && <span>CGPA: {student.cgpa}</span>}
+                          <span>{student.applications} applications</span>
+                          <span>{student.interviews} interviews</span>
+                          <span>{student.offers} offers</span>
                         </div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {student.skills?.slice(0, 4).map((skill: any, index: number) => (
+                            <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {student.skills?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{student.skills.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
                       </div>
-                      <Badge variant="secondary" className="px-3 py-1">
-                        <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
-                        {student.status}
-                      </Badge>
                     </div>
+                    <Badge variant="secondary" className="px-3 py-1">
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
+                      {student.status}
+                    </Badge>
+                  </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleViewStudent(student)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Profile
-                        </Button>
-                      </div>
-                      <div className="flex gap-2">
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewStudent(student)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Profile
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleEditStudent(student)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      {student.status === "Inactive" ? (
                         <Button 
                           size="sm" 
                           onClick={() => handleActivateStudent(student.id)}
                         >
                           Activate
                         </Button>
+                      ) : (
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={() => handleEditStudent(student)}
+                          onClick={() => handleDeactivateStudent(student)}
                         >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
+                          Deactivate
                         </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="inactive" className="space-y-4">
+            {displayStudents.map((student) => (
+              <Card key={student.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={`/placeholder-40x40.png?height=48&width=48&text=${student.name?.[0] || 'S'}`} />
+                        <AvatarFallback>{student.name?.[0] || 'S'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-semibold">{student.name}</h3>
+                          {getStatusIcon(student.status)}
+                        </div>
+                        <div className="grid gap-1 md:grid-cols-2 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {student.email}
+                          </div>
+                          {student.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {student.phone}
+                            </div>
+                          )}
+                          <div>{student.department}</div>
+                          <div>{student.year}</div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                          {student.cgpa && <span>CGPA: {student.cgpa}</span>}
+                          <span>{student.applications} applications</span>
+                          <span>{student.interviews} interviews</span>
+                          <span>{student.offers} offers</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {student.skills?.slice(0, 4).map((skill: any, index: number) => (
+                            <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {student.skills?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{student.skills.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Last active: {student.lastActive}</p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No inactive students found.</p>
-              </div>
-            )}
+                    <Badge variant="secondary" className="px-3 py-1">
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(student.status)} mr-2`} />
+                      {student.status}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewStudent(student)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Profile
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleEditStudent(student)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      {student.status === "Inactive" ? (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleActivateStudent(student.id)}
+                        >
+                          Activate
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleDeactivateStudent(student)}
+                        >
+                          Deactivate
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </TabsContent>
 
           <TabsContent value="pending" className="space-y-4">
@@ -1217,8 +992,8 @@ export default function AdminStudents() {
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center">
                   <Avatar className="w-24 h-24 mb-4">
-                    <AvatarImage src={`/placeholder-40x40.png?height=96&width=96&text=${viewingStudent.name[0]}`} />
-                    <AvatarFallback className="text-2xl">{viewingStudent.name[0]}</AvatarFallback>
+                    <AvatarImage src={`/placeholder-40x40.png?height=96&width=96&text=${viewingStudent.name?.[0] || 'S'}`} />
+                    <AvatarFallback className="text-2xl">{viewingStudent.name?.[0] || 'S'}</AvatarFallback>
                   </Avatar>
                   <Badge variant="secondary" className="px-3 py-1">
                     <div className={`w-2 h-2 rounded-full ${getStatusColor(viewingStudent.status)} mr-2`} />
@@ -1239,7 +1014,7 @@ export default function AdminStudents() {
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Phone</Label>
-                      <p className="text-sm">{viewingStudent.phone}</p>
+                      <p className="text-sm">{viewingStudent.phone || "Not provided"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Username</Label>
@@ -1273,11 +1048,11 @@ export default function AdminStudents() {
                 <div>
                   <h4 className="text-lg font-semibold mb-2">Skills</h4>
                   <div className="flex flex-wrap gap-2">
-                    {viewingStudent.skills.map((skill) => (
-                      <Badge key={skill} variant="secondary">
+                    {viewingStudent.skills?.map((skill: any, index: number) => (
+                      <Badge key={`${skill}-${index}`} variant="secondary">
                         {skill}
                       </Badge>
-                    ))}
+                    )) || <p className="text-sm text-muted-foreground">No skills listed</p>}
                   </div>
                 </div>
                 
@@ -1285,7 +1060,7 @@ export default function AdminStudents() {
                   <Card>
                     <CardContent className="pt-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold">{viewingStudent.applications}</p>
+                        <p className="text-2xl font-bold">{viewingStudent.applications || 0}</p>
                         <p className="text-sm text-muted-foreground">Applications</p>
                       </div>
                     </CardContent>
@@ -1294,7 +1069,7 @@ export default function AdminStudents() {
                   <Card>
                     <CardContent className="pt-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold">{viewingStudent.interviews}</p>
+                        <p className="text-2xl font-bold">{viewingStudent.interviews || 0}</p>
                         <p className="text-sm text-muted-foreground">Interviews</p>
                       </div>
                     </CardContent>
@@ -1303,7 +1078,7 @@ export default function AdminStudents() {
                   <Card>
                     <CardContent className="pt-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold">{viewingStudent.offers}</p>
+                        <p className="text-2xl font-bold">{viewingStudent.offers || 0}</p>
                         <p className="text-sm text-muted-foreground">Offers</p>
                       </div>
                     </CardContent>
@@ -1336,7 +1111,7 @@ export default function AdminStudents() {
                   <Label htmlFor="name">Full Name</Label>
                   <Input
                     id="name"
-                    value={editingStudent.name}
+                    value={editingStudent.name || ""}
                     onChange={(e) => updateEditingStudent("name", e.target.value)}
                   />
                 </div>
@@ -1345,7 +1120,7 @@ export default function AdminStudents() {
                   <Input
                     id="email"
                     type="email"
-                    value={editingStudent.email}
+                    value={editingStudent.email || ""}
                     onChange={(e) => updateEditingStudent("email", e.target.value)}
                   />
                 </div>
@@ -1376,7 +1151,7 @@ export default function AdminStudents() {
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
-                    value={editingStudent.phone}
+                    value={editingStudent.phone || ""}
                     onChange={(e) => updateEditingStudent("phone", e.target.value)}
                   />
                 </div>
@@ -1384,7 +1159,7 @@ export default function AdminStudents() {
                   <Label htmlFor="university">University</Label>
                   <Input
                     id="university"
-                    value={editingStudent.university}
+                    value={editingStudent.university || ""}
                     onChange={(e) => updateEditingStudent("university", e.target.value)}
                   />
                 </div>
@@ -1395,24 +1170,24 @@ export default function AdminStudents() {
                   <Label htmlFor="department">Department</Label>
                   <Input
                     id="department"
-                    value={editingStudent.department}
+                    value={editingStudent.department || ""}
                     onChange={(e) => updateEditingStudent("department", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
                   <Select
-                    value={editingStudent.year}
+                    value={editingStudent.year || ""}
                     onValueChange={(value) => updateEditingStudent("year", value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Freshman">Freshman</SelectItem>
-                      <SelectItem value="Sophomore">Sophomore</SelectItem>
-                      <SelectItem value="Junior">Junior</SelectItem>
-                      <SelectItem value="Senior">Senior</SelectItem>
+                      <SelectItem value="FY">FY</SelectItem>
+                      <SelectItem value="SY">SY</SelectItem>
+                      <SelectItem value="TY">TY</SelectItem>
+                      <SelectItem value="LY">LY</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1423,14 +1198,14 @@ export default function AdminStudents() {
                   <Label htmlFor="gpa">GPA</Label>
                   <Input
                     id="gpa"
-                    value={editingStudent.gpa}
+                    value={editingStudent.gpa || ""}
                     onChange={(e) => updateEditingStudent("gpa", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
-                    value={editingStudent.status}
+                    value={editingStudent.status || "Active"}
                     onValueChange={(value: "Active" | "Placed" | "Inactive") => 
                       updateEditingStudent("status", value)
                     }
@@ -1451,8 +1226,8 @@ export default function AdminStudents() {
                 <Label htmlFor="skills">Skills (comma separated)</Label>
                 <Textarea
                   id="skills"
-                  value={editingStudent.skills.join(", ")}
-                  onChange={(e) => updateEditingStudent("skills", e.target.value.split(",").map(s => s.trim()))}
+                  value={editingStudent.skills?.join(", ") || ""}
+                  onChange={(e) => updateEditingStudent("skills", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
                 />
               </div>
 

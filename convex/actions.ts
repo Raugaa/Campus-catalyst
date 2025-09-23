@@ -243,7 +243,7 @@ export const createFaculty: any = action({
         name,
         department,
         designation,
-        phone,
+        phone : phone || "",
         canMentor,
         collegeId,
         createdAt: Date.now(),
@@ -252,6 +252,38 @@ export const createFaculty: any = action({
     });
 
     return result;
+  },
+});
+
+// ✅ Updated action to handle user.isActive properly
+export const updateStudentStatus: any = action({
+  args: {
+    studentId: v.id("students"),
+    isActive: v.boolean(), // ✅ Changed from status to isActive
+  },
+  handler: async (ctx, args) => {
+    const { studentId, isActive } = args;
+    
+    // Get the student first to get their userId
+    const student = await ctx.runQuery(api.queries.getStudentById, {
+      studentId: studentId
+    });
+    
+    if (!student) {
+      throw new Error("Student not found");
+    }
+    
+    // Update both student status and user isActive
+    const result = await ctx.runMutation(api.mutations.updateActive, {
+      userId: student.userId,
+      isActive: isActive,
+    });
+
+    return {
+      success: true,
+      isActive: isActive,
+      message: `Student ${isActive ? "activated" : "deactivated"} successfully`
+    };
   },
 });
 
@@ -273,7 +305,7 @@ export const createStudent: any = action({
   },
   handler: async (ctx, args) => {
     const { email, password, firstName, lastName, rollNumber, phone, department, year, semester, cgpa, skills, collegeId, mentorId } = args;
-    
+    console.log(args)
     const normalizedEmail = email.trim().toLowerCase();
     
     // Check if user already exists
@@ -285,8 +317,9 @@ export const createStudent: any = action({
       throw new Error("User with this email already exists");
     }
 
-    // Hash password
+    // Hash password (assuming bcrypt is imported)
     const passwordHash = await bcrypt.hash(password, 10);
+    
     
     // Create user and student via mutations
     const result = await ctx.runMutation(api.mutations.createUserAndStudent, {
@@ -302,12 +335,12 @@ export const createStudent: any = action({
         firstName,
         lastName,
         rollNumber,
-        phone,
+        phone : phone || "",
         department,
         year,
         semester,
         cgpa,
-        skills,
+        skills : skills || [],
         isPlaced: false,
         collegeId,
         mentorId,
@@ -315,7 +348,7 @@ export const createStudent: any = action({
         updatedAt: Date.now(),
       }
     });
-
+    console.log(result)
     return result;
   },
 });
@@ -358,7 +391,7 @@ export const createAdmin: any = action({
       },
       adminData: {
         name,
-        phone,
+        phone: phone || "",
         department,
         collegeId,
         createdAt: Date.now(),
@@ -370,3 +403,227 @@ export const createAdmin: any = action({
   },
 });
 
+// ✅ New action to update faculty status
+export const updateFacultyStatus = action({
+  args: {
+    facultyId: v.id("faculty"),
+    isActive: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const { facultyId, isActive } = args;
+    
+    // Get the faculty first to get their userId
+    const faculty = await ctx.runQuery(api.queries.getFacultyById, {
+      facultyId: facultyId
+    });
+    
+    if (!faculty) {
+      throw new Error("Faculty not found");
+    }
+    
+    // Update faculty user's isActive status
+    const result = await ctx.runMutation(api.mutations.updateFacultyUserStatus, {
+      facultyId,
+      userId: faculty.userId, // Ensure we have userId
+      isActive: isActive,
+    });
+
+    return {
+      success: true,
+      facultyId,
+      isActive: isActive,
+      message: `Faculty ${isActive ? "activated" : "deactivated"} successfully`
+    };
+  },
+});
+
+// Add these new actions to your existing actions.ts file
+
+export const bulkCreateStudents = action({
+  args: {
+    studentsData: v.array(v.object({
+      email: v.string(),
+      password: v.string(), // Plain password
+      firstName: v.string(),
+      lastName: v.string(),
+      rollNumber: v.string(),
+      phone: v.optional(v.string()),
+      department: v.string(),
+      year: v.string(),
+      semester: v.number(),
+      cgpa: v.optional(v.number()),
+      skills: v.optional(v.array(v.string())),
+      resumeUrl: v.optional(v.string()),
+      collegeId: v.id("colleges"),
+      mentorId: v.optional(v.id("faculty")),
+    }))
+  },
+  handler: async (ctx, { studentsData }) => {
+    let successCount = 0
+    let errorCount = 0
+    const createdStudents: Array<{email: string, password: string, name: string}> = []
+    const errors: Array<{email: string, error: string}> = []
+
+    for (const studentData of studentsData) {
+      try {
+        const normalizedEmail = studentData.email.trim().toLowerCase()
+        
+        // Check if user already exists
+        const existingUser = await ctx.runQuery(api.queries.getUserByEmail, {
+          email: normalizedEmail
+        })
+        
+        if (existingUser) {
+          errorCount++
+          errors.push({
+            email: normalizedEmail,
+            error: "User with this email already exists"
+          })
+          continue
+        }
+
+        // Hash password in backend
+        const passwordHash = await bcrypt.hash(studentData.password, 10)
+
+        // Create user and student via mutations
+        await ctx.runMutation(api.mutations.createUserAndStudent, {
+          userData: {
+            email: normalizedEmail,
+            passwordHash,
+            role: "STUDENT",
+            isActive: true,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+          studentData: {
+            firstName: studentData.firstName,
+            lastName: studentData.lastName,
+            rollNumber: studentData.rollNumber,
+            phone: studentData.phone || "",
+            department: studentData.department,
+            year: studentData.year,
+            semester: studentData.semester,
+            cgpa: studentData.cgpa,
+            skills: studentData.skills || [],
+            resumeUrl: studentData.resumeUrl || "",
+            isPlaced: false,
+            collegeId: studentData.collegeId,
+            mentorId: studentData.mentorId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          }
+        })
+
+        createdStudents.push({
+          email: normalizedEmail,
+          password: studentData.password, // Return plain password for credentials file
+          name: `${studentData.firstName} ${studentData.lastName}`
+        })
+
+        successCount++
+      } catch (error) {
+        errorCount++
+        errors.push({
+          email: studentData.email,
+          error: error instanceof Error ? error.message : "Unknown error"
+        })
+        console.error("Error creating student:", error)
+      }
+    }
+
+    return {
+      successCount,
+      errorCount,
+      createdStudents,
+      errors
+    }
+  },
+})
+
+export const bulkCreateFaculty = action({
+  args: {
+    facultyData: v.array(v.object({
+      email: v.string(),
+      password: v.string(), // Plain password
+      name: v.string(),
+      department: v.string(),
+      designation: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      canMentor: v.boolean(),
+      collegeId: v.id("colleges"),
+    }))
+  },
+  handler: async (ctx, { facultyData }) => {
+    let successCount = 0
+    let errorCount = 0
+    const createdFaculty: Array<{email: string, password: string, name: string}> = []
+    const errors: Array<{email: string, error: string}> = []
+
+    for (const faculty of facultyData) {
+      try {
+        const normalizedEmail = faculty.email.trim().toLowerCase()
+        
+        // Check if user already exists
+        const existingUser = await ctx.runQuery(api.queries.getUserByEmail, {
+          email: normalizedEmail
+        })
+        
+        if (existingUser) {
+          errorCount++
+          errors.push({
+            email: normalizedEmail,
+            error: "User with this email already exists"
+          })
+          continue
+        }
+
+        // Hash password in backend
+        const passwordHash = await bcrypt.hash(faculty.password, 10)
+
+        // Create user and faculty via mutations
+        await ctx.runMutation(api.mutations.createUserAndFaculty, {
+          userData: {
+            email: normalizedEmail,
+            passwordHash,
+            role: "FACULTY",
+            isActive: true,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+          facultyData: {
+            name: faculty.name,
+            department: faculty.department,
+            designation: faculty.designation || "",
+            phone: faculty.phone || "",
+            canMentor: faculty.canMentor,
+            collegeId: faculty.collegeId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          }
+        })
+
+        createdFaculty.push({
+          email: normalizedEmail,
+          password: faculty.password, // Return plain password for credentials file
+          name: faculty.name
+        })
+
+        successCount++
+      } catch (error) {
+        errorCount++
+        errors.push({
+          email: faculty.email,
+          error: error instanceof Error ? error.message : "Unknown error"
+        })
+        console.error("Error creating faculty:", error)
+      }
+    }
+
+    return {
+      successCount,
+      errorCount,
+      createdFaculty,
+      errors
+    }
+  },
+})

@@ -29,3 +29,4 @@ next-env.d.ts
 lib/generated
 
 /.vs
+.DS_Store

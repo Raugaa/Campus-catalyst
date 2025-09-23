@@ -7,6 +7,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { AuthProvider } from '@/lib/contexts/AuthContext'
 import ConvexProviderWrapper from "@/components/ConvexClientProvider"
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -34,6 +35,7 @@ export default function RootLayout({
             >
               {children}
             </ThemeProvider>
+            <Toaster position="top-right" richColors />
             </AuthProvider>
           </ConvexProviderWrapper>
           

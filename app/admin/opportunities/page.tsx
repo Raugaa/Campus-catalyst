@@ -1,10 +1,6 @@
 "use client"
 
-<<<<<<< HEAD
-import DashboardLayout from "@/components/layout/dashboard-layout"
-=======
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,34 +23,6 @@ import {
   AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
-<<<<<<< HEAD
-import { useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-interface Opportunity {
-  id: number
-  title: string
-  company: string
-  companyLogo: string
-  location: string
-  type: string
-  duration: string
-  applications: number
-  views: number
-  status: string
-  postedDate: string
-  deadline: string
-  salary: string
-=======
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -72,127 +40,10 @@ interface UIOpportunity {
   deadline: string
   salary?: string
   stipend?: string
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
   skills: string[]
 }
 
 export default function AdminOpportunities() {
-<<<<<<< HEAD
-  const router = useRouter()
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([
-    {
-      id: 1,
-      title: "Software Engineering Intern",
-      company: "TCS",
-      companyLogo: "TC",
-      location: "Mumbai, Maharashtra",
-      type: "Internship",
-      duration: "3 months",
-      applications: 45,
-      views: 234,
-      status: "Active",
-      postedDate: "2024-01-10",
-      deadline: "2024-02-15",
-      salary: "₹25,000/month",
-      skills: ["JavaScript", "React", "Node.js"],
-    },
-    {
-      id: 2,
-      title: "Data Science Intern",
-      company: "Infosys",
-      companyLogo: "IS",
-      location: "Bangalore, Karnataka",
-      type: "Internship",
-      duration: "4 months",
-      applications: 32,
-      views: 189,
-      status: "Active",
-      postedDate: "2024-01-08",
-      deadline: "2024-02-20",
-      salary: "₹30,000/month",
-      skills: ["Python", "Machine Learning", "SQL"],
-    },
-    {
-      id: 3,
-      title: "Frontend Developer Intern",
-      company: "Wipro",
-      companyLogo: "WP",
-      location: "Remote",
-      type: "Internship",
-      duration: "3 months",
-      applications: 28,
-      views: 156,
-      status: "Closing Soon",
-      postedDate: "2024-01-05",
-      deadline: "2024-01-25",
-      salary: "₹28,000/month",
-      skills: ["React", "TypeScript", "CSS"],
-    },
-    {
-      id: 4,
-      title: "DevOps Engineering Intern",
-      company: "Tech Mahindra",
-      companyLogo: "TM",
-      location: "Hyderabad, Telangana",
-      type: "Internship",
-      duration: "6 months",
-      applications: 19,
-      views: 98,
-      status: "Under Review",
-      postedDate: "2024-01-12",
-      deadline: "2024-03-01",
-      salary: "₹32,000/month",
-      skills: ["AWS", "Docker", "Kubernetes"],
-    },
-    {
-      id: 5,
-      title: "UX Design Intern",
-      company: "HCL Technologies",
-      companyLogo: "HCL",
-      location: "Chennai, Tamil Nadu",
-      type: "Internship",
-      duration: "4 months",
-      applications: 41,
-      views: 203,
-      status: "Paused",
-      postedDate: "2024-01-03",
-      deadline: "2024-02-10",
-      salary: "₹22,000/month",
-      skills: ["Figma", "User Research", "Prototyping"],
-    },
-  ])
-
-  const [viewingOpportunity, setViewingOpportunity] = useState<Opportunity | null>(null)
-  const [deletingOpportunity, setDeletingOpportunity] = useState<Opportunity | null>(null)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [typeFilter, setTypeFilter] = useState("all")
-
-  // Filter opportunities based on search and filters
-  const filteredOpportunities = useMemo(() => {
-    return opportunities.filter(opportunity => {
-      const matchesSearch = 
-        opportunity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opportunity.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opportunity.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opportunity.skills.some(skill => 
-          skill.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      
-      const matchesStatus = 
-        statusFilter === "all" || 
-        opportunity.status.toLowerCase().includes(statusFilter.toLowerCase())
-      
-      const matchesType = 
-        typeFilter === "all" || 
-        opportunity.type.toLowerCase().includes(typeFilter.toLowerCase())
-      
-      return matchesSearch && matchesStatus && matchesType
-    })
-  }, [opportunities, searchTerm, statusFilter, typeFilter])
-=======
   const searchParams = useSearchParams()
   const router = useRouter()
   const tab = (searchParams.get('tab') || 'all') as 'all'|'active'|'pending'|'closed'
@@ -249,7 +100,6 @@ export default function AdminOpportunities() {
     if (key !== 'tab') params.set('tab', tab)
     router.push(`/admin/opportunities?${params.toString()}`)
   }
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
 
   const stats = [
     { title: "Total Opportunities", value: "-", change: "", icon: Briefcase },
@@ -327,15 +177,9 @@ export default function AdminOpportunities() {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search opportunities..." 
-<<<<<<< HEAD
-                  className="pl-8 w-64" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-=======
                   className="pl-8 w-64"
                   defaultValue={q}
                   onKeyDown={(e) => { if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value) }}
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -370,13 +214,9 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-<<<<<<< HEAD
-                  {filteredOpportunities.map((opportunity) => (
-=======
                   {loading && <div className="text-sm text-muted-foreground">Loading opportunities...</div>}
                   {error && <div className="text-sm text-destructive">{error}</div>}
                   {!loading && !error && opportunities.map((opportunity) => (
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                     <div
                       key={opportunity.id}
                       className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -482,13 +322,8 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-<<<<<<< HEAD
-                  {filteredOpportunities
-                    .filter((opp) => opp.status === "Active")
-=======
                   {opportunities
                     .filter((opp) => opp.status === "ACTIVE")
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="w-12 h-12">
@@ -520,13 +355,8 @@ export default function AdminOpportunities() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-<<<<<<< HEAD
-                  {filteredOpportunities
-                    .filter((opp) => opp.status === "Under Review")
-=======
                   {opportunities
                     .filter((opp) => opp.status === "PENDING")
->>>>>>> d662a5098a837a6deeae1b072c7bca8aadbe2893
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="w-12 h-12">

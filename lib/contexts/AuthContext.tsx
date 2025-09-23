@@ -10,6 +10,9 @@ interface User {
   email: string;
   role: string;
   profile?: any;
+  companyId?: string; // For company users
+  mentorId?: string; // For students
+  collegeId?: string; // For students
 }
 
 interface AuthContextType {

@@ -57,6 +57,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   
   // Destructure the hook properly
   const { user, loading, logout } = useAuth();
+  console.log(user);
 
   const { displayName, subtitle, avatarFallback, badgeNode } = useMemo(() => {
     // Show loading state
