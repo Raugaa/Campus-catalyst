@@ -21,6 +21,15 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
+// Add Select components
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 // Add Dialog components
 import {
   Dialog,
@@ -126,6 +135,8 @@ export default function CollegeManagement() {
   const [filter, setFilter] = useState("all")
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null)
   const [studentSearchTerm, setStudentSearchTerm] = useState("")
+  const [yearFilter, setYearFilter] = useState("all")
+  const [branchFilter, setBranchFilter] = useState("all")
 
   // State for confirmation dialogs
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
@@ -163,6 +174,8 @@ export default function CollegeManagement() {
   const handleBackToColleges = () => {
     setSelectedCollege(null)
     setStudentSearchTerm("")
+    setYearFilter("all")
+    setBranchFilter("all")
   }
 
   const filteredConnectedColleges = connectedColleges.filter(college => 
@@ -174,11 +187,28 @@ export default function CollegeManagement() {
     college.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // Filter students based on search term
+  // Get unique years and branches for filtering
+  const getUniqueYears = () => {
+    if (!selectedCollege) return []
+    const students = collegeStudents[selectedCollege.id] || []
+    const years = [...new Set(students.map(student => student.year))]
+    return years.sort()
+  }
+
+  const getUniqueBranches = () => {
+    if (!selectedCollege) return []
+    const students = collegeStudents[selectedCollege.id] || []
+    const branches = [...new Set(students.map(student => student.department))]
+    return branches.sort()
+  }
+
+  // Filter students based on search term and filters
   const filteredStudents = selectedCollege 
     ? (collegeStudents[selectedCollege.id] || []).filter(student => 
-        student.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        student.department.toLowerCase().includes(studentSearchTerm.toLowerCase())
+        (student.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        student.department.toLowerCase().includes(studentSearchTerm.toLowerCase())) &&
+        (yearFilter === "all" || student.year === yearFilter) &&
+        (branchFilter === "all" || student.department === branchFilter)
       )
     : []
 
@@ -204,6 +234,9 @@ export default function CollegeManagement() {
 
   // If viewing students, show student list
   if (selectedCollege) {
+    const uniqueYears = getUniqueYears()
+    const uniqueBranches = getUniqueBranches()
+
     return (
       <DashboardLayout userRole="company">
         <div className="space-y-6">
@@ -218,23 +251,55 @@ export default function CollegeManagement() {
             </div>
           </div>
 
-          {/* Student Search */}
-          <Card>
+          {/* Student Search and Filters */}
+          <Card className="shadow-sm border border-muted">
             <CardContent className="pt-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search students by name or department..." 
-                  className="pl-10" 
-                  value={studentSearchTerm}
-                  onChange={(e) => setStudentSearchTerm(e.target.value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search students..." 
+                    className="pl-10 focus-visible:ring-2 focus-visible:ring-primary" 
+                    value={studentSearchTerm}
+                    onChange={(e) => setStudentSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-muted-foreground">Filter by Year</label>
+                  <Select value={yearFilter} onValueChange={setYearFilter}>
+                    <SelectTrigger className="focus:ring-2 focus:ring-primary">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Years</SelectItem>
+                      {uniqueYears.map(year => (
+                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-muted-foreground">Filter by Branch</label>
+                  <Select value={branchFilter} onValueChange={setBranchFilter}>
+                    <SelectTrigger className="focus:ring-2 focus:ring-primary">
+                      <SelectValue placeholder="Select branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Branches</SelectItem>
+                      {uniqueBranches.map(branch => (
+                        <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Student List */}
-          <Card>
+          <Card className="shadow-sm border border-muted">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
@@ -242,18 +307,20 @@ export default function CollegeManagement() {
               </CardTitle>
               <CardDescription>
                 {filteredStudents.length} students from {selectedCollege.name}
+                {yearFilter !== "all" && ` • Year: ${yearFilter}`}
+                {branchFilter !== "all" && ` • Branch: ${branchFilter}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {filteredStudents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredStudents.map((student) => (
-                    <Card key={student.id} className="hover:shadow-md transition-shadow">
+                    <Card key={student.id} className="hover:shadow-md transition-all duration-300 hover:border-primary/30">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-4 mb-4">
-                          <Avatar className="w-12 h-12">
+                          <Avatar className="w-12 h-12 ring-2 ring-primary/20">
                             <AvatarImage src={`/placeholder.svg?height=48&width=48&text=${student.name.charAt(0)}`} />
-                            <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="font-medium">{student.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div>
                             <h3 className="font-semibold">{student.name}</h3>
@@ -264,7 +331,9 @@ export default function CollegeManagement() {
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm text-muted-foreground">Year</span>
-                            <span className="text-sm font-medium">{student.year}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {student.year}
+                            </Badge>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm text-muted-foreground">GPA</span>
@@ -276,16 +345,16 @@ export default function CollegeManagement() {
                           <p className="text-sm text-muted-foreground mb-2">Skills</p>
                           <div className="flex flex-wrap gap-1">
                             {student.skills.map((skill, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
+                              <Badge key={index} variant="outline" className="text-xs">
                                 {skill}
                               </Badge>
                             ))}
                           </div>
                         </div>
                         
-                        <div className="mt-4 pt-4 border-t">
+                        <div className="mt-4 pt-4 border-t border-muted">
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1">
+                            <Button variant="outline" size="sm" className="flex-1 hover:bg-primary/5">
                               View Profile
                             </Button>
                             <Button size="sm" className="flex-1">
@@ -298,11 +367,15 @@ export default function CollegeManagement() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 mx-auto text-muted-foreground" />
-                  <h3 className="mt-4 font-medium">No students found</h3>
-                  <p className="text-muted-foreground mt-1">
-                    {studentSearchTerm ? "No students match your search" : "No students available from this college"}
+                <div className="text-center py-12">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <Users className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-1">No students found</h3>
+                  <p className="text-muted-foreground">
+                    {studentSearchTerm || yearFilter !== "all" || branchFilter !== "all" 
+                      ? "No students match your search or filters" 
+                      : "No students available from this college"}
                   </p>
                 </div>
               )}
@@ -326,14 +399,14 @@ export default function CollegeManagement() {
         </div>
 
         {/* Search and Filters */}
-        <Card>
+        <Card className="shadow-sm border border-muted">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search colleges..." 
-                  className="pl-10" 
+                  className="pl-10 focus-visible:ring-2 focus-visible:ring-primary" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -342,12 +415,14 @@ export default function CollegeManagement() {
                 <Button 
                   variant={filter === "all" ? "default" : "outline"} 
                   onClick={() => setFilter("all")}
+                  className={filter === "all" ? "shadow-sm" : ""}
                 >
                   All Colleges
                 </Button>
                 <Button 
                   variant={filter === "recent" ? "default" : "outline"} 
                   onClick={() => setFilter("recent")}
+                  className={filter === "recent" ? "shadow-sm" : ""}
                 >
                   Recently Added
                 </Button>
@@ -357,7 +432,7 @@ export default function CollegeManagement() {
         </Card>
 
         {/* Connected Colleges Section */}
-        <Card>
+        <Card className="shadow-sm border border-muted">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
@@ -371,7 +446,7 @@ export default function CollegeManagement() {
             {filteredConnectedColleges.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredConnectedColleges.map((college) => (
-                  <Card key={college.id} className="hover:shadow-md transition-shadow">
+                  <Card key={college.id} className="hover:shadow-md transition-all duration-300 hover:border-primary/30">
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start">
                         <div>
@@ -409,7 +484,7 @@ export default function CollegeManagement() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="flex-1"
+                          className="flex-1 hover:bg-primary/5"
                           onClick={() => handleViewStudents(college)}
                         >
                           View Students
@@ -428,10 +503,12 @@ export default function CollegeManagement() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <Building className="w-12 h-12 mx-auto text-muted-foreground" />
-                <h3 className="mt-4 font-medium">No connected colleges found</h3>
-                <p className="text-muted-foreground mt-1">
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Building className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-1">No connected colleges found</h3>
+                <p className="text-muted-foreground">
                   {searchTerm ? "No colleges match your search" : "You haven't connected with any colleges yet"}
                 </p>
               </div>
@@ -440,7 +517,7 @@ export default function CollegeManagement() {
         </Card>
 
         {/* Pending Requests Section */}
-        <Card>
+        <Card className="shadow-sm border border-muted">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5" />
@@ -454,7 +531,7 @@ export default function CollegeManagement() {
             {filteredPendingRequests.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredPendingRequests.map((college) => (
-                  <Card key={college.id} className="border-yellow-200 hover:shadow-md transition-shadow">
+                  <Card key={college.id} className="border-yellow-200 hover:shadow-md transition-all duration-300 hover:border-yellow-300">
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start">
                         <div>
@@ -515,10 +592,12 @@ export default function CollegeManagement() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <GraduationCap className="w-12 h-12 mx-auto text-muted-foreground" />
-                <h3 className="mt-4 font-medium">No pending requests</h3>
-                <p className="text-muted-foreground mt-1">
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <GraduationCap className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-1">No pending requests</h3>
+                <p className="text-muted-foreground">
                   There are no pending college partnership requests at this time
                 </p>
               </div>
@@ -527,7 +606,7 @@ export default function CollegeManagement() {
         </Card>
 
         {/* College Statistics */}
-        <Card>
+        <Card className="shadow-sm border border-muted">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
@@ -539,15 +618,15 @@ export default function CollegeManagement() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <div className="text-3xl font-bold text-blue-600">{connectedColleges.length}</div>
                 <div className="text-sm text-muted-foreground mt-1">Connected Colleges</div>
               </div>
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-100">
                 <div className="text-3xl font-bold text-yellow-600">{pendingRequests.length}</div>
                 <div className="text-sm text-muted-foreground mt-1">Pending Requests</div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-center p-4 bg-green-50 rounded-lg border border-green-100">
                 <div className="text-3xl font-bold text-green-600">
                   {connectedColleges.reduce((total, college) => total + college.students, 0)}
                 </div>

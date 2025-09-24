@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 import {
   Home, User, Briefcase, FileText, Bell, Settings, LogOut,
   GraduationCap, BookOpen, Building2, Users, BarChart3,
@@ -180,15 +181,19 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold">Campus Portal</span>
+            <Image 
+              src="/assets/LOGO (Campus Connect).png" 
+              alt="Campus Connect Logo" 
+              width={32} 
+              height={32} 
+              className="rounded-lg"
+            />
+            <span className="text-lg font-semibold">Campus Connect</span>
           </div>
 
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-6">
             <Avatar className="w-10 h-10">
-              <AvatarImage src="/placeholder.svg?height=40&width=40" />
+              <AvatarImage src="/assets/LOGO (Campus Connect).png" />
               <AvatarFallback>
                 {typeof avatarFallback === 'string' ? avatarFallback : avatarFallback}
               </AvatarFallback>

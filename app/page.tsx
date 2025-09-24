@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import { GraduationCap } from "lucide-react"
 
 // Import the background image
 import mainpgBg from "@/public/assets/mainpg_bg.png"
@@ -12,14 +13,15 @@ export default function LandingPage() {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6" />
-              </svg>
-            </div>
-            <span className="text-xl font-semibold">Campus Portal</span>
+          <div className="flex items-center space-x-2">
+            <Image 
+              src="/assets/LOGO (Campus Connect).png" 
+              alt="Campus Connect Logo" 
+              width={32} 
+              height={32} 
+              className="rounded-lg"
+            />
+            <span className="text-xl font-semibold">Campus Connect</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -366,13 +368,14 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6" />
-                  </svg>
-                </div>
-                <span className="text-xl font-semibold">Campus Portal</span>
+                <Image 
+                  src="/assets/LOGO (Campus Connect).png" 
+                  alt="Campus Connect Logo" 
+                  width={32} 
+                  height={32} 
+                  className="rounded-lg"
+                />
+                <span className="text-xl font-semibold">Campus Connect</span>
               </div>
               <p className="text-muted-foreground">
                 Streamlining campus internships and placements for students, companies, faculty, and administrators.
@@ -411,7 +414,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2025 Campus Portal. All rights reserved.</p>
+            <p>&copy; 2025 Campus Connect. All rights reserved.</p>
           </div>
         </div>
       </footer>

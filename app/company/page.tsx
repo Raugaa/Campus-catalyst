@@ -32,6 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 // Define the student type
 type Student = {
@@ -56,6 +57,7 @@ type Interview = {
 };
 
 export default function CompanyDashboard() {
+  const { user } = useAuth();
   const router = useRouter();
   const [connectedColleges, setConnectedColleges] = useState([
     'KJ Somaiya College of Engineering', 
@@ -301,7 +303,9 @@ export default function CompanyDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Employer Dashboard</h1>
+            <h1 className="text-3xl font-bold">
+              Welcome back, {user?.profile?.name || user?.email?.split('@')[0] || 'Employer'}!
+            </h1>
             <p className="text-muted-foreground">Manage your internship postings and review applications</p>
           </div>
           <Link href="/company/notifications">
