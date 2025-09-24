@@ -21,6 +21,7 @@ import {
   BarChart3,
   CheckCircle2,
   AlertCircle,
+  Clock,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -52,8 +53,9 @@ const navigationItems = {
   ],
   faculty: [
     { name: "Dashboard", href: "/faculty", icon: Home },
-    // { name: "Profile", href: "/faculty/profile", icon: User },
-    { name: "Students", href: "/faculty/students", icon: Users },
+    { name: "Students", href: "/faculty/mentees", icon: Users },
+    { name: "Pending Approvals", href: "/faculty/approvals", icon: Clock },
+    { name: "Feedback", href: "/faculty/reports", icon: FileText },
     // { name: "Applications", href: "/faculty/applications", icon: FileText },
     { name: "Notifications", href: "/faculty/notifications", icon: Bell },
     { name: "Settings", href: "/faculty/settings", icon: Settings },
