@@ -60,6 +60,7 @@ const trainingCourses = [
       { name: "Exercise Files", type: "ZIP", size: "8 MB" },
       { name: "Cheat Sheet", type: "PDF", size: "2 MB" },
     ],
+    icon: "Code",
   },
   {
     id: 2,
@@ -92,6 +93,7 @@ const trainingCourses = [
       { name: "Datasets", type: "ZIP", size: "25 MB" },
       { name: "Jupyter Notebooks", type: "ZIP", size: "10 MB" },
     ],
+    icon: "Database",
   },
 ]
 

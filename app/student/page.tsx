@@ -146,7 +146,7 @@ const CalendarComponent = () => {
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span>{getMonthName(currentDate)} {currentDate.getFullYear()}</span>
+          <span className="font-medium">{getMonthName(currentDate)} {currentDate.getFullYear()}</span>
           <Button 
             variant="ghost" 
             size="sm" 
@@ -209,7 +209,7 @@ const CalendarComponent = () => {
         {displayedEvents.length > 0 ? (
           <div className="space-y-3">
             {displayedEvents.map((event, index) => (
-              <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={`/placeholder.svg?height=40&width=40&text=${event.company.charAt(0)}`} />
                   <AvatarFallback>{event.company.charAt(0)}</AvatarFallback>
@@ -234,7 +234,7 @@ const CalendarComponent = () => {
               .filter(event => event.date >= new Date())
               .slice(0, 3)
               .map((event, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
                   <Avatar className="w-10 h-10">
                     <AvatarImage src={`/placeholder.svg?height=40&width=40&text=${event.company.charAt(0)}`} />
                     <AvatarFallback>{event.company.charAt(0)}</AvatarFallback>
@@ -312,9 +312,12 @@ export default function StudentDashboard() {
           {/* Left Column (Wider) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Progress and Status Card */}
-            <Card>
+            <Card className="shadow-sm border border-muted">
               <CardHeader>
-                <CardTitle>Progress and Status</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  Progress and Status
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -328,15 +331,15 @@ export default function StudentDashboard() {
                 <div>
                   <p className="text-sm font-medium mb-3">Applications Overview:</p>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg border">
                       <p className="text-2xl font-bold text-blue-600">12</p>
                       <p className="text-sm text-muted-foreground">Applied</p>
                     </div>
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg border">
                       <p className="text-2xl font-bold text-blue-600">4</p>
                       <p className="text-sm text-muted-foreground">Interviewing</p>
                     </div>
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg border">
                       <p className="text-2xl font-bold text-blue-600">1</p>
                       <p className="text-sm text-muted-foreground">Offers</p>
                     </div>
@@ -346,9 +349,12 @@ export default function StudentDashboard() {
             </Card>
 
             {/* Company Inbox Card */}
-            <Card>
+            <Card className="shadow-sm border border-muted">
               <CardHeader>
-                <CardTitle>Company Inbox</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary" />
+                  Company Inbox
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
@@ -424,9 +430,12 @@ export default function StudentDashboard() {
             </Card>
 
             {/* Application Tracker Card */}
-            <Card>
+            <Card className="shadow-sm border border-muted">
               <CardHeader>
-                <CardTitle>Application Tracker</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Application Tracker
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {[
@@ -472,9 +481,12 @@ export default function StudentDashboard() {
           {/* Right Column (Narrower) */}
           <div className="space-y-6">
             {/* Calendar and Interviews Card */}
-            <Card>
+            <Card className="shadow-sm border border-muted">
               <CardHeader>
-                <CardTitle>Calendar and Interviews</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  Calendar and Interviews
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <CalendarComponent />
@@ -482,9 +494,12 @@ export default function StudentDashboard() {
             </Card>
 
             {/* Skills Dashboard Card */}
-            <Card>
+            <Card className="shadow-sm border border-muted">
               <CardHeader>
-                <CardTitle>Skills Dashboard</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                  Skills Dashboard
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">

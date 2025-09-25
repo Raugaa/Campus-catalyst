@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/lib/convex-hooks"
+import { useAuth } from "@/lib/contexts/AuthContext"
 import { GraduationCap } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
@@ -82,12 +83,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const data = await registerCompany(formData)
-      if (!data) {
-        toast.error("Registration failed")
-        setIsLoading(false)
-        return
-      }
+      await registerCompany(formData)
       toast.success("Registration successful! Please wait for admin verification.")
       router.push("/auth/login?role=company")
     } catch (error) {
@@ -106,11 +102,15 @@ export default function RegisterPage() {
       </div>
       
       <div className="w-full max-w-2xl relative z-10">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
-            <GraduationCap className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="text-2xl font-semibold">Campus Portal</span>
+        <div className="flex flex-col items-center justify-center space-y-2">
+          <Image 
+            src="/assets/LOGO (Campus Connect).png" 
+            alt="Campus Connect Logo" 
+            width={40} 
+            height={40} 
+            className="rounded-lg"
+          />
+          <span className="text-2xl font-semibold">Campus Connect</span>
         </div>
 
         <Card className="shadow-xl border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-card/80 backdrop-blur-sm">
