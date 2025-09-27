@@ -127,6 +127,11 @@ export const getUserProfile: any = action({
             userId: user._id 
           });
           break;
+        case "GLOBAL_ADMIN":
+          profile = await ctx.runQuery(api.queries.getGlobalAdminByUserId, { 
+            userId: user._id 
+          });
+          break;
       }
 
       return {
@@ -403,6 +408,52 @@ export const createAdmin: any = action({
   },
 });
 
+export const createGlobalAdmin: any = action({
+  args: {
+    email: v.string(),
+    password: v.string(),
+    name: v.string(),
+    phone: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { email, password, name, phone } = args;
+    
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Check if user already exists
+    const existingUser = await ctx.runQuery(api.queries.getUserByEmail, {
+      email: normalizedEmail
+    });
+    
+    if (existingUser) {
+      throw new Error("User with this email already exists");
+    }
+    
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+    // Create user and global admin via mutations
+    const result = await ctx.runMutation(api.mutations.createGlobalAndUser, {
+      userData: {
+        email: normalizedEmail,
+        passwordHash,
+        role: "GLOBAL_ADMIN",
+        isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      globalAdminData: {
+        name,
+        phone,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }
+    });
+    
+    return result;
+  }
+
+}
+);
 // ✅ New action to update faculty status
 export const updateFacultyStatus = action({
   args: {

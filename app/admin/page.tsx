@@ -472,7 +472,7 @@ export default function AdminDashboard() {
                 <CardDescription>Most active companies this semester</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {topCompanies.map((company, index) => (
+                {topCompanies.map((company : any, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={company.logo || `/placeholder-icon.png?height=32&width=32&text=${company.name?.substring(0, 2)}`} />

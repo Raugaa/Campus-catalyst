@@ -1,9 +1,10 @@
 import type React from "react"
-import { Sidebar } from "./sidebar"
+import { Sidebar } from "../ui/sidebar"
+
 
 interface DashboardLayoutProps {
   children: React.ReactNode
-  userRole: "student" | "company" | "faculty" | "admin" | "global-admin"
+  userRole: "student" | "company" | "faculty" | "admin" | "global_admin"
 }
 
 export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {

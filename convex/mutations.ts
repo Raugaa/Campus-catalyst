@@ -452,6 +452,36 @@ export const createUserAndFaculty = mutation({
   },
 });
 
+export const createGlobalAndUser = mutation({
+  args: {
+    userData: v.object({
+      email: v.string(),
+      passwordHash: v.string(),
+      role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN"), v.literal("GLOBAL_ADMIN")),
+      isActive: v.boolean(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }),
+    globalAdminData: v.object({
+      name: v.string(),
+      phone: v.string(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+  },
+  handler: async (ctx, args) => {
+    const { userData, globalAdminData } = args;
+
+    const userId = await ctx.db.insert("users", userData);
+    const globalAdminId = await ctx.db.insert("globalAdmins", {
+      userId,
+      ...globalAdminData,
+    });
+
+    return { userId, globalAdminId };
+  },
+});
+
 export const createUserAndStudent = mutation({
   args: {
     userData: v.object({

@@ -63,6 +63,15 @@ export const getFacultyById = query({
   },
 });
 
+export const getGlobalAdminByUserId = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("globalAdmins")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+  },
+});
+
 export const getCompanyByUserId = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {

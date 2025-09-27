@@ -12,11 +12,19 @@ export default defineSchema({
   })
   .index("by_code", ["code"])
   .index("by_college", ["collegeId"]),
-
+  
+  globalAdmins: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    phone: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
   users: defineTable({
     email: v.string(),
     passwordHash: v.string(),
-    role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN")),
+    role: v.union(v.literal("STUDENT"), v.literal("FACULTY"), v.literal("COMPANY"), v.literal("ADMIN") , v.literal("GLOBAL_ADMIN")),
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),

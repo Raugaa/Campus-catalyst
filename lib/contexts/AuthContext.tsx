@@ -10,9 +10,6 @@ interface User {
   email: string;
   role: string;
   profile?: any;
-  companyId?: string; // For company users
-  mentorId?: string; // For students
-  collegeId?: string; // For students
 }
 
 interface AuthContextType {
@@ -20,8 +17,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
   logout: () => void;
-  registerCompany: (data: any) => Promise<void>;
-  refreshProfile: () => Promise<void>; // ✅ Add refresh function
+  registerCompany: (data: any) => Promise<any>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,31 +28,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Use Convex hooks
   const loginAction = useAction(api.actions.login);
-  const registerCompanyMutation = useAction(api.actions.registerCompany);
+  const registerCompanyAction = useAction(api.actions.registerCompany);
   const getUserProfileAction = useAction(api.actions.getUserProfile);
 
-  // ✅ Function to refresh profile data
-  const refreshProfile = async () => {
-    const token = localStorage.getItem('convex-token');
-    if (!token) return;
-
-    try {
-      const profileResult = await getUserProfileAction({ token });
-      if (profileResult?.valid) {
-        setUser({
-          id: profileResult.userId,
-          email: profileResult.email,
-          role: profileResult.role,
-          profile: profileResult.profile
-        });
-      }
-    } catch (error) {
-      console.error('Failed to refresh profile:', error);
-    }
-  };
-
+  // ✅ Check authentication on mount and handle reloads
   useEffect(() => {
     const checkAuth = async () => {
       console.log("Checking auth...");
@@ -74,14 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Profile result:", profileResult);
         
         if (profileResult?.valid) {
+          // ✅ Normalize role to handle global admin
+          const normalizedRole = profileResult.role.toLowerCase().replace('_', '-');
+          
           setUser({
             id: profileResult.userId,
             email: profileResult.email,
-            role: profileResult.role,
+            role: normalizedRole,
             profile: profileResult.profile
           });
         } else {
-          console.log("Invalid token");
+          console.log("Invalid token, clearing storage");
           setUser(null);
           localStorage.removeItem('convex-token');
         }
@@ -99,17 +79,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      setLoading(true); // ✅ Set loading during login
+      setLoading(true);
       const result = await loginAction({ email, password });
       console.log("Login result:", result);
       
       if (result?.token) {
         localStorage.setItem('convex-token', result.token);
         
-        // ✅ Immediately fetch profile after login
-        setTimeout(async () => {
-          await refreshProfile();
-        }, 100); // Small delay to ensure token is saved
+        // ✅ Get profile immediately after login
+        const profileResult = await getUserProfileAction({ token: result.token });
+        console.log("Profile result after login:", profileResult);
+        
+        if (profileResult?.valid) {
+          const normalizedRole = profileResult.role.toLowerCase().replace('_', '-');
+          
+          setUser({
+            id: profileResult.userId,
+            email: profileResult.email,
+            role: normalizedRole,
+            profile: profileResult.profile
+          });
+        }
         
         return result;
       } else {
@@ -124,17 +114,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    localStorage.removeItem('convex-token');
     setUser(null);
-    localStorage.removeItem("convex-token");
-    router.push("/auth/login");
+    router.push('/auth/login');
   };
 
   const registerCompany = async (data: any) => {
     try {
-      await registerCompanyMutation(data);
+      setLoading(true);
+      return await registerCompanyAction(data);
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error('Registration failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    const token = localStorage.getItem('convex-token');
+    if (!token) return;
+
+    try {
+      const profileResult = await getUserProfileAction({ token });
+      if (profileResult?.valid) {
+        const normalizedRole = profileResult.role.toLowerCase().replace('_', '-');
+        
+        setUser({
+          id: profileResult.userId,
+          email: profileResult.email,
+          role: normalizedRole,
+          profile: profileResult.profile
+        });
+      }
+    } catch (error) {
+      console.error('Failed to refresh profile:', error);
     }
   };
 
@@ -155,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

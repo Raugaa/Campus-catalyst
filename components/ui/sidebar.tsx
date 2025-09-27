@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import {
   Home, User, Briefcase, FileText, Bell, Settings, LogOut,
@@ -16,7 +17,7 @@ import { useMemo } from "react"
 import { useAuth } from "../../lib/contexts/AuthContext"
 
 interface SidebarProps {
-  userRole: "student" | "company" | "faculty" | "admin"
+  userRole: "student" | "company" | "faculty" | "admin" | "global_admin"
   className?: string
 }
 
@@ -49,6 +50,12 @@ const navigationItems = {
     { name: "Opportunities", href: "/admin/opportunities", icon: Briefcase },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ],
+  global_admin: [
+    { name: "Dashboard", href: "/global_admin", icon: Home },
+    { name: "Companies", href: "/global_admin/companies", icon: Building2 },
+    { name: "Institutes", href: "/global_admin/institutes", icon: GraduationCap },
+    { name: "Settings", href: "/global_admin/settings", icon: Settings },
+  ],
 }
 
 export function Sidebar({ userRole, className }: SidebarProps) {
@@ -56,12 +63,9 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   const pathname = usePathname()
   const items = navigationItems[userRole]
   
-  // Destructure the hook properly
   const { user, loading, logout } = useAuth();
-  console.log(user);
 
   const { displayName, subtitle, avatarFallback, badgeNode } = useMemo(() => {
-    // Show loading state
     if (loading) {
       return {
         displayName: "Loading...",
@@ -71,7 +75,6 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       }
     }
 
-    // Show not authenticated state
     if (!user) {
       return {
         displayName: "Not authenticated",
@@ -86,10 +89,9 @@ export function Sidebar({ userRole, className }: SidebarProps) {
     let fallback = "U"
     let companyVerified: boolean | null = null
 
-    const role = user.role
-    const profile = user.profile
+    const role = user.role?.toUpperCase() || userRole.toUpperCase()
+    const profile = user?.profile
 
-    // ✅ Better fallback handling
     if (role === "STUDENT") {
       if (profile) {
         const fn = profile.firstName || ""
@@ -98,7 +100,6 @@ export function Sidebar({ userRole, className }: SidebarProps) {
         sub = `${profile.department || ""} • ${profile.year || ""}`
         fallback = `${fn?.[0] || ""}${ln?.[0] || ""}`.toUpperCase() || "ST"
       } else {
-        // Fallback when profile isn't loaded yet
         name = user.email?.split('@')[0] || "Student"
         sub = "Student"
         fallback = "ST"
@@ -137,14 +138,29 @@ export function Sidebar({ userRole, className }: SidebarProps) {
         sub = "Company"
         fallback = "CO"
       }
+    } else if (role === "GLOBAL_ADMIN" || role === "GLOBAL-ADMIN") {
+      if (profile && profile.name) {
+        const nm = profile.name || ""
+        name = nm
+        sub = "Global Admin"
+        fallback = nm.split(" ").map((s: any) => s[0]).slice(0, 2).join("").toUpperCase() || "GA"
+      } else {
+        const emailPrefix = user.email?.split('@')[0] || "globaladmin"
+        name = emailPrefix === "globaladmin" ? "System Administrator" : emailPrefix
+        sub = "Global Admin"
+        fallback = "GA"
+      }
     }
 
-    // ✅ Ensure we always have a display name
     if (!name.trim()) {
       name = user.email?.split('@')[0] || "User"
     }
 
-    const label = userRole.charAt(0).toUpperCase() + userRole.slice(1)
+    let label = userRole.charAt(0).toUpperCase() + userRole.slice(1)
+    if (userRole === "global_admin") {
+      label = "Global Admin"
+    }
+    
     let badge
 
     if (userRole === "company") {
@@ -178,70 +194,89 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   }, [user, loading, userRole])
 
   return (
-    <div className={cn("pb-12 w-64 relative", className)}>
-      <div className="space-y-4 py-4">
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2 mb-6">
+    <div className={cn("flex flex-col h-full w-64 bg-background border-r border-border", className)}>
+      {/* Header Section */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative">
             <Image 
               src="/assets/LOGO (Campus Connect).png" 
               alt="Campus Connect Logo" 
-              width={32} 
-              height={32} 
-              className="rounded-lg"
+              width={36} 
+              height={36} 
+              className="rounded-lg shadow-sm"
             />
-            <span className="text-lg font-semibold">Campus Connect</span>
           </div>
-
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-6">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src="/assets/LOGO (Campus Connect).png" />
-              <AvatarFallback>
-                {typeof avatarFallback === 'string' ? avatarFallback : avatarFallback}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{displayName}</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                {badgeNode}
-                {subtitle && (
-                  <span className="text-xs text-muted-foreground truncate">
-                    {subtitle.includes('•') ? subtitle : `• ${subtitle}`}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">Navigation</h2>
-            <ScrollArea className="h-[300px] px-1">
-              {items.map((item) => (
-                <Button
-                  key={item.href}
-                  variant={pathname === item.href ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link href={item.href}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {item.name}
-                  </Link>
-                </Button>
-              ))}
-            </ScrollArea>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-foreground truncate">Campus Connect</h1>
+            <p className="text-xs text-muted-foreground">Student Portal</p>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-3 right-3">
+      {/* User Profile Section */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+          <Avatar className="w-10 h-10 ring-2 ring-primary/10">
+            <AvatarImage src="/assets/LOGO (Campus Connect).png" alt={displayName} />
+            <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+              {typeof avatarFallback === 'string' ? avatarFallback : avatarFallback}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+            <div className="flex items-center gap-2 mt-1">
+              {badgeNode}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Section */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="px-4 py-3">
+          <h2 className="text-sm font-semibold text-foreground mb-2 px-2">Navigation</h2>
+        </div>
+        
+        <ScrollArea className="flex-1 px-2">
+          <div className="space-y-1 px-2 pb-4">
+            {items && items.length > 0 ? items.map((item) => (
+              <Button
+                key={item.href}
+                variant={pathname === item.href ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-10 px-3",
+                  pathname === item.href 
+                    ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+                asChild
+              >
+                <Link href={item.href}>
+                  <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{item.name}</span>
+                </Link>
+              </Button>
+            )) : (
+              <div className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">No navigation items</p>
+                <p className="text-xs text-muted-foreground mt-1">Role: {userRole}</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Footer Section - Sign Out */}
+      <div className="p-4 border-t border-border mt-auto">
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-muted-foreground" 
+          className="w-full justify-start h-10 px-3 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
           onClick={logout}
           disabled={loading}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+          <LogOut className="mr-3 h-4 w-4 flex-shrink-0" />
+          <span>Sign Out</span>
         </Button>
       </div>
     </div>

@@ -13,7 +13,7 @@ import {
   ArrowRight 
 } from "lucide-react"
 import Link from "next/link"
-import DashboardLayout from "@/components/layout/dashboard-layout"
+import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
@@ -24,11 +24,41 @@ export default function GlobalAdminDashboard() {
 
   useEffect(() => {
     setIsClient(true)
-    // Redirect to login if not authenticated as global admin
-    if (!loading && (!user || user.role !== "global-admin")) {
-      router.push("/auth/login?role=global-admin")
+  }, [])
+
+  useEffect(() => {
+    // ✅ Better auth check with proper loading handling
+    if (!loading && isClient) {
+      console.log("Current user:", user); // Debug log
+      console.log("User role:", user?.role); // Debug log
+      
+      if (!user || user.role !== "global-admin") {
+        console.log("Redirecting to login - not global admin");
+        router.push("/auth/login?role=global-admin")
+      }
     }
-  }, [user, loading, router])
+  }, [user, loading, router, isClient])
+
+  // ✅ Show loading state properly
+  if (loading || !isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // ✅ Check auth after loading is complete
+  if (!user || user.role !== "global-admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Access Denied</p>
+          <p className="text-sm text-gray-500">Redirecting to login...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Mock data for demonstration
   const instituteRequests = [
@@ -43,26 +73,14 @@ export default function GlobalAdminDashboard() {
     { id: 3, name: "Amazon", email: "careers@amazon.com", status: "rejected" },
   ]
 
-  // Show loading state
-  if (loading || !isClient) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  // Check if user is global admin
-  if (!user || user.role !== "global-admin") {
-    return null // Will be redirected by useEffect
-  }
-
   return (
-    <DashboardLayout userRole="global-admin">
+    <DashboardLayout userRole="global_admin">
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Global Admin Dashboard</h1>
-          <p className="text-gray-600">Manage and oversee all registered institutions and companies</p>
+          <p className="text-gray-600">
+            Welcome {user.profile?.name || user.email} - Manage and oversee all registered institutions and companies
+          </p>
         </div>
 
         {/* Stats Cards */}
@@ -129,7 +147,7 @@ export default function GlobalAdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {institute.status === "pending" && (
-                        <Link href="/global-admin/institutes">
+                        <Link href="/global_admin/institutes">
                           <Button variant="outline" size="sm">Review</Button>
                         </Link>
                       )}
@@ -166,7 +184,7 @@ export default function GlobalAdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {company.status === "pending" && (
-                        <Link href="/global-admin/companies">
+                        <Link href="/global_admin/companies">
                           <Button variant="outline" size="sm">Review</Button>
                         </Link>
                       )}

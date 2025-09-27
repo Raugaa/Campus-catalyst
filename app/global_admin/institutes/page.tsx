@@ -46,7 +46,7 @@ export default function InstituteRegistration() {
   }
 
   return (
-    <DashboardLayout userRole="global-admin">
+    <DashboardLayout userRole="global_admin">
       <div className="space-y-6">
         <div>
           <Link href="/global-admin" className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-2">
