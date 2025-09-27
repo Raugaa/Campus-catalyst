@@ -191,7 +191,10 @@ export default function MenteeDetailPage() {
             <h1 className="text-3xl font-bold text-gray-900">Mentee Profile</h1>
             <p className="text-gray-600">Detailed report for {mentee.name}</p>
           </div>
-          <Button>Send Message</Button>
+          <Button onClick={() => window.location.href = `mailto:${mentee.email}`}>
+            <Mail className="h-4 w-4 mr-2" />
+            Send Email
+          </Button>
         </div>
 
         {/* Student Overview */}

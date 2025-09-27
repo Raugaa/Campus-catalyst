@@ -360,66 +360,6 @@ export default function FacultyDashboard() {
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Pending Applications Card */}
-          <Card className="bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-900">
-                <Clock className="h-5 w-5 text-blue-600" />
-                Pending Applications
-              </CardTitle>
-              <CardDescription>Applications awaiting your review</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                {/* Simulated progress bar */}
-                <div className="w-full mr-4">
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Progress</span>
-                    <span>75% Complete</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
-                      style={{ width: "75%" }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-              
-              <Link href="/faculty/approvals">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                  View Applications
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Feedback to Submit Card */}
-          <Card className="bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-900">
-                <FileText className="h-5 w-5 text-blue-600" />
-                Feedback to Submit
-              </CardTitle>
-              <CardDescription>Student feedback requiring your attention</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">2</span> feedback items due
-                </div>
-              </div>
-              
-              <Link href="/faculty/reports">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                  Submit Feedback
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* My Mentees Section */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">My Mentees</h2>
@@ -456,6 +396,67 @@ export default function FacultyDashboard() {
             </Card>
           </div>
         </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Pending Applications Card */}
+          <Card className="bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-900">
+                <Clock className="h-5 w-5 text-blue-600" />
+                Pending Approvals
+              </CardTitle>
+              <CardDescription>Applications awaiting your review</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                {/* Simulated progress bar */}
+                <div className="w-full mr-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Progress</span>
+                    <span>75% Complete</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full" 
+                      style={{ width: "75%" }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              
+              <Link href="/faculty/approvals">
+                <Button className="w-full">
+                  View Applications
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Feedback to Submit Card */}
+          <Card className="bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-900">
+                <FileText className="h-5 w-5 text-blue-600" />
+                Feedback to Submit
+              </CardTitle>
+              <CardDescription>Student feedback requiring your attention</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">2</span> feedback items due
+                </div>
+              </div>
+              
+              <Link href="/faculty/reports">
+                <Button className="w-full">
+                  Submit Feedback
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </DashboardLayout>
   )

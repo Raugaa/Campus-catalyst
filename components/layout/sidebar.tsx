@@ -28,7 +28,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
 interface SidebarProps {
-  userRole: "student" | "company" | "faculty" | "admin"
+  userRole: "student" | "company" | "faculty" | "admin" | "global-admin"
   className?: string
 }
 
@@ -53,7 +53,7 @@ const navigationItems = {
   ],
   faculty: [
     { name: "Dashboard", href: "/faculty", icon: Home },
-    { name: "Students", href: "/faculty/mentees", icon: Users },
+    { name: "Mentees", href: "/faculty/mentees", icon: Users },
     { name: "Pending Approvals", href: "/faculty/approvals", icon: Clock },
     { name: "Feedback", href: "/faculty/reports", icon: FileText },
     // { name: "Applications", href: "/faculty/applications", icon: FileText },
@@ -68,6 +68,12 @@ const navigationItems = {
     { name: "Companies", href: "/admin/companies", icon: Building2 },
     { name: "Opportunities", href: "/admin/opportunities", icon: Briefcase },
     { name: "Settings", href: "/admin/settings", icon: Settings },
+  ],
+  "global-admin": [
+    { name: "Dashboard", href: "/global-admin", icon: Home },
+    { name: "Register Institutes", href: "/global-admin/institutes", icon: Building2 },
+    { name: "Verify Companies", href: "/global-admin/companies", icon: CheckCircle2 },
+    { name: "Settings", href: "/global-admin/settings", icon: Settings },
   ],
 }
 
@@ -103,6 +109,11 @@ export function Sidebar({ userRole, className }: SidebarProps) {
         setSubtitle("Mumbai, India")
         setCompanyVerified(true)
         setAvatarFallback("TC")
+        break
+      case "global-admin":
+        setDisplayName("Global Administrator")
+        setSubtitle("Campus Connect System")
+        setAvatarFallback("GA")
         break
       default:
         setDisplayName("User")

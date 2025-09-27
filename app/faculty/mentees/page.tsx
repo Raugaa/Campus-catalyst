@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -293,11 +295,13 @@ export default function MenteesPage() {
                       View Full Report
                     </Button>
                   </Link>
-                  <Button variant="outline" size="icon" className="bg-white hover:bg-gray-50">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="bg-white hover:bg-gray-50"
+                    onClick={() => window.location.href = `mailto:${mentee.email}`}
+                  >
                     <Mail className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="bg-white hover:bg-gray-50">
-                    <Phone className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
@@ -307,4 +311,4 @@ export default function MenteesPage() {
       </div>
     </DashboardLayout>
   )
-}
+}
