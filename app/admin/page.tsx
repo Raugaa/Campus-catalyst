@@ -1,13 +1,33 @@
-'use client'
+"use client";
 
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Users,
   Building2,
@@ -22,526 +42,1057 @@ import {
   Plus,
   Mail,
   FileDown,
-} from "lucide-react"
-import Link from "next/link"
-import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
-import { useAuth } from "@/lib/contexts/AuthContext"
-
-// Dynamically import Recharts components to avoid SSR issues
-const RechartsComponent = dynamic(
-  () => import('../../components/admin/recharts-component'),
+  DollarSign,
+  Target,
+  Award,
+  GraduationCap,
+  ChevronUp,
+  ChevronDown,
+  MessageCircle,
+  Eye,
+} from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { useMemo, useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { Progress } from "@/components/ui/progress";
+// Dynamically import chart components
+const DepartmentStackedBarChart = dynamic(
+  () =>
+    import("@/components/admin/recharts-component").then((mod: any) => ({
+      default: mod.DepartmentStackedBarChart,
+    })),
   { ssr: false }
-)
+);
+
+const DepartmentCTCChart = dynamic(
+  () =>
+    import("@/components/admin/recharts-component").then((mod: any) => ({
+      default: mod.DepartmentCTCChart,
+    })),
+  { ssr: false }
+);
 
 export default function AdminDashboard() {
-  const { user } = useAuth()
-  const [selectedYear, setSelectedYear] = useState<string>("Final Year")
-  const [metrics, setMetrics] = useState<any | null>(null)
-  const [departments, setDepartments] = useState<Array<{ name: string; total: number; placed: number; percentage: number }>>([])
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  console.log("User in Admin Dashboard:", user?.profile)
+  const { user, refreshProfile } = useAuth();
+  const [selectedYear, setSelectedYear] = useState<string>("All");
+  const [metrics, setMetrics] = useState<any | null>(null);
+  const [departments, setDepartments] = useState<
+    Array<{
+      name: string;
+      total: number;
+      placed: number;
+      percentage: number;
+      code: string;
+    }>
+  >([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // CSV Report Dialog State
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportOptions, setReportOptions] = useState({
+    // Student Status Filters - simplified to only placement status
+    studentStatus: "both", // "placed", "not-placed", "both"
+
+    // Filters
+    filterByYear: selectedYear,
+    filterByDepartment: "All",
+
+    // Privacy Options
+    includeContactInfo: false,
+    includePersonalInfo: true,
+
+    // Placement Details (for placed students)
+    includeCompanyDetails: true,
+    includePackageDetails: true,
+    includeRoleDetails: true,
+    includeLocationDetails: true,
+  });
+
+  // Get collegeId from the correct location
+  const collegeId = user?.collegeId || user?.profile?.collegeId;
+
+  // Fetch CSV report data using the new comprehensive query
+  const csvReportData = useQuery(
+    api.queries.getCSVReportData,
+    collegeId
+      ? {
+          collegeId: collegeId as any,
+          ...reportOptions,
+        }
+      : "skip"
+  );
+
   // Fetch real data from Convex
-  const analyticsData = useQuery(api.queries.getAdminAnalytics, {
-    collegeId: user?.profile?.collegeId,
-    year: selectedYear,
-  })
+  const analyticsData = useQuery(
+    api.queries.getAdminAnalytics,
+    collegeId ? { collegeId: collegeId as any, year: selectedYear } : "skip"
+  );
 
-  const departmentData = useQuery(api.queries.getDepartmentAnalytics, {
-    collegeId: user?.profile?.collegeId,
-    year: selectedYear,
-  })
+  console.log("Analytics data:", analyticsData);
+  const departmentData = useQuery(
+    api.queries.getDepartmentAnalytics,
+    collegeId ? { collegeId: collegeId as any, year: selectedYear } : "skip"
+  );
 
-  const topCompaniesData = useQuery(api.queries.getTopRecruitingCompanies, {
-    collegeId: user?.profile?.collegeId,
-    limit: 5,
-  })
+  const topCompaniesData = useQuery(
+    api.queries.getTopRecruitingCompanies,
+    collegeId ? { collegeId: collegeId as any, limit: 5 } : "skip"
+  );
 
-  const topOpportunitiesData = useQuery(api.queries.getTopOpportunities, {
-    collegeId: user?.profile?.collegeId,
-    limit: 3,
-  })
+  const topOpportunitiesData = useQuery(
+    api.queries.getTopOpportunities,
+    collegeId ? { collegeId: collegeId as any, limit: 3 } : "skip"
+  );
 
-  const quickStatsData = useQuery(api.queries.getQuickStats, {
-    collegeId: user?.profile?.collegeId,
-  })
+  const quickStatsData = useQuery(
+    api.queries.getQuickStats,
+    collegeId ? { collegeId: collegeId as any } : "skip"
+  );
 
+  // NEW: CTC and Offers Analytics
+  const ctcAnalyticsData = useQuery(
+    api.queries.getCTCAnalytics,
+    collegeId ? { collegeId: collegeId as any, year: selectedYear } : "skip"
+  );
+
+  const departmentCTCData = useQuery(
+    api.queries.getDepartmentWiseCTCAnalytics,
+    collegeId ? { collegeId: collegeId as any, year: selectedYear } : "skip"
+  );
+
+  // Recent students for dashboard
+  const recentStudentsData = useQuery(
+    api.queries.getStudents,
+    collegeId
+      ? {
+          collegeId: collegeId as any,
+          take: 5,
+          skip: 0,
+        }
+      : "skip"
+  );
   // Update metrics and departments when data loads
   useEffect(() => {
+    console.log("Analytics data received:", analyticsData);
     if (analyticsData) {
       setMetrics({
         totalStudents: analyticsData.totalStudents || 0,
-        activeCompanies: analyticsData.activeCompanies || 0,
+        activeCompanies: analyticsData.verifiedCompanies || 0,
         studentsPlaced: analyticsData.studentsPlaced || 0,
         studentsInInternship: analyticsData.studentsInInternship || 0,
-      })
+      });
     }
-  }, [analyticsData])
+  }, [analyticsData]);
 
+  // Update metrics and departments when data loads
   useEffect(() => {
+    console.log("Department data received:", departmentData);
     if (departmentData) {
-      setDepartments(departmentData.map(dept => ({
-        name: dept.name,
-        total: dept.students,
-        placed: dept.placed,
-        percentage: dept.rate,
-      })))
+      setDepartments(
+        departmentData.map((dept) => ({
+          name: dept.name,
+          code: dept.code || dept.name.substring(0, 3).toUpperCase(),
+          total: dept.total,
+          placed: dept.placed,
+          percentage: dept.percentage,
+        }))
+      );
     }
-  }, [departmentData])
+  }, [departmentData]);
+
+  const barChartData = useMemo(() => {
+    if (!departments?.length) return [];
+    return departments.map((dept) => ({
+      name: dept.name,
+      students: dept.total,
+      placed: dept.placed,
+      rate: dept.percentage,
+    }));
+  }, [departments]);
 
   // Set loading state
   useEffect(() => {
-    setLoading(!analyticsData || !departmentData)
-  }, [analyticsData, departmentData])
+    setLoading(!analyticsData || !departmentData);
+  }, [analyticsData, departmentData]);
 
-  const barChartData = useMemo(() => {
-    if (!departments?.length) return []
-    return departments.map((dept) => ({
-      name: dept.name,
-      placed: dept.placed,
-      unplaced: Math.max(dept.total - dept.placed, 0),
-    }))
-  }, [departments])
+  // Compute data for charts
+  const departmentChartData = useMemo(() => {
+    if (!departments?.length) return [];
+    return departments.map((d) => ({
+      label: d.code,
+      name: d.name,
+      placed: Number(d.placed) || 0,
+      unplaced: Math.max(0, Number(d.total || 0) - Number(d.placed || 0)),
+    }));
+  }, [departments]);
 
-  const generateCSVReport = () => {
-    console.log('Generating CSV report...')
-  }
+  const departmentCTCChartData = useMemo(() => {
+    if (!departmentCTCData?.length) return [];
+    return departmentCTCData.map((d) => ({
+      code: d.code,
+      department: d.department,
+      avgPackage: d.averagePackage || 0,
+      highestPackage: d.highestPackage || 0,
+      placementPercentage: d.placementPerApplication || 0,
+    }));
+  }, [departmentCTCData]);
+
+  const generateCSVReport = async () => {
+    try {
+      if (!csvReportData) {
+        console.error("No CSV report data available");
+        return;
+      }
+
+      const reportData: any[] = [];
+
+      // Students Data with enhanced filtering
+      if (csvReportData.students) {
+        csvReportData.students.forEach((student: any) => {
+          // Apply student status filter
+          const shouldIncludeStudent =
+            reportOptions.studentStatus === "both" ||
+            (reportOptions.studentStatus === "placed" && student.isPlaced) ||
+            (reportOptions.studentStatus === "not-placed" && !student.isPlaced);
+
+          if (!shouldIncludeStudent) return;
+
+          const baseStudentRow: any = {
+            Name: student.fullName,
+            "Roll Number": student.rollNumber,
+            Department: student.department,
+            Year: student.year,
+            CGPA: student.cgpa || "N/A",
+            "10th Percentage": student.tenthPercentage || "N/A",
+            "12th Percentage": student.twelfthPercentage || "N/A",
+            Status: student.isPlaced ? "Placed" : "Not Placed",
+            "Total Applications": student.applications || 0,
+            "Total Offers": student.totalOffers || 0,
+          };
+
+          // Add contact info if requested
+          if (reportOptions.includeContactInfo) {
+            baseStudentRow.Email = student.email || "N/A";
+            baseStudentRow.Phone = student.phone || "N/A";
+          }
+
+          // Add skills if personal info is requested
+          if (reportOptions.includePersonalInfo) {
+            baseStudentRow.Skills = Array.isArray(student.skills)
+              ? student.skills.join(", ")
+              : "N/A";
+          }
+
+          // Handle placement details for placed students
+          if (student.isPlaced && student.placementDetails?.length > 0) {
+            student.placementDetails.forEach((placement: any) => {
+              const placementRow = { ...baseStudentRow };
+
+              // Add placement details based on options
+              if (reportOptions.includeCompanyDetails) {
+                placementRow["Company Name"] = placement.companyName || "N/A";
+              }
+              if (reportOptions.includePackageDetails) {
+                placementRow["Package (LPA)"] = placement.package || "N/A";
+              }
+              if (reportOptions.includeRoleDetails) {
+                placementRow.Role = placement.role || "N/A";
+              }
+              if (reportOptions.includeLocationDetails) {
+                placementRow.Location = placement.location || "N/A";
+              }
+
+              reportData.push(placementRow);
+            });
+          } else {
+            // For non-placed students, only add empty placement columns if they're requested
+            if (reportOptions.includeCompanyDetails) {
+              baseStudentRow["Company Name"] = "";
+            }
+            if (reportOptions.includePackageDetails) {
+              baseStudentRow["Package (LPA)"] = "";
+            }
+            if (reportOptions.includeRoleDetails) {
+              baseStudentRow.Role = "";
+            }
+            if (reportOptions.includeLocationDetails) {
+              baseStudentRow.Location = "";
+            }
+            reportData.push(baseStudentRow);
+          }
+        });
+      }
+
+      // Generate CSV
+      if (reportData.length === 0) {
+        alert("No data available for the selected filters.");
+        return;
+      }
+
+      const headers = Object.keys(reportData[0]);
+      const csvContent = [
+        headers.join(","),
+        ...reportData.map((row: any) =>
+          headers
+            .map((header) => {
+              const value = row[header] || "";
+              return typeof value === "string" && value.includes(",")
+                ? `"${value}"`
+                : value;
+            })
+            .join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+
+      // Generate filename based on report type and filters
+      const reportType = "student";
+      const statusFilter =
+        reportOptions.studentStatus !== "both"
+          ? `_${reportOptions.studentStatus}`
+          : "";
+      const yearFilter =
+        reportOptions.filterByYear !== "All"
+          ? `_${reportOptions.filterByYear.replace(" ", "")}`
+          : "";
+      const deptFilter =
+        reportOptions.filterByDepartment !== "All"
+          ? `_${reportOptions.filterByDepartment.replace(" ", "")}`
+          : "";
+
+      link.setAttribute(
+        "download",
+        `${reportType}_placement_report${statusFilter}${yearFilter}${deptFilter}_${
+          new Date().toISOString().split("T")[0]
+        }.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setIsReportDialogOpen(false);
+    } catch (error) {
+      console.error("Error generating CSV report:", error);
+      alert("Error generating report. Please try again.");
+    }
+  };
 
   const sendBulkEmail = () => {
-    console.log('Sending bulk email...')
+    console.log("Sending bulk email...");
+  };
+
+  // Show loading state if no collegeId
+  if (!collegeId) {
+    return (
+      <DashboardLayout userRole="admin">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">
+            College ID not found. Please contact support.
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
-  // Dynamic top opportunities with fallback
-  const topOpportunities = topOpportunitiesData || [
-    {
-      id: 1,
-      title: "Software Engineering Intern",
-      company: "TCS",
-      applications: 45,
-      status: "Active",
-    },
-    {
-      id: 2,
-      title: "Data Science Intern",
-      company: "Infosys",
-      applications: 32,
-      status: "Active",
-    },
-    {
-      id: 3,
-      title: "Frontend Developer Intern",
-      company: "Wipro",
-      applications: 28,
-      status: "Closing Soon",
-    },
-  ]
+  // Dynamic top opportunities with fallback - use fallback if data is undefined, null, or empty array
+  const topOpportunities =
+    topOpportunitiesData && topOpportunitiesData.length > 0
+      ? topOpportunitiesData
+      : [
+          {
+            id: 1,
+            title: "Software Engineering Intern",
+            company: "TechCorp",
+            applications: 45,
+            status: "Active" as const,
+          },
+          {
+            id: 2,
+            title: "Data Analyst",
+            company: "DataInc",
+            applications: 32,
+            status: "Active" as const,
+          },
+        ];
 
-  // Mock data for placement trends (can be enhanced with real data later)
-  const getPlacementTrendData = (tab: string) => {
-    switch (tab) {
-      case "internships":
-        return [
-          { month: "Jan", applications: 45, placements: 18 },
-          { month: "Feb", applications: 52, placements: 22 },
-          { month: "Mar", applications: 48, placements: 25 },
-          { month: "Apr", applications: 61, placements: 30 },
-          { month: "May", applications: 55, placements: 28 },
-          { month: "Jun", applications: 67, placements: 35 },
-        ]
-      case "fulltime":
-        return [
-          { month: "Jan", applications: 22, placements: 12 },
-          { month: "Feb", applications: 25, placements: 15 },
-          { month: "Mar", applications: 28, placements: 18 },
-          { month: "Apr", applications: 31, placements: 20 },
-          { month: "May", applications: 29, placements: 19 },
-          { month: "Jun", applications: 35, placements: 25 },
-        ]
-      case "companies":
-        return [
-          { month: "Jan", newCompanies: 5, activeCompanies: 42 },
-          { month: "Feb", newCompanies: 7, activeCompanies: 49 },
-          { month: "Mar", newCompanies: 6, activeCompanies: 55 },
-          { month: "Apr", newCompanies: 8, activeCompanies: 63 },
-          { month: "May", newCompanies: 4, activeCompanies: 67 },
-          { month: "Jun", newCompanies: 9, activeCompanies: 76 },
-        ]
-      case "overview":
-      default:
-        return [
-          { month: "Jan", total: 67, placed: 30 },
-          { month: "Feb", total: 77, placed: 37 },
-          { month: "Mar", total: 76, placed: 43 },
-          { month: "Apr", total: 92, placed: 50 },
-          { month: "May", total: 84, placed: 47 },
-          { month: "Jun", total: 102, placed: 60 },
-        ]
-    }
-  }
+  // Enhanced SafeMetrics with backend data
+  const safeMetrics = {
+    totalStudents: metrics?.totalStudents || 0,
+    activeCompanies: metrics?.activeCompanies || 0,
+    studentsPlaced: metrics?.studentsPlaced || 0,
+    studentsInInternship: metrics?.studentsInInternship || 0,
+    newCompanies: metrics?.newCompanies || 0,
+  };
 
-  // Fallback UI values while loading
-  const safeMetrics = metrics ?? {
-    totalStudents: 0,
-    activeCompanies: 0,
-    studentsPlaced: 0,
-    studentsInInternship: 0,
-  }
-
-  // Dynamic top companies with fallback
-  const topCompanies = topCompaniesData || [
-    { name: "TCS", positions: 12, logo: "TC" },
-    { name: "Infosys", positions: 8, logo: "IS" },
-    { name: "Wipro", positions: 6, logo: "WP" },
-    { name: "Tech Mahindra", positions: 5, logo: "TM" },
-    { name: "HCL Technologies", positions: 4, logo: "HCL" },
-  ]
+  // Mock companies fallback - use fallback if data is undefined, null, or empty array
+  const topCompanies =
+    topCompaniesData && topCompaniesData.length > 0
+      ? topCompaniesData
+      : ["No Companies Found"]
+  console.log("Top companies data structure:", topCompaniesData);
+  console.log("Final topCompanies array:", topCompanies);
 
   // Dynamic quick stats with fallback
   const quickStats = quickStatsData || {
-    applicationsToday: 23,
-    interviewsScheduled: 8,
-    offersExtended: 5,
-    offersAccepted: 3,
-  }
+    totalApplications: 23,
+    pendingApplications: 8,
+    totalStudents: 5,
+    placedStudents: 3,
+  };
+
+  // CTC and Offers data with fallbacks
+  const ctcStats = ctcAnalyticsData || {
+    totalOffers: 0,
+    averagePackage: 0,
+    highestPackage: 0,
+    lowestPackage: 0,
+    below5LPA: 0,
+    between5to10LPA: 0,
+    between0LPA15LPA: 0,
+    between15LPAand20LPA: 0,
+    above20LPA: 0,
+  };
+
+  const departmentCTCStats = departmentCTCData || [];
+  const offersStats = {
+    totalApplications: analyticsData?.totalApplications || 0,
+    totalOffers: ctcAnalyticsData?.totalOffers || 0,
+    internshipOffers: Math.floor((ctcAnalyticsData?.totalOffers || 0) * 0.6), // Estimate
+    jobOffers: Math.floor((ctcAnalyticsData?.totalOffers || 0) * 0.4), // Estimate
+    overallConversionRate: analyticsData?.applicationSuccessRate || 0,
+  };
+
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
+    return `₹${amount}`;
+  };
 
   return (
     <DashboardLayout userRole="admin">
-      <div className="space-y-4">
+      <div className="space-y-2">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Placement Cell Dashboard</h1>
-            <p className="text-muted-foreground">Overview of campus internship and placement activities</p>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage students, companies, and track placement progress
+            </p>
           </div>
-          <div className="flex gap-2">
-
-          </div>
-        </div>
-
-        {/* Year Filter */}
-        <div className="flex justify-start">
-          <div className="w-40">
+          <div className="flex items-center gap-3">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="All">All Years</SelectItem>
                 <SelectItem value="First Year">First Year</SelectItem>
                 <SelectItem value="Second Year">Second Year</SelectItem>
                 <SelectItem value="Third Year">Third Year</SelectItem>
                 <SelectItem value="Final Year">Final Year</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex gap-2">
+              <Dialog
+                open={isReportDialogOpen}
+                onOpenChange={setIsReportDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Generate CSV Report
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Generate CSV Report</DialogTitle>
+                    <DialogDescription>
+                      Generate a student placement report with filtering options
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-6">
+                    {/* Student Status Filter */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Student Status</h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="both-students"
+                            name="studentStatus"
+                            value="both"
+                            checked={reportOptions.studentStatus === "both"}
+                            onChange={(e) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                studentStatus: e.target.value,
+                              }))
+                            }
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="both-students">All Students</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="placed-students"
+                            name="studentStatus"
+                            value="placed"
+                            checked={reportOptions.studentStatus === "placed"}
+                            onChange={(e) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                studentStatus: e.target.value,
+                              }))
+                            }
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="placed-students">
+                            Placed Students
+                          </Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="not-placed-students"
+                            name="studentStatus"
+                            value="not-placed"
+                            checked={
+                              reportOptions.studentStatus === "not-placed"
+                            }
+                            onChange={(e) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                studentStatus: e.target.value,
+                              }))
+                            }
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="not-placed-students">
+                            Not Placed Students
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Filters</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="yearFilter">Academic Year</Label>
+                          <Select
+                            value={reportOptions.filterByYear}
+                            onValueChange={(value) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                filterByYear: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="All">All Years</SelectItem>
+                              <SelectItem value="First Year">
+                                First Year
+                              </SelectItem>
+                              <SelectItem value="Second Year">
+                                Second Year
+                              </SelectItem>
+                              <SelectItem value="Third Year">
+                                Third Year
+                              </SelectItem>
+                              <SelectItem value="Final Year">
+                                Final Year
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="departmentFilter">Department</Label>
+                          <Select
+                            value={reportOptions.filterByDepartment}
+                            onValueChange={(value) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                filterByDepartment: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="All">
+                                All Departments
+                              </SelectItem>
+                              {departments.map((dept) => (
+                                <SelectItem key={dept.name} value={dept.name}>
+                                  {dept.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Privacy Options */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">
+                        Additional Information
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="contactInfo"
+                            checked={reportOptions.includeContactInfo}
+                            onCheckedChange={(checked) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                includeContactInfo: checked as boolean,
+                              }))
+                            }
+                          />
+                          <Label htmlFor="contactInfo">
+                            Include Contact Information (Email, Phone)
+                          </Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="personalInfo"
+                            checked={reportOptions.includePersonalInfo}
+                            onCheckedChange={(checked) =>
+                              setReportOptions((prev) => ({
+                                ...prev,
+                                includePersonalInfo: checked as boolean,
+                              }))
+                            }
+                          />
+                          <Label htmlFor="personalInfo">
+                            Include Academic Records (10th, 12th, Skills)
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Placement Details (only show for placed students or all students) */}
+                    {(reportOptions.studentStatus === "placed" ||
+                      reportOptions.studentStatus === "both") && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">
+                          Placement Details
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="companyDetails"
+                              checked={reportOptions.includeCompanyDetails}
+                              onCheckedChange={(checked) =>
+                                setReportOptions((prev) => ({
+                                  ...prev,
+                                  includeCompanyDetails: checked as boolean,
+                                }))
+                              }
+                            />
+                            <Label htmlFor="companyDetails">Company Name</Label>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="packageDetails"
+                              checked={reportOptions.includePackageDetails}
+                              onCheckedChange={(checked) =>
+                                setReportOptions((prev) => ({
+                                  ...prev,
+                                  includePackageDetails: checked as boolean,
+                                }))
+                              }
+                            />
+                            <Label htmlFor="packageDetails">
+                              Package (CTC)
+                            </Label>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="roleDetails"
+                              checked={reportOptions.includeRoleDetails}
+                              onCheckedChange={(checked) =>
+                                setReportOptions((prev) => ({
+                                  ...prev,
+                                  includeRoleDetails: checked as boolean,
+                                }))
+                              }
+                            />
+                            <Label htmlFor="roleDetails">Job Role/Title</Label>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="locationDetails"
+                              checked={reportOptions.includeLocationDetails}
+                              onCheckedChange={(checked) =>
+                                setReportOptions((prev) => ({
+                                  ...prev,
+                                  includeLocationDetails: checked as boolean,
+                                }))
+                              }
+                            />
+                            <Label htmlFor="locationDetails">
+                              Job Location
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsReportDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={generateCSVReport}>
+                        <FileDown className="w-4 h-4 mr-2" />
+                        Generate Report
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="outline" onClick={sendBulkEmail}>
+                <Mail className="w-4 h-4 mr-2" />
+                Send Bulk Email
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Key Metrics */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Students
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.totalStudents}</div>
+              <div className="text-2xl font-bold">
+                {safeMetrics.totalStudents}
+              </div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                {analyticsData?.totalStudentsGrowth || '+12%'} from last semester
+                {analyticsData?.totalStudents && "+12%"} from last year
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Companies</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Companies
+              </CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.activeCompanies}</div>
+              <div className="text-2xl font-bold">
+                {safeMetrics.activeCompanies}
+              </div>
               <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                +{analyticsData?.newCompaniesThisMonth || 8} new this month
+                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />+{8} new this
+                month
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Students Placed</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Students Placed
+              </CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {safeMetrics.studentsPlaced}
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center">
+                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
+                {analyticsData?.placementRate?.toFixed(1) || "0"}% placement
+                rate
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Salary Trends
+              </CardTitle>
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.studentsPlaced}</div>
+              <div className="text-2xl font-bold">
+                {formatCurrency(ctcAnalyticsData?.highestPackage || 0)}
+              </div>
               <p className="text-xs text-muted-foreground flex items-center">
-                <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                {analyticsData?.placementGrowth || '+15%'} from last semester
+                Average: {formatCurrency(ctcAnalyticsData?.averagePackage || 0)}
               </p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Students placed in internship</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">
+                Active Internships
+              </CardTitle>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeMetrics.studentsInInternship ?? 0}</div>
+              <div className="text-2xl font-bold">
+                {safeMetrics.studentsInInternship}
+              </div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <ArrowUp className="w-3 h-3 mr-1 text-green-500" />
-                {analyticsData?.internshipGrowth || '+22%'} from last year
+                {analyticsData?.studentsInInternship || 0} active internships
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* Left Column - Charts and Top Opportunities */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Placement Chart */}
-            <Card className="h-[500px]">
-              <CardHeader>
-                <CardTitle>Placed vs Unplaced Students</CardTitle>
-                <CardDescription>Visualization of student placement status by department</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0 h-[calc(100%-60px)]">
-                <RechartsComponent data={barChartData} />
-              </CardContent>
-            </Card>
+        {/* Main Content Grid */}
+        <div className="grid gap-2 md:grid-cols-3">
+          {/* Left Column - Main Dashboard */}
+          <div className="md:col-span-2 space-y-2">
+            {/* Enhanced Department Analytics - Side by Side Charts */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Department Performance - 100% Stacked Bar Chart */}
+              <Card>
+                <CardContent>
+                  {departments.length > 0 && (
+                    <div className="h-80">
+                      <DepartmentStackedBarChart data={departmentChartData} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Top Opportunities - Added below the graph */}
+              {/* Department CTC Statistics - Lollipop + Line Chart */}
+              <Card>
+                <CardContent>
+                  {departmentCTCChartData.length > 0 && (
+                    <div className="h-80">
+                      <DepartmentCTCChart data={departmentCTCChartData} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Top Opportunities */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Top Opportunities</CardTitle>
-                    <CardDescription>Most popular internship opportunities</CardDescription>
-                  </div>
-                </div>
+                <CardTitle>Top Opportunities</CardTitle>
+                <CardDescription>
+                  Most applied opportunities this month
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {topOpportunities.map((opportunity) => (
-                  <div key={opportunity.id || opportunity._id} className="flex items-center justify-between p-3 border rounded-lg">
+                {topOpportunities.map((opportunity: any) => (
+                  <div
+                    key={opportunity.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div>
                       <h4 className="font-medium">{opportunity.title}</h4>
-                      <p className="text-sm text-muted-foreground">{opportunity.company || opportunity.companyName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {opportunity.company}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={opportunity.status === "Active" || opportunity.status === "ACTIVE" ? "default" : "destructive"}
-                      >
-                        {opportunity.status}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {opportunity.applications || opportunity.applicationCount} apps
-                      </span>
+                    <div className="text-right">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">
+                          {opportunity.applications} apps
+                        </Badge>
+                        <Badge
+                          variant={
+                            opportunity.status === "Active"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {opportunity.status}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href="/admin/opportunities">View All Opportunities</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Placement Trends */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Placement Trends</CardTitle>
-                <CardDescription>Monthly placement statistics for the current academic year</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Tabs defaultValue="overview" className="space-y-3">
-                  <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="internships">Internships</TabsTrigger>
-                    <TabsTrigger value="fulltime">Full-time</TabsTrigger>
-                    <TabsTrigger value="companies">Companies</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="overview" className="space-y-3">
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-primary">{analyticsData?.totalApplications || 456}</div>
-                        <p className="text-sm text-muted-foreground">Total Applications</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">{analyticsData?.studentsPlaced || 234}</div>
-                        <p className="text-sm text-muted-foreground">Successful Placements</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-purple-500">{analyticsData?.activeCompanies || 89}</div>
-                        <p className="text-sm text-muted-foreground">Partner Companies</p>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="internships" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">{analyticsData?.internshipApplications || 189}</div>
-                        <p className="text-sm text-muted-foreground">Internship Applications</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">{analyticsData?.studentsInInternship || 124}</div>
-                        <p className="text-sm text-muted-foreground">Successful Placements</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-orange-500">{analyticsData?.pendingInternshipInterviews || 65}</div>
-                        <p className="text-sm text-muted-foreground">Pending Interviews</p>
-                      </div>
-                    </div>
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground">Internship placement data shows a {analyticsData?.internshipGrowthPercent || 15}% increase from last semester.</p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="fulltime" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">{analyticsData?.fulltimeApplications || 78}</div>
-                        <p className="text-sm text-muted-foreground">Full-time Applications</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">{analyticsData?.studentsPlaced || 52}</div>
-                        <p className="text-sm text-muted-foreground">Successful Placements</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-orange-500">{analyticsData?.pendingFulltimeInterviews || 26}</div>
-                        <p className="text-sm text-muted-foreground">Pending Interviews</p>
-                      </div>
-                    </div>
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground">Full-time placement data shows steady growth with a {analyticsData?.fulltimeGrowthPercent || 8}% increase from last year.</p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="companies" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">{analyticsData?.totalCompanies || 142}</div>
-                        <p className="text-sm text-muted-foreground">Total Companies</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-green-500">{analyticsData?.activeCompanies || 89}</div>
-                        <p className="text-sm text-muted-foreground">Active Partnerships</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <div className="text-2xl font-bold text-purple-500">{analyticsData?.newCompaniesThisSemester || 23}</div>
-                        <p className="text-sm text-muted-foreground">New This Semester</p>
-                      </div>
-                    </div>
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground">Company partnership data shows strong growth with {analyticsData?.newMajorPartners || 3} new major tech partners.</p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
               </CardContent>
             </Card>
           </div>
 
           {/* Right Column - Sidebar */}
           <div className="space-y-4">
-            {/* Department-wise Placement Stats */}
+            {/* CTC Range Distribution */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Department-wise Placement Statistics</CardTitle>
-                <CardDescription>Placement rates by academic department</CardDescription>
+              <CardHeader>
+                <CardTitle>Package Distribution</CardTitle>
+                <CardDescription>Salary breakdown by ranges</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {departments.map((dept, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{dept.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {dept.placed}/{dept.total} ({dept.percentage.toFixed(1)}%)
-                      </span>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {formatCurrency(ctcStats.averagePackage || 0)}
                     </div>
-                    <Progress value={dept.percentage} className="h-2" />
+                    <div className="text-sm text-green-800">
+                      Average Package
+                    </div>
                   </div>
-                ))}
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(ctcStats.highestPackage || 0)}
+                    </div>
+                    <div className="text-sm text-blue-800">Highest Package</div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Below ₹5 LPA</span>
+                    <Badge variant="outline">{ctcStats.below5LPA || 0}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">₹5-10 LPA</span>
+                    <Badge variant="outline">
+                      {ctcStats.between5to10LPA || 0}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">₹10-15 LPA</span>
+                    <Badge variant="outline">
+                      {ctcStats.between0LPA15LPA || 0}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">₹15-20 LPA</span>
+                    <Badge variant="outline">
+                      {ctcStats.between15LPAand20LPA || 0}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Above ₹20 LPA</span>
+                    <Badge variant="outline">{ctcStats.above20LPA || 0}</Badge>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Top Companies */}
+            {/* Top Recruiting Companies */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>Top Recruiting Companies</CardTitle>
-                <CardDescription>Most active companies this semester</CardDescription>
+                <CardDescription>
+                  Companies hiring most students
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {topCompanies.map((company : any, index) => (
+              <CardContent className="space-y-3">
+                {topCompanies.slice(0, 5).map((company: any, index: number) => (
                   <div key={index} className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={company.logo || `/placeholder-icon.png?height=32&width=32&text=${company.name?.substring(0, 2)}`} />
-                      <AvatarFallback className="text-xs">{company.name?.substring(0, 2).toUpperCase() || 'CO'}</AvatarFallback>
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
+                        {typeof company.logo === "string"
+                          ? company.logo
+                          : typeof company.name === "string"
+                          ? company.name?.charAt(0)
+                          : "C"}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{company.name}</p>
-                      <p className="text-xs text-muted-foreground">{company.positions || company.hires} positions</p>
+                      <p className="text-sm font-medium truncate">
+                        {typeof company.name === "string"
+                          ? company.name
+                          : typeof company.name === "object" &&
+                            company.name?.name
+                          ? company.name.name
+                          : "Unknown Company"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {company.hires || company.positions} positions
+                      </p>
                     </div>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
-                  <Link href="/admin/companies">View All Companies</Link>
-                </Button>
               </CardContent>
             </Card>
 
             {/* Quick Stats */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Applications Today</span>
-                  <span className="font-medium">{quickStats.applicationsToday}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Interviews Scheduled</span>
-                  <span className="font-medium">{quickStats.interviewsScheduled}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Offers Extended</span>
-                  <span className="font-medium">{quickStats.offersExtended}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Offers Accepted</span>
-                  <span className="font-medium">{quickStats.offersAccepted}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Report Generation - Added to the sidebar */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Report Generation</CardTitle>
-                <CardDescription>Export data and communicate with students</CardDescription>
+                <CardTitle>Today's Activity</CardTitle>
+                <CardDescription>
+                  Quick overview of today's metrics
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button 
-                  className="w-full" 
-                  onClick={generateCSVReport}
-                >
-                  <FileDown className="w-4 h-4 mr-2" />
-                  Generate CSV Report
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={sendBulkEmail}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Send Bulk Email
-                </Button>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Total Applications
+                  </span>
+                  <span className="font-medium">
+                    {quickStats.totalApplications}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Pending Applications
+                  </span>
+                  <span className="font-medium">
+                    {quickStats.pendingApplications}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Students Placed
+                  </span>
+                  <span className="font-medium">
+                    {quickStats.placedStudents}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Total Students
+                  </span>
+                  <span className="font-medium">
+                    {quickStats.totalStudents}
+                  </span>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

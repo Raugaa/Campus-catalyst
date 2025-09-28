@@ -27,7 +27,7 @@ export function ApplicationTrendsChart({ data }: ApplicationTrendsChartProps) {
     return data.map(item => ({
       month: item.month,
       applications: item.applications,
-      success: item.success,
+      success: typeof item.success === 'number' ? item.success : 0,
       successRate: item.applications > 0 ? ((item.success / item.applications) * 100) : 0
     }))
   }, [data])

@@ -29,7 +29,6 @@ import {
 export default function FacultyDetailPage() {
   const params = useParams()
   const { toast } = useToast()
-  const { assignMentor } = useFacultyManagement()
   const facultyId = params.id as string
   
   const [isRemoving, setIsRemoving] = useState<string | null>(null)
@@ -43,13 +42,13 @@ export default function FacultyDetailPage() {
 
   // ✅ Handle faculty data with local status override
   const faculty = useMemo(() => {
-    if (!facultyData?.faculty) return null
+    if (!facultyData) return null
     
-    const facultyInfo = facultyData.faculty
+    const facultyInfo = facultyData
     const currentStatus = localFacultyStatus !== null ? localFacultyStatus : facultyInfo.isActive
 
     return {
-      id: facultyInfo.id,
+      id: facultyInfo._id,
       name: facultyInfo.name,
       email: facultyInfo.email,
       phone: facultyInfo.phone,
@@ -68,8 +67,8 @@ export default function FacultyDetailPage() {
     if (!facultyData?.mentees) return []
     
     return facultyData.mentees.map((mentee: any) => ({
-      id: mentee.id,
-      name: mentee.name,
+      id: mentee._id,
+      name: mentee.name || `${mentee.firstName || ''} ${mentee.lastName || ''}`.trim() || 'Unknown Student',
       rollNumber: mentee.rollNumber || 'N/A',
       email: mentee.email || 'N/A',
       year: mentee.year || 'N/A',
@@ -83,10 +82,11 @@ export default function FacultyDetailPage() {
     setIsRemoving(studentId)
 
     try {
-      await assignMentor({ 
-        studentIds: [studentId], 
-        mentorId: undefined 
-      })
+      // TODO: Implement unassign mentor functionality
+      // await assignMentor({ 
+      //   studentIds: [studentId], 
+      //   mentorId: undefined 
+      // })
 
       toast({
         title: "Success!",
@@ -289,10 +289,10 @@ export default function FacultyDetailPage() {
                 <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <Avatar className="w-10 h-10">
-                      <AvatarFallback>{student.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback>{student.name?.split(' ').map((n: string) => n[0]).join('') || 'S'}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <h4 className="font-medium">{student.name}</h4>
+                      <h4 className="font-medium">{student.name || 'Unknown Student'}</h4>
                       <p className="text-sm text-muted-foreground">
                         Roll No: {student.rollNumber} • Year: {student.year} • CGPA: {student.cgpa || 'N/A'}
                       </p>
@@ -334,14 +334,14 @@ export default function FacultyDetailPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remove Student Assignment</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to remove <strong>{student.name}</strong> from {faculty.name}'s mentorship? 
+                              Are you sure you want to remove <strong>{student.name || 'this student'}</strong> from {faculty?.name}'s mentorship? 
                               This action can be undone by reassigning the student later.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction 
-                              onClick={() => handleRemoveAssignment(student.id, student.name)}
+                              onClick={() => handleRemoveAssignment(student.id, student.name || 'Unknown Student')}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Remove Assignment

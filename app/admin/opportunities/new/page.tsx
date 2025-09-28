@@ -11,23 +11,28 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, X, Save, Eye, Briefcase, MapPin, Clock, DollarSign } from "lucide-react"
+import { ArrowLeft, Plus, X, Save, Eye, Briefcase, MapPin, Clock, DollarSign, Building2 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 // Preview component for opportunity posting
-function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
+function OpportunityPreview({ opportunityData, companyName }: { opportunityData: any, companyName: string }) {
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-lg">
         <h2 className="text-2xl font-bold">{opportunityData.title || "Opportunity Title"}</h2>
-        <p className="text-blue-100">Posted by Admin</p>
+        <p className="text-blue-100">Posted by {companyName}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex items-center gap-2">
           <Briefcase className="w-5 h-5 text-blue-600" />
-          <span>{opportunityData.jobType || "Opportunity Type"}</span>
+          <span>{opportunityData.type || "Opportunity Type"}</span>
         </div>
         <div className="flex items-center gap-2">
           <MapPin className="w-5 h-5 text-blue-600" />
@@ -39,7 +44,10 @@ function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
         </div>
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-blue-600" />
-          <span>{opportunityData.stipend || "₹25,000/month"}</span>
+          <span>
+            {opportunityData.stipend ? `₹${opportunityData.stipend}` : 
+             opportunityData.salary ? `₹${opportunityData.salary}` : "₹25,000/month"}
+          </span>
         </div>
       </div>
 
@@ -67,10 +75,27 @@ function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
       </div>
 
       <div>
+        <h3 className="font-semibold text-lg mb-2">Academic Requirements</h3>
+        <div className="space-y-2 text-gray-600">
+          {opportunityData.academicRequirements?.min10thPercentage && (
+            <p>• Minimum 10th Grade: {opportunityData.academicRequirements.min10thPercentage}%</p>
+          )}
+          {opportunityData.academicRequirements?.min12thPercentage && (
+            <p>• Minimum 12th Grade: {opportunityData.academicRequirements.min12thPercentage}%</p>
+          )}
+          {opportunityData.academicRequirements?.minCGPA && (
+            <p>• Minimum CGPA: {opportunityData.academicRequirements.minCGPA}</p>
+          )}
+        </div>
+      </div>
+
+      <div>
         <h3 className="font-semibold text-lg mb-2">Application Requirements</h3>
         <ul className="list-disc list-inside text-gray-600 space-y-1">
           <li>{opportunityData.applicationRequirements?.resume ? "Resume required" : "Resume optional"}</li>
           <li>{opportunityData.applicationRequirements?.coverLetter ? "Cover letter required" : "Cover letter optional"}</li>
+          <li>{opportunityData.applicationRequirements?.portfolio ? "Portfolio required" : "Portfolio optional"}</li>
+          <li>{opportunityData.applicationRequirements?.transcript ? "Transcript required" : "Transcript optional"}</li>
         </ul>
       </div>
     </div>
@@ -78,27 +103,49 @@ function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
 }
 
 export default function NewOpportunity() {
-  const [skills, setSkills] = useState<string[]>(["React", "Node.js", "JavaScript"])
+  const router = useRouter()
+  const { toast } = useToast()
+  const { user } = useAuth()
+  const createOpportunity = useMutation(api.mutations.createOpportunity)
+  
+  // Fetch companies for dropdown
+  const companiesData = useQuery(api.queries.getCompanies, {
+    collegeId: user?.profile?.collegeId,
+  })
+  
+  const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Company selection state
+  const [selectedCompanyType, setSelectedCompanyType] = useState<string>("") // Will be company ID or "other"
+  const [externalCompanyName, setExternalCompanyName] = useState("")
+  
   // State for form data
   const [opportunityData, setOpportunityData] = useState({
     title: "",
-    jobType: "",
+    type: "",
     department: "",
     location: "",
     workType: "",
     duration: "",
+    salary: "",
     stipend: "",
     positions: "",
     description: "",
     responsibilities: "",
     benefits: "",
     requirements: "",
-    preferred: "",
+    preferredQualifications: "",
     experienceLevel: "",
-    educationLevel: "",
     deadline: "",
     startDate: "",
+    academicRequirements: {
+      min10thPercentage: "",
+      min12thPercentage: "",
+      minCGPA: "",
+      educationLevel: ""
+    },
     applicationRequirements: {
       resume: true,
       coverLetter: false,
@@ -128,7 +175,7 @@ export default function NewOpportunity() {
     setOpportunityData({ ...opportunityData, [field]: value })
   }
 
-  const handleNestedInputChange = (parent: string, field: string, value: boolean) => {
+  const handleNestedInputChange = (parent: string, field: string, value: boolean | string) => {
     setOpportunityData({ 
       ...opportunityData, 
       [parent]: { 
@@ -136,6 +183,117 @@ export default function NewOpportunity() {
         [field]: value 
       } 
     })
+  }
+
+  const handleCompanyChange = (value: string) => {
+    setSelectedCompanyType(value)
+    if (value !== "other") {
+      setExternalCompanyName("") // Clear external company name if selecting from dropdown
+    }
+  }
+
+  // Get company name for preview
+  const getCompanyNameForPreview = () => {
+    return externalCompanyName || "Other/External Company";
+  };
+
+  const handleSubmit = async (isDraft: boolean = false) => {
+    if (!opportunityData.title || !opportunityData.description || !opportunityData.location || !opportunityData.deadline) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Validate company selection
+    if (!selectedCompanyType) {
+      toast({
+        title: "Company Required",
+        description: "Please select a company or choose 'Other' to enter external company.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (selectedCompanyType === "other" && !externalCompanyName.trim()) {
+      toast({
+        title: "External Company Name Required",
+        description: "Please enter the external company name.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const payload = {
+        title: opportunityData.title,
+        description: opportunityData.description,
+        responsibilities: opportunityData.responsibilities || undefined,
+        benefits: opportunityData.benefits || undefined,
+        requirements: opportunityData.requirements,
+        preferredQualifications: opportunityData.preferredQualifications || undefined,
+        collegeId: user?.profile?.collegeId, // Set collegeId from user context
+        type: opportunityData.type,
+        department: opportunityData.department || undefined,
+        location: opportunityData.location,
+        workType: opportunityData.workType || undefined,
+        duration: opportunityData.duration || undefined,
+        positions: opportunityData.positions ? parseInt(opportunityData.positions) : undefined,
+        
+        salary: opportunityData.salary ? parseFloat(opportunityData.salary) : undefined,
+        stipend: opportunityData.stipend ? parseFloat(opportunityData.stipend) : undefined,
+        
+        academicRequirements: {
+          min10thPercentage: opportunityData.academicRequirements.min10thPercentage ? 
+            parseFloat(opportunityData.academicRequirements.min10thPercentage) : undefined,
+          min12thPercentage: opportunityData.academicRequirements.min12thPercentage ? 
+            parseFloat(opportunityData.academicRequirements.min12thPercentage) : undefined,
+          minCGPA: opportunityData.academicRequirements.minCGPA ? 
+            parseFloat(opportunityData.academicRequirements.minCGPA) : undefined,
+          educationLevel: opportunityData.academicRequirements.educationLevel || undefined,
+        },
+        
+        experienceLevel: opportunityData.experienceLevel || undefined,
+        skills: skills,
+        
+        applicationRequirements: opportunityData.applicationRequirements,
+        
+        deadline: new Date(opportunityData.deadline).getTime(),
+        startDate: opportunityData.startDate ? new Date(opportunityData.startDate).getTime() : undefined,
+        
+        isPublic: opportunityData.visibility.public,
+        isFeatured: opportunityData.visibility.featured,
+        emailNotifications: opportunityData.visibility.notifications,
+        specialInstructions: opportunityData.specialInstructions || undefined,
+        
+        // Company context
+        companyId: selectedCompanyType !== "other" ? selectedCompanyType as any : undefined,
+        externalCompanyName: selectedCompanyType === "other" ? externalCompanyName.trim() : undefined,
+        createdByType: "admin",
+        
+        status: isDraft ? "DRAFT" : "ACTIVE"
+      }
+
+      await createOpportunity(payload as any)
+      
+      toast({
+        title: isDraft ? "Draft Saved" : "Opportunity Published",
+        description: isDraft ? "Your opportunity has been saved as draft." : "Your opportunity has been published successfully."
+      })
+      
+      router.push("/admin/opportunities")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create opportunity.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -157,7 +315,11 @@ export default function NewOpportunity() {
             <p className="text-muted-foreground">Post a new internship or job opportunity</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button 
+              variant="outline" 
+              onClick={() => handleSubmit(true)} 
+              disabled={isSubmitting}
+            >
               <Save className="w-4 h-4 mr-2" />
               Save Draft
             </Button>
@@ -173,11 +335,19 @@ export default function NewOpportunity() {
                   <DialogTitle>Opportunity Posting Preview</DialogTitle>
                 </DialogHeader>
                 <div className="max-h-[70vh] overflow-y-auto pr-2">
-                  <OpportunityPreview opportunityData={{...opportunityData, skills}} />
+                  <OpportunityPreview 
+                    opportunityData={{...opportunityData, skills}} 
+                    companyName={getCompanyNameForPreview()}
+                  />
                 </div>
               </DialogContent>
             </Dialog>
-            <Button>Publish Opportunity</Button>
+            <Button 
+              onClick={() => handleSubmit(false)} 
+              disabled={isSubmitting}
+            >
+              Publish Opportunity
+            </Button>
           </div>
         </div>
 
@@ -191,6 +361,31 @@ export default function NewOpportunity() {
 
           {/* Basic Information */}
           <TabsContent value="basic" className="space-y-6">
+            {/* Company Selection Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Information</CardTitle>
+                <CardDescription>Select the company for this opportunity</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company *</Label>
+                  <div className="space-y-2">
+                    <Input
+                      id="externalCompany"
+                      placeholder="e.g., Microsoft, Google, Amazon"
+                      value={externalCompanyName}
+                      onChange={(e) => setExternalCompanyName(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter the name of the external company not registered on the portal
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Basic Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
@@ -210,7 +405,7 @@ export default function NewOpportunity() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="jobType">Opportunity Type *</Label>
-                    <Select value={opportunityData.jobType} onValueChange={(value) => handleInputChange('jobType', value)}>
+                    <Select value={opportunityData.type} onValueChange={(value) => handleInputChange('type', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select opportunity type" />
                       </SelectTrigger>
@@ -244,7 +439,7 @@ export default function NewOpportunity() {
                     <Label htmlFor="location">Location *</Label>
                     <Input 
                       id="location" 
-                      placeholder="e.g., San Francisco, CA or Remote" 
+                      placeholder="e.g., Mumbai, Maharashtra or Remote" 
                       value={opportunityData.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
                     />
@@ -275,24 +470,36 @@ export default function NewOpportunity() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="stipend">Stipend/Salary</Label>
+                    <Label htmlFor="stipend">Stipend (₹)</Label>
                     <Input 
                       id="stipend" 
-                      placeholder="e.g., ₹25,000/month" 
+                      type="number"
+                      placeholder="25000" 
                       value={opportunityData.stipend}
                       onChange={(e) => handleInputChange('stipend', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="positions">Number of Positions</Label>
+                    <Label htmlFor="salary">Salary (₹)</Label>
                     <Input 
-                      id="positions" 
-                      type="number" 
-                      placeholder="1" 
-                      value={opportunityData.positions}
-                      onChange={(e) => handleInputChange('positions', e.target.value)}
+                      id="salary" 
+                      type="number"
+                      placeholder="50000" 
+                      value={opportunityData.salary}
+                      onChange={(e) => handleInputChange('salary', e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="positions">Number of Positions</Label>
+                  <Input 
+                    id="positions" 
+                    type="number" 
+                    placeholder="1" 
+                    value={opportunityData.positions}
+                    onChange={(e) => handleInputChange('positions', e.target.value)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -355,7 +562,7 @@ export default function NewOpportunity() {
                   <Textarea
                     id="requirements"
                     rows={4}
-                    placeholder="List the required qualifications, education level, experience, etc..."
+                    placeholder="List the required qualifications, experience, etc..."
                     value={opportunityData.requirements}
                     onChange={(e) => handleInputChange('requirements', e.target.value)}
                   />
@@ -367,9 +574,55 @@ export default function NewOpportunity() {
                     id="preferred"
                     rows={3}
                     placeholder="List any preferred but not required qualifications..."
-                    value={opportunityData.preferred}
-                    onChange={(e) => handleInputChange('preferred', e.target.value)}
+                    value={opportunityData.preferredQualifications}
+                    onChange={(e) => handleInputChange('preferredQualifications', e.target.value)}
                   />
+                </div>
+
+                {/* Academic Requirements */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">Academic Requirements</h4>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="min10th">Minimum 10th Grade (%)</Label>
+                      <Input 
+                        id="min10th" 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder="75"
+                        value={opportunityData.academicRequirements.min10thPercentage}
+                        onChange={(e) => handleNestedInputChange('academicRequirements', 'min10thPercentage', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="min12th">Minimum 12th Grade (%)</Label>
+                      <Input 
+                        id="min12th" 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder="75"
+                        value={opportunityData.academicRequirements.min12thPercentage}
+                        onChange={(e) => handleNestedInputChange('academicRequirements', 'min12thPercentage', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="minCGPA">Minimum CGPA</Label>
+                      <Input 
+                        id="minCGPA" 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="10"
+                        placeholder="7.5"
+                        value={opportunityData.academicRequirements.minCGPA}
+                        onChange={(e) => handleNestedInputChange('academicRequirements', 'minCGPA', e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -411,7 +664,7 @@ export default function NewOpportunity() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="education">Education Level</Label>
-                    <Select value={opportunityData.educationLevel} onValueChange={(value) => handleInputChange('educationLevel', value)}>
+                    <Select value={opportunityData.academicRequirements.educationLevel} onValueChange={(value) => handleNestedInputChange('academicRequirements', 'educationLevel', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select education level" />
                       </SelectTrigger>
@@ -539,8 +792,19 @@ export default function NewOpportunity() {
             </Card>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline">Save as Draft</Button>
-              <Button>Publish Opportunity</Button>
+              <Button 
+                variant="outline" 
+                onClick={() => handleSubmit(true)} 
+                disabled={isSubmitting}
+              >
+                Save as Draft
+              </Button>
+              <Button 
+                onClick={() => handleSubmit(false)} 
+                disabled={isSubmitting}
+              >
+                Publish Opportunity
+              </Button>
             </div>
           </TabsContent>
         </Tabs>

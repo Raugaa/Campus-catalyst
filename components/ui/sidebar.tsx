@@ -1,4 +1,5 @@
 "use client"
+import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -58,10 +59,10 @@ const navigationItems = {
   ],
 }
 
-export function Sidebar({ userRole, className }: SidebarProps) {
+export const Sidebar = React.memo(function Sidebar({ userRole, className }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const items = navigationItems[userRole]
+  const items = React.useMemo(() => navigationItems[userRole], [userRole])
   
   const { user, loading, logout } = useAuth();
 
@@ -281,4 +282,6 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       </div>
     </div>
   )
-}
+})
+
+Sidebar.displayName = "Sidebar"

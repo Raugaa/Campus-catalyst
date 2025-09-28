@@ -10,6 +10,7 @@ interface User {
   email: string;
   role: string;
   profile?: any;
+  collegeId?: string;
 }
 
 interface AuthContextType {
@@ -35,38 +36,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ✅ Check authentication on mount and handle reloads
   useEffect(() => {
     const checkAuth = async () => {
-      console.log("Checking auth...");
+      console.log("🔍 Checking auth...");
       const token = localStorage.getItem('convex-token');
       
       if (!token) {
-        console.log("No token found");
+        console.log("❌ No token found");
         setUser(null);
         setLoading(false);
         return;
       }
 
       try {
-        console.log("Calling getUserProfile with token");
+        console.log("📞 Calling getUserProfile with token");
         const profileResult = await getUserProfileAction({ token });
-        console.log("Profile result:", profileResult);
+        console.log("📋 Full Profile result:", JSON.stringify(profileResult, null, 2));
         
         if (profileResult?.valid) {
           // ✅ Normalize role to handle global admin
           const normalizedRole = profileResult.role.toLowerCase().replace('_', '-');
           
-          setUser({
+          // ✅ Deep inspect the profile structure
+          console.log("🔍 Profile structure analysis:");
+          console.log("- profileResult.profile:", profileResult.profile);
+          console.log("- profileResult.user:", profileResult.user);
+          console.log("- profileResult.collegeId:", profileResult.collegeId);
+          
+          // Extract collegeId with comprehensive checks
+          let collegeId = null;
+          
+          // For ADMIN role, collegeId is in the profile object
+          if (profileResult.role === "ADMIN" && profileResult.profile?.collegeId) {
+            collegeId = profileResult.profile.collegeId;
+            console.log("✅ Admin collegeId found in profile:", collegeId);
+          }
+          // For STUDENT/FACULTY, collegeId is also in profile
+          else if (profileResult.profile?.collegeId) {
+            collegeId = profileResult.profile.collegeId;
+            console.log("✅ CollegeId found in profile:", collegeId);
+          }
+          // For COMPANY, collegeId might be optional
+          else if (profileResult.role === "COMPANY" && profileResult.profile?.collegeId) {
+            collegeId = profileResult.profile.collegeId;
+            console.log("✅ Company collegeId found in profile:", collegeId);
+          }
+          // Direct collegeId (fallback)
+          else if (profileResult.collegeId) {
+            collegeId = profileResult.collegeId;
+            console.log("✅ CollegeId found at root level:", collegeId);
+          }
+          // From user object (fallback)
+          else if (profileResult.user?.collegeId) {
+            collegeId = profileResult.user.collegeId;
+            console.log("✅ CollegeId found in user:", collegeId);
+          }
+          else {
+            console.log("⚠️ CollegeId not found in any expected location");
+            console.log("🔍 Available keys in profileResult:", Object.keys(profileResult));
+            if (profileResult.profile) {
+              console.log("🔍 Available keys in profile:", Object.keys(profileResult.profile));
+            }
+            if (profileResult.user) {
+              console.log("🔍 Available keys in user:", Object.keys(profileResult.user));
+            }
+            
+            // For GLOBAL_ADMIN, collegeId is not required
+            if (profileResult.role !== "GLOBAL_ADMIN") {
+              console.warn("⚠️ No collegeId found for role:", profileResult.role);
+            }
+          }
+          
+          const userData = {
             id: profileResult.userId,
             email: profileResult.email,
             role: normalizedRole,
+            collegeId: collegeId,
             profile: profileResult.profile
-          });
+          };
+          
+          console.log("👤 Final user data:", userData);
+          setUser(userData);
         } else {
-          console.log("Invalid token, clearing storage");
+          console.log("❌ Invalid token, clearing storage");
           setUser(null);
           localStorage.removeItem('convex-token');
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('💥 Auth check failed:', error);
         setUser(null);
         localStorage.removeItem('convex-token');
       } finally {
@@ -93,12 +148,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (profileResult?.valid) {
           const normalizedRole = profileResult.role.toLowerCase().replace('_', '-');
           
-          setUser({
+          // Extract collegeId with comprehensive checks
+          let collegeId = null;
+          
+          // For ADMIN role, collegeId is in the profile object
+          if (profileResult.role === "ADMIN" && profileResult.profile?.collegeId) {
+            collegeId = profileResult.profile.collegeId;
+          }
+          // For other roles
+          else if (profileResult.profile?.collegeId) {
+            collegeId = profileResult.profile.collegeId;
+          }
+          else if (profileResult.collegeId) {
+            collegeId = profileResult.collegeId;
+          }
+          else if (profileResult.user?.collegeId) {
+            collegeId = profileResult.user.collegeId;
+          }
+          
+          const userData = {
             id: profileResult.userId,
             email: profileResult.email,
             role: normalizedRole,
+            collegeId: collegeId,
             profile: profileResult.profile
-          });
+          };
+          
+          setUser(userData);
         }
         
         return result;
@@ -140,12 +216,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileResult?.valid) {
         const normalizedRole = profileResult.role.toLowerCase().replace('_', '-');
         
-        setUser({
+        // Extract collegeId with comprehensive checks
+        let collegeId = null;
+        
+        // For ADMIN role, collegeId is in the profile object
+        if (profileResult.role === "ADMIN" && profileResult.profile?.collegeId) {
+          collegeId = profileResult.profile.collegeId;
+        }
+        // For other roles
+        else if (profileResult.profile?.collegeId) {
+          collegeId = profileResult.profile.collegeId;
+        }
+        else if (profileResult.collegeId) {
+          collegeId = profileResult.collegeId;
+        }
+        else if (profileResult.user?.collegeId) {
+          collegeId = profileResult.user.collegeId;
+        }
+        
+        const userData = {
           id: profileResult.userId,
           email: profileResult.email,
           role: normalizedRole,
+          collegeId: collegeId,
           profile: profileResult.profile
-        });
+        };
+        
+        setUser(userData);
       }
     } catch (error) {
       console.error('Failed to refresh profile:', error);

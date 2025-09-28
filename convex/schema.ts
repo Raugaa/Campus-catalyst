@@ -43,6 +43,9 @@ export default defineSchema({
     name: v.string(),
     code: v.string(),
     location: v.string(), // Changed from separate address fields
+    website: v.optional(v.string()),
+    logo: v.optional(v.string()),
+    phone: v.optional(v.string()),
     type: v.string(), // "COLLEGE", "UNIVERSITY", etc.
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -57,9 +60,13 @@ export default defineSchema({
     rollNumber: v.string(),
     phone: v.string(),
     department: v.string(),
+    branchId: v.id("branches"),
     year: v.string(), // "FY", "SY", "TY", "LY"
     semester: v.number(),
     cgpa: v.optional(v.number()),
+    // ADD 10th and 12th percentage fields
+    tenthPercentage: v.number(),
+    twelfthPercentage: v.number(),
     skills: v.array(v.string()),
     resumeUrl: v.optional(v.string()),
     bio: v.optional(v.string()),
@@ -75,7 +82,8 @@ export default defineSchema({
     .index("by_department", ["department"])
     .index("by_year", ["year"])
     .index("by_placed", ["isPlaced"])
-    .index("by_roll_number", ["rollNumber"]),
+    .index("by_roll_number", ["rollNumber"])
+    .index("by_branch", ["branchId"]),
 
   // Faculty
   faculty: defineTable({
@@ -105,7 +113,7 @@ export default defineSchema({
     size: v.optional(v.string()),
     description: v.optional(v.string()),
     logo: v.optional(v.string()),
-    collegeId : v.optional(v.id("colleges")),
+    collegeId: v.id("colleges"), // Remove v.optional() to make it required
     isVerified: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -131,34 +139,90 @@ export default defineSchema({
   // Opportunities
   opportunities: defineTable({
     title: v.string(),
+    collegeId: v.id("colleges"), // Which college posted it (for ADMIN users)
     description: v.string(),
-    type: v.union(v.literal("INTERNSHIP"), v.literal("JOB"), v.literal("BOTH")),
+    responsibilities: v.optional(v.string()),
+    benefits: v.optional(v.string()),
+    requirements: v.string(),
+    preferredQualifications: v.optional(v.string()),
+    
+    // Basic info
+    type: v.string(), // internship, fulltime, parttime, contract
+    department: v.optional(v.string()),
     location: v.string(),
-    workMode: v.union(v.literal("ONSITE"), v.literal("REMOTE"), v.literal("HYBRID")),
+    workType: v.optional(v.string()), // onsite, remote, hybrid
     duration: v.optional(v.string()),
-    stipend: v.optional(v.number()),
+    positions: v.optional(v.number()),
+    
+    // Compensation
     salary: v.optional(v.number()),
-    currency: v.optional(v.string()),
-    requirements: v.array(v.string()),
+    stipend: v.optional(v.number()),
+    
+    // Academic requirements - UPDATED to include 10th and 12th
+    academicRequirements: v.optional(v.object({
+      min10thPercentage: v.optional(v.number()),
+      min12thPercentage: v.optional(v.number()),
+      minCGPA: v.optional(v.number()),
+      educationLevel: v.optional(v.string()), // highschool, bachelor, master, phd
+    })),
+    
+    // Experience and skills
+    experienceLevel: v.optional(v.string()), // entry, intermediate, advanced
     skills: v.array(v.string()),
-    eligibleDepartments: v.array(v.string()),
-    eligibleYears: v.array(v.string()),
-    minCGPA: v.optional(v.number()),
+    
+    // Application requirements
+    applicationRequirements: v.optional(v.object({
+      resume: v.boolean(),
+      coverLetter: v.boolean(),
+      portfolio: v.boolean(),
+      transcript: v.boolean(),
+    })),
+    
+    // Dates
     deadline: v.number(),
-    status: v.union(v.literal("DRAFT"), v.literal("ACTIVE"), v.literal("CLOSED"), v.literal("CANCELLED")),
-    companyId: v.id("companies"),
+    startDate: v.optional(v.number()),
+    
+    // Visibility and settings
+    isPublic: v.optional(v.boolean()),
+    isFeatured: v.optional(v.boolean()),
+    emailNotifications: v.optional(v.boolean()),
+    specialInstructions: v.optional(v.string()),
+    
+    // Relations
+    companyId: v.optional(v.id("companies")), // Optional for external companies
+    externalCompanyName: v.optional(v.string()), // For companies not on portal
+    
+    // Creation context
+    createdBy: v.id("users"), // Who created it (admin or company user)
+    createdByType: v.string(), // "admin" | "company"
+    
+    // Status and metadata
+    status: v.union(
+      v.literal("DRAFT"),
+      v.literal("ACTIVE"),
+      v.literal("CLOSED"),
+      v.literal("CANCELLED")
+    ),
+    totalApplications: v.optional(v.number()),
+    views: v.optional(v.number()),
+    
+    // Timestamps
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_company", ["companyId"])
     .index("by_status", ["status"])
     .index("by_type", ["type"])
-    .index("by_deadline", ["deadline"]),
+    .index("by_deadline", ["deadline"])
+    .index("by_created_by", ["createdBy"])
+    .index("by_college", ["collegeId"]),
 
   // Applications
   applications: defineTable({
     studentId: v.id("students"),
     opportunityId: v.id("opportunities"),
+    companyId: v.id("companies"),
+    collegeId : v.id("colleges"),
     status: v.union(
       v.literal("PENDING"),
       v.literal("MENTOR_REVIEW"),
@@ -177,16 +241,19 @@ export default defineSchema({
     mentorRemarks: v.optional(v.string()),
     adminRemarks: v.optional(v.string()),
     appliedAt: v.number(),
+    createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_student", ["studentId"])
     .index("by_opportunity", ["opportunityId"])
     .index("by_status", ["status"])
-    .index("by_applied_at", ["appliedAt"]),
+    .index("by_applied_at", ["appliedAt"])
+    .index("by_college", ["collegeId"]),
 
   // Internships
   internships: defineTable({
     studentId: v.id("students"),
+    collegeId: v.id("colleges"),
     opportunityId: v.id("opportunities"),
     companyId: v.id("companies"),
     applicationId: v.id("applications"),
@@ -196,7 +263,6 @@ export default defineSchema({
       v.literal("UPCOMING"),
       v.literal("ACTIVE"),
       v.literal("COMPLETED"),
-      v.literal("TERMINATED")
     ),
     stipend: v.optional(v.number()),
     mentorId: v.optional(v.id("faculty")),
@@ -212,7 +278,8 @@ export default defineSchema({
     .index("by_student", ["studentId"])
     .index("by_company", ["companyId"])
     .index("by_status", ["status"])
-    .index("by_mentor", ["mentorId"]),
+    .index("by_mentor", ["mentorId"])
+    .index("by_college", ["collegeId"]),
 
   // Placements
   placements: defineTable({
@@ -220,7 +287,7 @@ export default defineSchema({
     opportunityId: v.id("opportunities"),
     companyId: v.id("companies"),
     applicationId: v.id("applications"),
-    jobTitle: v.string(), // This was missing and causing the error
+    jobTitle: v.string(),
     salary: v.number(),
     joinDate: v.number(),
     location: v.string(),

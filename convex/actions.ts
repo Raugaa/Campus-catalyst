@@ -161,9 +161,10 @@ export const registerCompany: any = action({
     industry: v.optional(v.string()),
     size: v.optional(v.string()),
     description: v.optional(v.string()),
+    collegeId : v.id("colleges"),
   },
   handler: async (ctx, args) => {
-    const { email, password, name, website, location, industry, size, description } = args;
+    const { email, password, name, website, location, industry, size, description , collegeId} = args;
     
     const normalizedEmail = email.trim().toLowerCase();
     
@@ -194,6 +195,7 @@ export const registerCompany: any = action({
         website,
         location,
         industry,
+        collegeId,
         size,
         description,
         isVerified: false,
@@ -301,31 +303,35 @@ export const createStudent: any = action({
     rollNumber: v.string(),
     phone: v.optional(v.string()),
     department: v.string(),
+    branchId: v.id("branches"),
     year: v.string(),
     semester: v.number(),
     cgpa: v.optional(v.number()),
+    tenthPercentage: v.number(),
+    twelfthPercentage: v.number(),
     skills: v.optional(v.array(v.string())),
     collegeId: v.id("colleges"),
     mentorId: v.optional(v.id("faculty")),
   },
   handler: async (ctx, args) => {
-    const { email, password, firstName, lastName, rollNumber, phone, department, year, semester, cgpa, skills, collegeId, mentorId } = args;
-    console.log(args)
+    const {
+      email, password, firstName, lastName, rollNumber, phone, department,
+      year, semester, cgpa, tenthPercentage, twelfthPercentage, skills,
+      collegeId, mentorId, branchId
+    } = args;
     const normalizedEmail = email.trim().toLowerCase();
-    
+
     // Check if user already exists
     const existingUser = await ctx.runQuery(api.queries.getUserByEmail, {
       email: normalizedEmail
     });
-    
     if (existingUser) {
       throw new Error("User with this email already exists");
     }
 
-    // Hash password (assuming bcrypt is imported)
+    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
-    
-    
+
     // Create user and student via mutations
     const result = await ctx.runMutation(api.mutations.createUserAndStudent, {
       userData: {
@@ -340,12 +346,15 @@ export const createStudent: any = action({
         firstName,
         lastName,
         rollNumber,
-        phone : phone || "",
+        phone: phone || "",
         department,
+        branchId,
         year,
         semester,
-        cgpa,
-        skills : skills || [],
+        cgpa: cgpa ?? 0,
+        tenthPercentage,
+        twelfthPercentage,
+        skills: skills || [],
         isPlaced: false,
         collegeId,
         mentorId,
@@ -353,7 +362,6 @@ export const createStudent: any = action({
         updatedAt: Date.now(),
       }
     });
-    console.log(result)
     return result;
   },
 });
@@ -474,7 +482,6 @@ export const updateFacultyStatus = action({
     
     // Update faculty user's isActive status
     const result = await ctx.runMutation(api.mutations.updateFacultyUserStatus, {
-      facultyId,
       userId: faculty.userId, // Ensure we have userId
       isActive: isActive,
     });
@@ -494,15 +501,17 @@ export const bulkCreateStudents = action({
   args: {
     studentsData: v.array(v.object({
       email: v.string(),
-      password: v.string(), // Plain password
+      password: v.string(),
       firstName: v.string(),
       lastName: v.string(),
       rollNumber: v.string(),
       phone: v.optional(v.string()),
-      department: v.string(),
+      branchName: v.string(),
       year: v.string(),
       semester: v.number(),
       cgpa: v.optional(v.number()),
+      tenthPercentage: v.number(),
+      twelfthPercentage: v.number(),
       skills: v.optional(v.array(v.string())),
       resumeUrl: v.optional(v.string()),
       collegeId: v.id("colleges"),
@@ -518,12 +527,9 @@ export const bulkCreateStudents = action({
     for (const studentData of studentsData) {
       try {
         const normalizedEmail = studentData.email.trim().toLowerCase()
-        
-        // Check if user already exists
         const existingUser = await ctx.runQuery(api.queries.getUserByEmail, {
           email: normalizedEmail
         })
-        
         if (existingUser) {
           errorCount++
           errors.push({
@@ -533,10 +539,34 @@ export const bulkCreateStudents = action({
           continue
         }
 
-        // Hash password in backend
+        // Find or create branch based on branchName
+        const branchNameLower = studentData.branchName.toLowerCase();
+        let branch = await ctx.runQuery(api.queries.getBranchByName, {
+          name: branchNameLower,
+          collegeId: studentData.collegeId,
+        });
+
+        if (!branch) {
+          const branchId = await ctx.runMutation(api.mutations.createBranch, {
+            name: studentData.branchName,
+            code: branchNameLower.replace(/\s+/g, '').toLowerCase(),
+            collegeId: studentData.collegeId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+          branch = { 
+            _id: branchId, 
+            _creationTime: Date.now(),
+            name: studentData.branchName, 
+            code: branchNameLower.replace(/\s+/g, '').toLowerCase(),
+            collegeId: studentData.collegeId,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
+        }
+
         const passwordHash = await bcrypt.hash(studentData.password, 10)
 
-        // Create user and student via mutations
         await ctx.runMutation(api.mutations.createUserAndStudent, {
           userData: {
             email: normalizedEmail,
@@ -551,10 +581,13 @@ export const bulkCreateStudents = action({
             lastName: studentData.lastName,
             rollNumber: studentData.rollNumber,
             phone: studentData.phone || "",
-            department: studentData.department,
+            department: branch.name,
+            branchId: branch._id,
             year: studentData.year,
             semester: studentData.semester,
-            cgpa: studentData.cgpa,
+            cgpa: studentData.cgpa ?? 0,
+            tenthPercentage: studentData.tenthPercentage,
+            twelfthPercentage: studentData.twelfthPercentage,
             skills: studentData.skills || [],
             resumeUrl: studentData.resumeUrl || "",
             isPlaced: false,
@@ -567,7 +600,7 @@ export const bulkCreateStudents = action({
 
         createdStudents.push({
           email: normalizedEmail,
-          password: studentData.password, // Return plain password for credentials file
+          password: studentData.password,
           name: `${studentData.firstName} ${studentData.lastName}`
         })
 
@@ -591,34 +624,33 @@ export const bulkCreateStudents = action({
   },
 })
 
+
 export const bulkCreateFaculty = action({
   args: {
-    facultyData: v.array(v.object({
-      email: v.string(),
-      password: v.string(), // Plain password
-      name: v.string(),
-      department: v.string(),
+    facultyDatas: v.array(v.object({
       designation: v.optional(v.string()),
+      email: v.string(),
+      password: v.string(),
+      firstName: v.string(),
+      lastName: v.string(),
       phone: v.optional(v.string()),
-      canMentor: v.boolean(),
+      department: v.string(),
+      canMentor: v.optional(v.boolean()),
       collegeId: v.id("colleges"),
     }))
   },
-  handler: async (ctx, { facultyData }) => {
+  handler: async (ctx, { facultyDatas }) => {
     let successCount = 0
     let errorCount = 0
     const createdFaculty: Array<{email: string, password: string, name: string}> = []
     const errors: Array<{email: string, error: string}> = []
 
-    for (const faculty of facultyData) {
+    for (const fd of facultyDatas) {
       try {
-        const normalizedEmail = faculty.email.trim().toLowerCase()
-        
-        // Check if user already exists
+        const normalizedEmail = fd.email.trim().toLowerCase()
         const existingUser = await ctx.runQuery(api.queries.getUserByEmail, {
           email: normalizedEmail
         })
-        
         if (existingUser) {
           errorCount++
           errors.push({
@@ -628,10 +660,8 @@ export const bulkCreateFaculty = action({
           continue
         }
 
-        // Hash password in backend
-        const passwordHash = await bcrypt.hash(faculty.password, 10)
+        const passwordHash = await bcrypt.hash(fd.password, 10)
 
-        // Create user and faculty via mutations
         await ctx.runMutation(api.mutations.createUserAndFaculty, {
           userData: {
             email: normalizedEmail,
@@ -642,28 +672,28 @@ export const bulkCreateFaculty = action({
             updatedAt: Date.now(),
           },
           facultyData: {
-            name: faculty.name,
-            department: faculty.department,
-            designation: faculty.designation || "",
-            phone: faculty.phone || "",
-            canMentor: faculty.canMentor,
-            collegeId: faculty.collegeId,
+            designation: fd.designation || "",
+            name: `${fd.firstName} ${fd.lastName}`,
+            collegeId: fd.collegeId,
             createdAt: Date.now(),
             updatedAt: Date.now(),
+            phone: fd.phone || "",
+            department: fd.department,
+            canMentor: fd.canMentor || false,
           }
         })
 
         createdFaculty.push({
           email: normalizedEmail,
-          password: faculty.password, // Return plain password for credentials file
-          name: faculty.name
+          password: fd.password,
+          name: `${fd.firstName} ${fd.lastName}`
         })
 
         successCount++
       } catch (error) {
         errorCount++
-        errors.push({
-          email: faculty.email,
+        errors.push({ 
+          email: fd.email,
           error: error instanceof Error ? error.message : "Unknown error"
         })
         console.error("Error creating faculty:", error)

@@ -11,61 +11,149 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ArrowLeft, Save, Eye, Trash2 } from "lucide-react"
+import { ArrowLeft, Save, Eye, Trash2, Plus, X, Loader2, Building2 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-
-// Mock data for the opportunity
-const mockOpportunity = {
-  id: 1,
-  title: "Software Engineering Intern",
-  company: "TCS",
-  companyLogo: "TC",
-  location: "Mumbai, Maharashtra",
-  type: "Internship",
-  department: "Engineering",
-  workType: "onsite",
-  duration: "3 months",
-  salary: "₹25,000/month",
-  positions: "5",
-  description: "We are looking for a Software Engineering Intern to join our team. You will be working on real projects and gain hands-on experience in software development.",
-  responsibilities: "• Develop and maintain web applications\n• Collaborate with senior developers\n• Participate in code reviews\n• Write unit tests",
-  benefits: "• Flexible work hours\n• Mentorship from senior engineers\n• Certificate of completion\n• Potential for full-time employment",
-  requirements: "• Currently pursuing B.Tech/BE in Computer Science or related field\n• Knowledge of JavaScript, HTML, CSS\n• Familiarity with React is a plus",
-  preferred: "• Experience with Node.js\n• Understanding of database concepts\n• Good problem-solving skills",
-  skills: ["JavaScript", "React", "Node.js"],
-  experienceLevel: "entry",
-  educationLevel: "bachelor",
-  deadline: "2024-02-15",
-  startDate: "2024-03-01",
-  applicationRequirements: {
-    resume: true,
-    coverLetter: true,
-    portfolio: false,
-    transcript: false
-  },
-  visibility: {
-    public: true,
-    featured: false,
-    notifications: true
-  },
-  specialInstructions: "Please mention any relevant projects in your application."
-}
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 export default function EditOpportunityPage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const [skills, setSkills] = useState<string[]>(["JavaScript", "React", "Node.js"])
+  const { toast } = useToast()
+  const { user } = useAuth()
+  
+  // Convex hooks - Add validation for params.id
+  const opportunity = useQuery(api.queries.getOpportunityById, 
+    params?.id && params.id !== "undefined" ? { opportunityId: params.id as any } : "skip"
+  )
+  const updateOpportunity = useMutation(api.mutations.updateOpportunity)
+  const updateOpportunityStatus = useMutation(api.mutations.updateOpportunityStatus)
+  
+  // Fetch companies for dropdown
+  const companiesData = useQuery(api.queries.getCompanies, {
+    collegeId: user?.profile?.collegeId,
+  })
+  
+  const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
-  // State for form data
-  const [opportunityData, setOpportunityData] = useState(mockOpportunity)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
+  
+  // Company selection state
+  const [selectedCompanyType, setSelectedCompanyType] = useState<string>("") // Will be company ID or "other"
+  const [externalCompanyName, setExternalCompanyName] = useState("")
+  
+  // State for form data
+  const [opportunityData, setOpportunityData] = useState({
+    title: "",
+    type: "",
+    department: "",
+    location: "",
+    workType: "",
+    duration: "",
+    salary: "",
+    stipend: "",
+    positions: "",
+    description: "",
+    responsibilities: "",
+    benefits: "",
+    requirements: "",
+    preferredQualifications: "",
+    experienceLevel: "",
+    deadline: "",
+    startDate: "",
+    academicRequirements: {
+      min10thPercentage: "",
+      min12thPercentage: "",
+      minCGPA: "",
+      educationLevel: ""
+    },
+    applicationRequirements: {
+      resume: true,
+      coverLetter: false,
+      portfolio: false,
+      transcript: false
+    },
+    visibility: {
+      public: true,
+      featured: false,
+      notifications: true
+    },
+    specialInstructions: ""
+  })
 
   useEffect(() => {
-    // In a real application, you would fetch the opportunity data based on the ID
-    console.log("Fetching opportunity with ID:", params.id)
-    // For now, we're using mock data
-  }, [params.id])
+    if (opportunity === undefined) {
+      setLoading(true)
+      return
+    }
+    
+    if (opportunity === null) {
+      toast({
+        title: "Not Found",
+        description: "Opportunity not found.",
+        variant: "destructive"
+      })
+      router.push("/admin/opportunities")
+      return
+    }
+
+    // Populate form data from Convex
+    setOpportunityData({
+      title: opportunity.title || "",
+      type: opportunity.type || "",
+      department: opportunity.department || "",
+      location: opportunity.location || "",
+      workType: opportunity.workType || "",
+      duration: opportunity.duration || "",
+      salary: opportunity.salary?.toString() || "",
+      stipend: opportunity.stipend?.toString() || "",
+      positions: opportunity.positions?.toString() || "",
+      description: opportunity.description || "",
+      responsibilities: opportunity.responsibilities || "",
+      benefits: opportunity.benefits || "",
+      requirements: opportunity.requirements || "",
+      preferredQualifications: opportunity.preferredQualifications || "",
+      experienceLevel: opportunity.experienceLevel || "",
+      deadline: opportunity.deadline ? new Date(opportunity.deadline).toISOString().split('T')[0] : "",
+      startDate: opportunity.startDate ? new Date(opportunity.startDate).toISOString().split('T')[0] : "",
+      academicRequirements: {
+        min10thPercentage: opportunity.academicRequirements?.min10thPercentage?.toString() || "",
+        min12thPercentage: opportunity.academicRequirements?.min12thPercentage?.toString() || "",
+        minCGPA: opportunity.academicRequirements?.minCGPA?.toString() || "",
+        educationLevel: opportunity.academicRequirements?.educationLevel || ""
+      },
+      applicationRequirements: {
+        resume: opportunity.applicationRequirements?.resume ?? true,
+        coverLetter: opportunity.applicationRequirements?.coverLetter ?? false,
+        portfolio: opportunity.applicationRequirements?.portfolio ?? false,
+        transcript: opportunity.applicationRequirements?.transcript ?? false
+      },
+      visibility: {
+        public: opportunity.isPublic ?? true,
+        featured: opportunity.isFeatured ?? false,
+        notifications: opportunity.emailNotifications ?? true
+      },
+      specialInstructions: opportunity.specialInstructions || ""
+    })
+    
+    setSkills(opportunity.skills || [])
+    
+    // Set company selection
+    if (opportunity.companyId) {
+      setSelectedCompanyType(opportunity.companyId)
+      setExternalCompanyName("")
+    } else if (opportunity.externalCompanyName) {
+      setSelectedCompanyType("other")
+      setExternalCompanyName(opportunity.externalCompanyName)
+    }
+    
+    setLoading(false)
+  }, [opportunity?._id])
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -82,7 +170,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
     setOpportunityData({ ...opportunityData, [field]: value })
   }
 
-  const handleNestedInputChange = (parent: string, field: string, value: boolean) => {
+  const handleNestedInputChange = (parent: string, field: string, value: boolean | string) => {
     setOpportunityData({ 
       ...opportunityData, 
       [parent]: { 
@@ -92,19 +180,148 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
     })
   }
 
-  const handleSave = () => {
-    // In a real application, you would save the data to the backend
-    console.log("Saving opportunity:", opportunityData)
-    alert("Opportunity saved successfully!")
-    router.push("/admin/opportunities")
+  const handleCompanyChange = (value: string) => {
+    setSelectedCompanyType(value)
+    if (value !== "other") {
+      setExternalCompanyName("") // Clear external company name if selecting from dropdown
+    }
   }
 
-  const handleDelete = () => {
-    // In a real application, you would delete the opportunity from the backend
-    console.log("Deleting opportunity with ID:", params.id)
-    alert("Opportunity deleted successfully!")
-    router.push("/admin/opportunities")
+  const handleSave = async () => {
+
+    if (!opportunityData.title || !opportunityData.description || !opportunityData.location || !opportunityData.deadline) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Validate company selection
+    if (!selectedCompanyType) {
+      toast({
+        title: "Company Required",
+        description: "Please select a company or choose 'Other' to enter external company.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (selectedCompanyType === "other" && !externalCompanyName.trim()) {
+      toast({
+        title: "External Company Name Required",
+        description: "Please enter the external company name.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const payload = {
+        opportunityId: params.id as any,
+        title: opportunityData.title,
+        description: opportunityData.description,
+        responsibilities: opportunityData.responsibilities || undefined,
+        benefits: opportunityData.benefits || undefined,
+        requirements: opportunityData.requirements,
+        preferredQualifications: opportunityData.preferredQualifications || undefined,
+        
+        type: opportunityData.type,
+        department: opportunityData.department || undefined,
+        location: opportunityData.location,
+        workType: opportunityData.workType || undefined,
+        duration: opportunityData.duration || undefined,
+        positions: opportunityData.positions ? parseInt(opportunityData.positions) : undefined,
+        
+        salary: opportunityData.salary ? parseFloat(opportunityData.salary) : undefined,
+        stipend: opportunityData.stipend ? parseFloat(opportunityData.stipend) : undefined,
+        
+        academicRequirements: {
+          min10thPercentage: opportunityData.academicRequirements.min10thPercentage ? 
+            parseFloat(opportunityData.academicRequirements.min10thPercentage) : undefined,
+          min12thPercentage: opportunityData.academicRequirements.min12thPercentage ? 
+            parseFloat(opportunityData.academicRequirements.min12thPercentage) : undefined,
+          minCGPA: opportunityData.academicRequirements.minCGPA ? 
+            parseFloat(opportunityData.academicRequirements.minCGPA) : undefined,
+          educationLevel: opportunityData.academicRequirements.educationLevel || undefined,
+        },
+        
+        experienceLevel: opportunityData.experienceLevel || undefined,
+        skills: skills,
+        
+        applicationRequirements: opportunityData.applicationRequirements,
+        
+        deadline: new Date(opportunityData.deadline).getTime(),
+        startDate: opportunityData.startDate ? new Date(opportunityData.startDate).getTime() : undefined,
+        
+        isPublic: opportunityData.visibility.public,
+        isFeatured: opportunityData.visibility.featured,
+        emailNotifications: opportunityData.visibility.notifications,
+        specialInstructions: opportunityData.specialInstructions || undefined,
+        
+        // Company context
+        companyId: selectedCompanyType !== "other" ? selectedCompanyType as any : undefined,
+        externalCompanyName: selectedCompanyType === "other" ? externalCompanyName.trim() : undefined,
+      }
+
+      await updateOpportunity(payload as any)
+      
+      toast({
+        title: "Success",
+        description: "Opportunity updated successfully."
+      })
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update opportunity.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  const handleDelete = async () => {
+    setIsSubmitting(true)
+    try {
+      await updateOpportunityStatus({
+        opportunityId: params.id as any,
+        status: "CANCELLED"
+      })
+      
+      toast({
+        title: "Success",
+        description: "Opportunity deleted successfully."
+      })
+      
+      router.push("/admin/opportunities")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete opportunity.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+      setIsDeleteDialogOpen(false)
+    }
+  }
+
+  // Get company name for preview
+  const getCompanyNameForPreview = () => {
+    if (selectedCompanyType === "other") {
+      return externalCompanyName || "External Company"
+    }
+    const selectedCompany = companiesData?.companies?.find((c: any) => c._id === selectedCompanyType)
+    return selectedCompany?.name || "Company Name"
+  }
+
+  const getSelectedCompanyDisplayName = () => {
+    return externalCompanyName || "Other/External Company";
+  };
 
   // Preview component for opportunity posting
   function OpportunityPreview({ opportunityData }: { opportunityData: any }) {
@@ -112,7 +329,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-lg">
           <h2 className="text-2xl font-bold">{opportunityData.title || "Opportunity Title"}</h2>
-          <p className="text-blue-100">Posted by {opportunityData.company || "Company Name"}</p>
+          <p className="text-blue-100">Posted by {getCompanyNameForPreview()}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,7 +347,10 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
           </div>
           <div className="flex items-center gap-2">
             <span className="font-medium">Salary/Stipend:</span>
-            <span>{opportunityData.salary || "₹0/month"}</span>
+            <span>
+              {opportunityData.stipend ? `₹${opportunityData.stipend}/month` : 
+               opportunityData.salary ? `₹${opportunityData.salary}/month` : "₹0/month"}
+            </span>
           </div>
         </div>
 
@@ -147,8 +367,8 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
         <div>
           <h3 className="font-semibold text-lg mb-2">Required Skills</h3>
           <div className="flex flex-wrap gap-2">
-            {opportunityData.skills && opportunityData.skills.length > 0 ? (
-              opportunityData.skills.map((skill: string, index: number) => (
+            {skills && skills.length > 0 ? (
+              skills.map((skill: string, index: number) => (
                 <Badge key={index} variant="secondary">{skill}</Badge>
               ))
             ) : (
@@ -158,13 +378,40 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
         </div>
 
         <div>
+          <h3 className="font-semibold text-lg mb-2">Academic Requirements</h3>
+          <div className="space-y-2 text-gray-600">
+            {opportunityData.academicRequirements?.min10thPercentage && (
+              <p>• Minimum 10th Grade: {opportunityData.academicRequirements.min10thPercentage}%</p>
+            )}
+            {opportunityData.academicRequirements?.min12thPercentage && (
+              <p>• Minimum 12th Grade: {opportunityData.academicRequirements.min12thPercentage}%</p>
+            )}
+            {opportunityData.academicRequirements?.minCGPA && (
+              <p>• Minimum CGPA: {opportunityData.academicRequirements.minCGPA}</p>
+            )}
+          </div>
+        </div>
+
+        <div>
           <h3 className="font-semibold text-lg mb-2">Application Requirements</h3>
           <ul className="list-disc list-inside text-gray-600 space-y-1">
             <li>{opportunityData.applicationRequirements?.resume ? "Resume required" : "Resume optional"}</li>
             <li>{opportunityData.applicationRequirements?.coverLetter ? "Cover letter required" : "Cover letter optional"}</li>
+            <li>{opportunityData.applicationRequirements?.portfolio ? "Portfolio required" : "Portfolio optional"}</li>
+            <li>{opportunityData.applicationRequirements?.transcript ? "Transcript required" : "Transcript optional"}</li>
           </ul>
         </div>
       </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout userRole="admin">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
     )
   }
 
@@ -203,12 +450,16 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                   <DialogTitle>Opportunity Preview</DialogTitle>
                 </DialogHeader>
                 <div className="max-h-[70vh] overflow-y-auto pr-2">
-                  <OpportunityPreview opportunityData={{...opportunityData, skills}} />
+                  <OpportunityPreview opportunityData={opportunityData} />
                 </div>
               </DialogContent>
             </Dialog>
-            <Button onClick={handleSave}>
-              <Save className="w-4 h-4 mr-2" />
+            <Button onClick={handleSave} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               Save Changes
             </Button>
           </div>
@@ -224,6 +475,8 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
 
           {/* Basic Information */}
           <TabsContent value="basic" className="space-y-6">
+
+            {/* Rest of Basic Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
@@ -308,30 +561,42 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="salary">Salary/Stipend</Label>
+                    <Label htmlFor="stipend">Stipend (₹)</Label>
+                    <Input 
+                      id="stipend" 
+                      type="number"
+                      placeholder="25000" 
+                      value={opportunityData.stipend}
+                      onChange={(e) => handleInputChange('stipend', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salary">Salary (₹)</Label>
                     <Input 
                       id="salary" 
-                      placeholder="e.g., ₹25,000/month" 
+                      type="number"
+                      placeholder="50000" 
                       value={opportunityData.salary}
                       onChange={(e) => handleInputChange('salary', e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="positions">Number of Positions</Label>
-                    <Input 
-                      id="positions" 
-                      type="number" 
-                      placeholder="1" 
-                      value={opportunityData.positions}
-                      onChange={(e) => handleInputChange('positions', e.target.value)}
-                    />
-                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="positions">Number of Positions</Label>
+                  <Input 
+                    id="positions" 
+                    type="number" 
+                    placeholder="1" 
+                    value={opportunityData.positions}
+                    onChange={(e) => handleInputChange('positions', e.target.value)}
+                  />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Details */}
+          {/* Details Tab */}
           <TabsContent value="details" className="space-y-6">
             <Card>
               <CardHeader>
@@ -375,7 +640,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
             </Card>
           </TabsContent>
 
-          {/* Requirements */}
+          {/* Requirements Tab */}
           <TabsContent value="requirements" className="space-y-6">
             <Card>
               <CardHeader>
@@ -388,7 +653,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                   <Textarea
                     id="requirements"
                     rows={4}
-                    placeholder="List the required qualifications, education level, experience, etc..."
+                    placeholder="List the required qualifications, experience, etc..."
                     value={opportunityData.requirements}
                     onChange={(e) => handleInputChange('requirements', e.target.value)}
                   />
@@ -400,9 +665,55 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                     id="preferred"
                     rows={3}
                     placeholder="List any preferred but not required qualifications..."
-                    value={opportunityData.preferred}
-                    onChange={(e) => handleInputChange('preferred', e.target.value)}
+                    value={opportunityData.preferredQualifications}
+                    onChange={(e) => handleInputChange('preferredQualifications', e.target.value)}
                   />
+                </div>
+
+                {/* Academic Requirements */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">Academic Requirements</h4>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="min10th">Minimum 10th Grade (%)</Label>
+                      <Input 
+                        id="min10th" 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder="75"
+                        value={opportunityData.academicRequirements.min10thPercentage}
+                        onChange={(e) => handleNestedInputChange('academicRequirements', 'min10thPercentage', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="min12th">Minimum 12th Grade (%)</Label>
+                      <Input 
+                        id="min12th" 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder="75"
+                        value={opportunityData.academicRequirements.min12thPercentage}
+                        onChange={(e) => handleNestedInputChange('academicRequirements', 'min12thPercentage', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="minCGPA">Minimum CGPA</Label>
+                      <Input 
+                        id="minCGPA" 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="10"
+                        placeholder="7.5"
+                        value={opportunityData.academicRequirements.minCGPA}
+                        onChange={(e) => handleNestedInputChange('academicRequirements', 'minCGPA', e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -411,7 +722,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                     {skills.map((skill) => (
                       <Badge key={skill} variant="secondary" className="px-3 py-1">
                         {skill}
-                        <span className="ml-2 cursor-pointer" onClick={() => removeSkill(skill)}>×</span>
+                        <X className="w-3 h-3 ml-2 cursor-pointer" onClick={() => removeSkill(skill)} />
                       </Badge>
                     ))}
                   </div>
@@ -423,7 +734,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                       onKeyPress={(e) => e.key === "Enter" && addSkill()}
                     />
                     <Button type="button" variant="outline" onClick={addSkill}>
-                      Add
+                      <Plus className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -444,7 +755,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="education">Education Level</Label>
-                    <Select value={opportunityData.educationLevel} onValueChange={(value) => handleInputChange('educationLevel', value)}>
+                    <Select value={opportunityData.academicRequirements.educationLevel} onValueChange={(value) => handleNestedInputChange('academicRequirements', 'educationLevel', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select education level" />
                       </SelectTrigger>
@@ -461,7 +772,7 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
             </Card>
           </TabsContent>
 
-          {/* Settings */}
+          {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <Card>
               <CardHeader>
@@ -576,8 +887,12 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Opportunity
               </Button>
-              <Button onClick={handleSave}>
-                <Save className="w-4 h-4 mr-2" />
+              <Button onClick={handleSave} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
                 Save Changes
               </Button>
             </div>
@@ -596,7 +911,10 @@ export default function EditOpportunityPage({ params }: { params: { id: string }
                 <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button variant="destructive" onClick={handleDelete}>
+                <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
                   Delete
                 </Button>
               </div>

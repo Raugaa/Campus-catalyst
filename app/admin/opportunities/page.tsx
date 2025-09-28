@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Briefcase,
   Search,
@@ -26,6 +28,11 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
+// NEW: Convex
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/contexts/AuthContext"
+
 interface UIOpportunity {
   id: string
   title: string
@@ -37,58 +44,92 @@ interface UIOpportunity {
   views?: number
   status: string
   postedDate?: string
-  deadline: string
-  salary?: string
-  stipend?: string
+  deadline: number
+  salary?: number
+  stipend?: number
   skills: string[]
 }
 
 export default function AdminOpportunities() {
+  const { user } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
   const tab = (searchParams.get('tab') || 'all') as 'all'|'active'|'pending'|'closed'
   const q = searchParams.get('q') || ''
 
   const [opportunities, setOpportunities] = useState<UIOpportunity[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | undefined>()
+  
+  // Dialog states
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [viewingOpportunity, setViewingOpportunity] = useState<UIOpportunity | null>(null)
+  const [deletingOpportunity, setDeletingOpportunity] = useState<UIOpportunity | null>(null)
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [typeFilter, setTypeFilter] = useState("all")
 
+  // Align "pending" tab to Convex 'DRAFT'
   const status = useMemo(() => {
     if (tab === 'active') return 'ACTIVE'
-    if (tab === 'pending') return 'PENDING'
+    if (tab === 'pending') return 'DRAFT'
     if (tab === 'closed') return 'CLOSED'
     return undefined
   }, [tab])
 
+  // NEW: Convex query for opportunities
+  const data = useQuery(api.queries.getOpportunities, {
+    status,
+    collegeId: user?.profile?.collegeId, // ✅ Filter by college
+    skip: 0,
+    take: 20,
+  })
+
   useEffect(() => {
-    let isMounted = true
     setLoading(true)
     setError(undefined)
-    const params = new URLSearchParams()
-    if (status) params.set('status', status)
-    if (q) params.set('q', q)
-    params.set('take', '20')
-    params.set('skip', '0')
-    fetch(`/api/admin/opportunities?${params.toString()}`)
-      .then(async (res) => { if (!res.ok) throw new Error('Failed to load opportunities'); return res.json() })
-      .then((data) => { if (!isMounted) return; const mapped: UIOpportunity[] = (data.opportunities || []).map((o: any) => ({
-        id: o.id,
-        title: o.title,
-        company: o.company,
-        location: o.location,
-        type: o.type,
-        duration: o.duration || undefined,
-        applications: o.totalApplications,
-        status: o.status,
-        deadline: o.deadline,
-        salary: o.salary || undefined,
-        stipend: o.stipend || undefined,
-        skills: o.skills || [],
-      })); setOpportunities(mapped) })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
-    return () => { isMounted = false }
   }, [status, q])
+
+  useEffect(() => {
+    if (data === undefined) {
+      setLoading(true)
+      return
+    }
+    
+    if (!data) {
+      setError("Failed to load opportunities")
+      setLoading(false)
+      return
+    }
+    
+    // Map Convex result to UI model
+    const mapped: UIOpportunity[] = (data.opportunities || []).map((o: any) => ({
+      id: o._id, // ✅ Fix: Use _id from Convex document
+      title: o.title,
+      company: { 
+        id: o.companyId, 
+        name: typeof o.company === 'string' ? o.company : 
+              typeof o.company === 'object' && o.company?.name ? o.company.name : 'Unknown Company',
+        industry: typeof o.company === 'object' ? o.company.industry : undefined,
+        location: typeof o.company === 'object' ? o.company.location : undefined,
+      },
+      location: o.location,
+      type: o.type,
+      duration: o.duration || undefined,
+      applications: o.totalApplications || 0,
+      status: o.status,
+      deadline: o.deadline,
+      salary: o.salary ?? undefined,
+      stipend: o.stipend ?? undefined,
+      skills: o.skills || [],
+      views: o.views || 0,
+      postedDate: o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : undefined,
+    }))
+    setOpportunities(mapped)
+    setLoading(false)
+  }, [data])
 
   const setParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -102,34 +143,47 @@ export default function AdminOpportunities() {
   }
 
   const stats = [
-    { title: "Total Opportunities", value: "-", change: "", icon: Briefcase },
-    { title: "Active Postings", value: "-", change: "", icon: TrendingUp },
-    { title: "Total Applications", value: "-", change: "", icon: Users },
-    { title: "Pending Reviews", value: "-", change: "", icon: AlertCircle },
+    { title: "Total Opportunities", value: data?.total?.toString() || "-", change: "", icon: Briefcase },
+    { title: "Active Postings", value: opportunities.filter(o => o.status === 'ACTIVE').length.toString(), change: "", icon: TrendingUp },
+    { title: "Total Applications", value: opportunities.reduce((sum, o) => sum + o.applications, 0).toString(), change: "", icon: Users },
+    { title: "Pending Reviews", value: opportunities.filter(o => o.status === 'DRAFT').length.toString(), change: "", icon: AlertCircle },
   ]
 
-  const handleViewOpportunity = (opportunity: Opportunity) => {
+  const handleViewOpportunity = (opportunity: UIOpportunity) => {
     setViewingOpportunity(opportunity)
     setIsViewDialogOpen(true)
   }
 
-  const handleEditOpportunity = (opportunityId: number) => {
-    // Navigate to edit page using Next.js router
+  const handleEditOpportunity = (opportunityId: string) => {
     router.push(`/admin/opportunities/${opportunityId}`)
   }
 
-  const handleDeleteOpportunity = (opportunity: Opportunity) => {
+  // NEW: Convex mutation for status update (soft delete)
+  const updateStatus = useMutation(api.mutations.updateOpportunityStatus)
+
+  const handleDeleteOpportunity = (opportunity: UIOpportunity) => {
     setDeletingOpportunity(opportunity)
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDeleteOpportunity = () => {
-    if (deletingOpportunity) {
+  const confirmDeleteOpportunity = async () => {
+    if (!deletingOpportunity) return
+    try {
+      await updateStatus({
+        opportunityId: deletingOpportunity.id as any,
+        status: "CANCELLED",
+      })
       setOpportunities(opportunities.filter(opp => opp.id !== deletingOpportunity.id))
       setIsDeleteDialogOpen(false)
       setDeletingOpportunity(null)
+    } catch (e: any) {
+      setError(e.message || "Failed to update opportunity status")
     }
   }
+
+  // Helper for status badge variants across views
+  const statusToVariant = (s: string) =>
+    s === "ACTIVE" ? "default" : s === "CLOSED" ? "outline" : s === "DRAFT" ? "secondary" : "outline"
 
   return (
     <DashboardLayout userRole="admin">
@@ -147,7 +201,7 @@ export default function AdminOpportunities() {
           </Button>
         </div>
 
-        {/* Stats Cards (kept minimal) */}
+        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.title}>
@@ -182,27 +236,6 @@ export default function AdminOpportunities() {
                   onKeyDown={(e) => { if (e.key === 'Enter') setParam('q', (e.target as HTMLInputElement).value) }}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="closing soon">Closing Soon</SelectItem>
-                  <SelectItem value="under review">Under Review</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="internship">Internship</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -223,9 +256,13 @@ export default function AdminOpportunities() {
                     >
                       <Avatar className="w-12 h-12">
                         <AvatarImage
-                          src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.company.name[0]}`}
+                          src={`/placeholder-icon.png?height=48&width=48&text=${
+                            typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'
+                          }`}
                         />
-                        <AvatarFallback>{opportunity.company.name[0]}</AvatarFallback>
+                        <AvatarFallback>
+                          {typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'}
+                        </AvatarFallback>
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
@@ -234,22 +271,12 @@ export default function AdminOpportunities() {
                             <h3 className="font-semibold text-lg">{opportunity.title}</h3>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               <Building2 className="w-3 h-3" />
-                              {opportunity.company.name}
+                              {typeof opportunity.company.name === 'string' ? opportunity.company.name : 
+                               typeof opportunity.company.name === 'object' && (opportunity.company.name as any)?.name ? 
+                               (opportunity.company.name as any).name : 'Unknown Company'}
                             </p>
                           </div>
-                          <Badge
-                            variant={
-                              opportunity.status === "ACTIVE"
-                                ? "default"
-                                : opportunity.status === "CLOSED"
-                                  ? "outline"
-                                  : opportunity.status === "PENDING"
-                                    ? "secondary"
-                                    : "outline"
-                            }
-                          >
-                            {opportunity.status}
-                          </Badge>
+                          
                         </div>
 
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
@@ -264,10 +291,10 @@ export default function AdminOpportunities() {
                             </span>
                           )}
                           {opportunity.salary && (
-                            <span className="font-medium text-foreground">{opportunity.salary}</span>
+                            <span className="font-medium text-foreground">₹{opportunity.salary}</span>
                           )}
                           {opportunity.stipend && (
-                            <span className="font-medium text-foreground">{opportunity.stipend}</span>
+                            <span className="font-medium text-foreground">₹{opportunity.stipend}</span>
                           )}
                         </div>
 
@@ -280,15 +307,23 @@ export default function AdminOpportunities() {
                         </div>
 
                         <div className="flex items-center gap-2 mb-3">
-                          {opportunity.skills.map((skill) => (
+                          {opportunity.skills.slice(0, 3).map((skill) => (
                             <Badge key={skill} variant="outline" className="text-xs">
                               {skill}
                             </Badge>
                           ))}
+                          {opportunity.skills.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{opportunity.skills.length - 3} more
+                            </Badge>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <Badge variant={statusToVariant(opportunity.status)}>
+                            {opportunity.status}
+                          </Badge>
                         <Button variant="outline" size="sm" onClick={() => handleViewOpportunity(opportunity)}>
                           <Eye className="w-4 h-4 mr-1" />
                           View
@@ -313,7 +348,6 @@ export default function AdminOpportunities() {
             </Card>
           </TabsContent>
 
-          {/* Other tabs keep filtered or placeholder content as needed */}
           <TabsContent value="active" className="space-y-4">
             <Card>
               <CardHeader>
@@ -328,13 +362,21 @@ export default function AdminOpportunities() {
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="w-12 h-12">
                           <AvatarImage
-                            src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.company.name[0]}`}
+                            src={`/placeholder-icon.png?height=48&width=48&text=${
+                              typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'
+                            }`}
                           />
-                          <AvatarFallback>{opportunity.company.name[0]}</AvatarFallback>
+                          <AvatarFallback>
+                            {typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold">{opportunity.title}</h3>
-                          <p className="text-sm text-muted-foreground">{opportunity.company.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof opportunity.company.name === 'string' ? opportunity.company.name : 
+                             typeof opportunity.company.name === 'object' && (opportunity.company.name as any)?.name ? 
+                             (opportunity.company.name as any).name : 'Unknown Company'}
+                          </p>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                             <span>{opportunity.applications} applications</span>
                           </div>
@@ -356,18 +398,26 @@ export default function AdminOpportunities() {
               <CardContent>
                 <div className="space-y-4">
                   {opportunities
-                    .filter((opp) => opp.status === "PENDING")
+                    .filter((opp) => opp.status === "DRAFT")
                     .map((opportunity) => (
                       <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="w-12 h-12">
                           <AvatarImage
-                            src={`/placeholder-icon.png?height=48&width=48&text=${opportunity.company.name[0]}`}
+                            src={`/placeholder-icon.png?height=48&width=48&text=${
+                              typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'
+                            }`}
                           />
-                          <AvatarFallback>{opportunity.company.name[0]}</AvatarFallback>
+                          <AvatarFallback>
+                            {typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold">{opportunity.title}</h3>
-                          <p className="text-sm text-muted-foreground">{opportunity.company.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof opportunity.company.name === 'string' ? opportunity.company.name : 
+                             typeof opportunity.company.name === 'object' && (opportunity.company.name as any)?.name ? 
+                             (opportunity.company.name as any).name : 'Unknown Company'}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Deadline: {new Date(opportunity.deadline).toLocaleDateString()}
                           </p>
@@ -392,8 +442,32 @@ export default function AdminOpportunities() {
                 <CardDescription>Expired or completed opportunities</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No closed opportunities to display.</p>
+                <div className="space-y-4">
+                  {opportunities
+                    .filter((opp) => opp.status === "CLOSED")
+                    .map((opportunity) => (
+                      <div key={opportunity.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage
+                            src={`/placeholder-icon.png?height=48&width=48&text=${
+                              typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'
+                            }`}
+                          />
+                          <AvatarFallback>
+                            {typeof opportunity.company.name === 'string' ? opportunity.company.name[0] : 'C'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{opportunity.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof opportunity.company.name === 'string' ? opportunity.company.name : 
+                             typeof opportunity.company.name === 'object' && (opportunity.company.name as any)?.name ? 
+                             (opportunity.company.name as any).name : 'Unknown Company'}
+                          </p>
+                        </div>
+                        <Badge variant="outline">Closed</Badge>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -414,25 +488,23 @@ export default function AdminOpportunities() {
                 <div className="flex items-start gap-4">
                   <Avatar className="w-16 h-16">
                     <AvatarImage
-                      src={`/placeholder-icon.png?height=64&width=64&text=${viewingOpportunity.companyLogo}`}
+                      src={`/placeholder-icon.png?height=64&width=64&text=${
+                        typeof viewingOpportunity.company.name === 'string' ? viewingOpportunity.company.name[0] : 'C'
+                      }`}
                     />
-                    <AvatarFallback className="text-xl">{viewingOpportunity.companyLogo}</AvatarFallback>
+                    <AvatarFallback className="text-xl">
+                      {typeof viewingOpportunity.company.name === 'string' ? viewingOpportunity.company.name[0] : 'C'}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <h3 className="text-2xl font-bold">{viewingOpportunity.title}</h3>
-                    <p className="text-lg text-muted-foreground">{viewingOpportunity.company}</p>
+                    <p className="text-lg text-muted-foreground">
+                      {typeof viewingOpportunity.company.name === 'string' ? viewingOpportunity.company.name : 
+                       typeof viewingOpportunity.company.name === 'object' && (viewingOpportunity.company.name as any)?.name ? 
+                       (viewingOpportunity.company.name as any).name : 'Unknown Company'}
+                    </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge
-                        variant={
-                          viewingOpportunity.status === "Active"
-                            ? "default"
-                            : viewingOpportunity.status === "Closing Soon"
-                              ? "destructive"
-                              : viewingOpportunity.status === "Under Review"
-                                ? "secondary"
-                                : "outline"
-                        }
-                      >
+                      <Badge variant={statusToVariant(viewingOpportunity.status)}>
                         {viewingOpportunity.status}
                       </Badge>
                     </div>
@@ -451,16 +523,21 @@ export default function AdminOpportunities() {
                     <h4 className="font-medium">Type</h4>
                     <p className="text-muted-foreground">{viewingOpportunity.type}</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Duration</h4>
-                    <p className="text-muted-foreground flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {viewingOpportunity.duration}
-                    </p>
-                  </div>
+                  {viewingOpportunity.duration && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Duration</h4>
+                      <p className="text-muted-foreground flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {viewingOpportunity.duration}
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <h4 className="font-medium">Salary/Stipend</h4>
-                    <p className="text-muted-foreground font-medium">{viewingOpportunity.salary}</p>
+                    <p className="text-muted-foreground font-medium">
+                      {viewingOpportunity.salary ? `₹${viewingOpportunity.salary}` : 
+                       viewingOpportunity.stipend ? `₹${viewingOpportunity.stipend}` : 'Not specified'}
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-medium">Deadline</h4>
@@ -468,12 +545,14 @@ export default function AdminOpportunities() {
                       {new Date(viewingOpportunity.deadline).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Posted Date</h4>
-                    <p className="text-muted-foreground">
-                      {new Date(viewingOpportunity.postedDate).toLocaleDateString()}
-                    </p>
-                  </div>
+                  {viewingOpportunity.postedDate && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Posted Date</h4>
+                      <p className="text-muted-foreground">
+                        {new Date(viewingOpportunity.postedDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -487,7 +566,7 @@ export default function AdminOpportunities() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <Users className="w-6 h-6 mx-auto text-muted-foreground" />
@@ -498,20 +577,8 @@ export default function AdminOpportunities() {
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <Eye className="w-6 h-6 mx-auto text-muted-foreground" />
-                      <p className="text-2xl font-bold mt-2">{viewingOpportunity.views}</p>
+                      <p className="text-2xl font-bold mt-2">{viewingOpportunity.views || 0}</p>
                       <p className="text-sm text-muted-foreground">Views</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 text-center">
-                      <TrendingUp className="w-6 h-6 mx-auto text-muted-foreground" />
-                      <p className="text-2xl font-bold mt-2">
-                        {viewingOpportunity.applications && viewingOpportunity.views
-                          ? Math.round((viewingOpportunity.applications / viewingOpportunity.views) * 100)
-                          : 0}
-                        %
-                      </p>
-                      <p className="text-sm text-muted-foreground">Conversion Rate</p>
                     </CardContent>
                   </Card>
                 </div>

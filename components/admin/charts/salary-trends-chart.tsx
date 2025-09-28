@@ -14,9 +14,9 @@ import {
 interface SalaryTrendsChartProps {
   data: Array<{
     year: string
-    avg: string
-    highest: string
-    lowest: string
+    avg: number
+    highest: number
+    lowest: number
     count: number
   }>
 }
@@ -27,23 +27,28 @@ export function SalaryTrendsChart({ data }: SalaryTrendsChartProps) {
     
     return data.map(item => ({
       year: item.year,
-      avg: parseFloat(item.avg.replace('₹', '').replace('L', '')),
-      highest: parseFloat(item.highest.replace('₹', '').replace('L', '')),
-      lowest: parseFloat(item.lowest.replace('₹', '').replace('L', '')),
+      avg: typeof item.avg === 'number' ? item.avg : parseFloat(String(item.avg)),
+      highest: typeof item.highest === 'number' ? item.highest : parseFloat(String(item.highest)),
+      lowest: typeof item.lowest === 'number' ? item.lowest : parseFloat(String(item.lowest)),
       count: item.count
     })).sort((a, b) => parseInt(a.year) - parseInt(b.year))
   }, [data])
 
-  const formatSalary = (value: number) => `₹${value}L`
+  const formatCurrency = (amount: number) => {
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
+    return `₹${amount}`;
+  };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border rounded-lg shadow-lg">
           <p className="font-medium">{`Year ${label}`}</p>
-          <p className="text-blue-600">{`Average: ${formatSalary(payload[0]?.value)}`}</p>
-          <p className="text-green-600">{`Highest: ${formatSalary(payload[1]?.value)}`}</p>
-          <p className="text-orange-600">{`Lowest: ${formatSalary(payload[2]?.value)}`}</p>
+          <p className="text-blue-600">{`Average: ${formatCurrency(payload[0]?.value)}`}</p>
+          <p className="text-green-600">{`Highest: ${formatCurrency(payload[1]?.value)}`}</p>
+          <p className="text-orange-600">{`Lowest: ${formatCurrency(payload[2]?.value)}`}</p>
           <p className="text-gray-600">{`Placements: ${payload[0]?.payload?.count}`}</p>
         </div>
       )
@@ -72,8 +77,8 @@ export function SalaryTrendsChart({ data }: SalaryTrendsChartProps) {
           <YAxis 
             className="text-xs"
             stroke="#666"
-            label={{ value: 'Salary (₹L)', angle: -90, position: 'insideLeft' }}
-            tickFormatter={formatSalary} // ✅ format Y axis values
+            label={{ value: 'Salary', angle: -90, position: 'insideLeft' }}
+            tickFormatter={formatCurrency}
           />
           <Tooltip content={<CustomTooltip />} />
           <Line 

@@ -67,6 +67,41 @@ export function useMentorAssignment(queryparam: { facultyId?: string; collegeId?
   };
 }
 
+// ✅ Enhanced opportunity hook with all CRUD operations
+export function useOpportunities(params?: {
+  status?: string;
+  type?: string;
+  q?: string;
+  skip?: number;
+  take?: number;
+}) {
+  const opportunities = useQuery(api.queries.getOpportunities, params || {});
+  const updateOpportunityStatus = useMutation(api.mutations.updateOpportunityStatus);
+  const createOpportunity = useMutation(api.mutations.createOpportunity);
+  const updateOpportunity = useMutation(api.mutations.updateOpportunity);
+  
+  return {
+    opportunities,
+    updateOpportunityStatus,
+    createOpportunity,
+    updateOpportunity,
+  };
+}
+
+// ✅ Hook for single opportunity management
+export function useOpportunity(opportunityId?: string) {
+  const opportunity = useQuery(
+    api.queries.getOpportunityById,
+    opportunityId ? { opportunityId: opportunityId as any } : "skip"
+  );
+  const updateOpportunity = useMutation(api.mutations.updateOpportunity);
+  
+  return {
+    opportunity,
+    updateOpportunity,
+  };
+}
+
 // ✅ Enhanced Admin Hook
 export function useAdmin() {
   const updateStudentStatusAction = useAction(api.actions.updateStudentStatus);
