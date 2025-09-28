@@ -274,7 +274,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Team
 
 ### Development Team
-- **Garv** - Head of Project (Frontend and UI/UX Developer)
+- **Garv** - Head of Project , Frontend and UI/UX Developer 
 - **Qusai** - Backend Developer
 - **Viral Thakkar** - UI/UX Developer
 - **Arunil** - Backend Tester
