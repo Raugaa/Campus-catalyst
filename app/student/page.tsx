@@ -270,7 +270,7 @@ const CalendarComponent = () => {
           return (
             <div
               key={index}
-              className={`text-center text-sm p-2 rounded-full relative cursor-pointer transition-all duration-200 ${day === null ? 'invisible' :
+              className={`relative flex flex-col items-center justify-center aspect-square rounded-md cursor-pointer transition-all duration-200 ${day === null ? 'invisible' :
                   isSameDay(selectedDate, day) ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary/30 scale-110' :
                     isToday(day) ? 'bg-muted font-semibold border-2 border-primary animate-pulse' :
                       dayEvents.length > 0 ? 'bg-blue-100 text-blue-800 font-medium hover:bg-blue-200' :
@@ -279,12 +279,12 @@ const CalendarComponent = () => {
             >
               {day ? day.getDate() : ""}
               {dayEvents.length > 0 && (
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
+                <div className="flex items-center justify-center mt-0 space-x-0.5" style={{ marginTop: '1px' }}>
                   {hasMultipleEvents ? (
                     <div className="flex">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full -ml-0.5"></div>
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full -ml-0.5"></div>
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                     </div>
                   ) : (
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
