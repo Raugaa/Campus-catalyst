@@ -76,10 +76,12 @@ export default function GlobalAdminDashboard() {
   return (
     <DashboardLayout userRole="global_admin">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Global Admin Dashboard</h1>
+        <div> 
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome Back {user.profile?.name || user.email}!
+          </h1>
           <p className="text-gray-600">
-            Welcome {user.profile?.name || user.email} - Manage and oversee all registered institutions and companies
+            Global Admin Dashboard - Manage and oversee all registered institutions and companies
           </p>
         </div>
 
