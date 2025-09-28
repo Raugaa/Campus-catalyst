@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link"
 import {
   Search,
   MapPin,
@@ -180,6 +181,13 @@ export default function StudentOpportunities() {
           <div>
             <h1 className="text-3xl font-bold">Opportunities</h1>
             <p className="text-muted-foreground">Discover internships and job opportunities</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/student">
+              <Button variant="outline" className="flex items-center gap-2">
+                <span>Back to Dashboard</span>
+              </Button>
+            </Link>
           </div>
         </div>
 

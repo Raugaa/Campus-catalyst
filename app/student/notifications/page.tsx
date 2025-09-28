@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link"
 import { Bell, AlertCircle, Info, Calendar, Briefcase, Users } from "lucide-react"
 
 export default function StudentNotifications() {
@@ -70,6 +71,13 @@ export default function StudentNotifications() {
             <p className="text-muted-foreground">Stay updated with your applications and opportunities</p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex gap-2">
+              <Link href="/student">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <span>Back to Dashboard</span>
+                </Button>
+              </Link>
+            </div>
             <Badge variant="secondary">{unreadCount} unread</Badge>
             <Button variant="outline" size="sm">
               Mark All as Read

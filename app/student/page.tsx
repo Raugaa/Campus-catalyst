@@ -299,6 +299,13 @@ export default function StudentDashboard() {
             <p className="text-muted-foreground">Here's what's happening with your applications</p>
           </div>
           <div className="flex items-center gap-4">
+            {/* <div className="flex gap-2">
+              <Link href="/student">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <span>Back to Dashboard</span>
+                </Button>
+              </Link>
+            </div> */}
             <Button variant="ghost" size="icon" className="relative" asChild>
               <Link href="/student/notifications">
                 <Bell className="w-5 h-5" />

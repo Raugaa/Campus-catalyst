@@ -489,7 +489,7 @@ export default function StudentTraining() {
             <div class="certificate-header">
               <div class="certificate-logo">
                 <div class="logo-icon">CC</div>
-                Campus Connect
+                Campus Catalyst
               </div>
               <h1 class="certificate-title">CERTIFICATE OF COMPLETION</h1>
               <p class="certificate-subtitle">This certificate is proudly presented to</p>
@@ -526,7 +526,7 @@ export default function StudentTraining() {
               </div>
               
               <p class="verification-text">
-                This certificate can be verified at: campusconnect.edu/verify/${course.id}-${Date.now().toString().slice(-6)}
+                This certificate can be verified at: campus-catalyst.edu/verify/${course.id}-${Date.now().toString().slice(-6)}
               </p>
             </div>
             
@@ -574,6 +574,13 @@ export default function StudentTraining() {
           <div>
             <h1 className="text-3xl font-bold">Industry Training Courses</h1>
             <p className="text-muted-foreground">Enhance your skills with industry-recognized training programs</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/student">
+              <Button variant="outline" className="flex items-center gap-2">
+                <span>Back to Dashboard</span>
+              </Button>
+            </Link>
           </div>
         </div>
 

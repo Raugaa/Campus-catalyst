@@ -60,7 +60,7 @@ export default function GlobalAdminDashboard() {
     )
   }
 
-  // Mock data for demonstration
+  // Mock data for demonstration - keeping consistent names with the companies list
   const instituteRequests = [
     { id: 1, name: "IIT Bombay", email: "admin@iitb.ac.in", status: "pending" },
     { id: 2, name: "IIM Ahmedabad", email: "admin@iima.ac.in", status: "approved" },
@@ -68,9 +68,9 @@ export default function GlobalAdminDashboard() {
   ]
 
   const companyRequests = [
-    { id: 1, name: "Google Inc.", email: "careers@google.com", status: "pending" },
-    { id: 2, name: "Microsoft", email: "jobs@microsoft.com", status: "approved" },
-    { id: 3, name: "Amazon", email: "careers@amazon.com", status: "rejected" },
+    { id: 1, name: "TechCorp Solutions Pvt. Ltd.", email: "careers@techcorp.com", status: "pending" },
+    { id: 2, name: "Innovatech Industries", email: "info@innovatech.com", status: "approved" },
+    { id: 3, name: "FinServe Global", email: "support@finserve.com", status: "rejected" },
   ]
 
   return (
@@ -147,7 +147,7 @@ export default function GlobalAdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {institute.status === "pending" && (
-                        <Link href="/global_admin/institutes">
+                        <Link href="/global_admin/institutes/list">
                           <Button variant="outline" size="sm">Review</Button>
                         </Link>
                       )}

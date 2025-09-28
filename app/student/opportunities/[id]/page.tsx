@@ -152,13 +152,20 @@ export default function OpportunityDetails({ params }: { params: { id: string } 
     <DashboardLayout userRole="student">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/student/opportunities">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Opportunities
             </Link>
           </Button>
+          <div className="flex gap-2">
+            <Link href="/student">
+              <Button variant="outline" className="flex items-center gap-2">
+                <span>Back to Dashboard</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">

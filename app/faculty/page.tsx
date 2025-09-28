@@ -424,9 +424,9 @@ export default function FacultyDashboard() {
                 </div>
               </div>
               
-              <Link href="/faculty/approvals">
+              <Link href="/faculty/mentees">
                 <Button className="w-full">
-                  View Applications
+                  View Mentees
                 </Button>
               </Link>
             </CardContent>

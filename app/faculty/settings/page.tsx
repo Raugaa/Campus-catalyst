@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Settings, Bell, Shield, Users, Save } from "lucide-react"
+import Link from "next/link"
 
 export default function FacultySettings() {
   return (
@@ -17,10 +18,19 @@ export default function FacultySettings() {
             <h1 className="text-3xl font-bold">Settings</h1>
             <p className="text-muted-foreground">Manage your account preferences and mentoring settings</p>
           </div>
-          <Button>
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-2">
+              <Link href="/faculty">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <span>Back to Dashboard</span>
+                </Button>
+              </Link>
+            </div>
+            <Button>
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="account" className="space-y-6">

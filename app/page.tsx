@@ -15,13 +15,13 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Image 
-              src="/assets/LOGO (Campus Connect).png" 
-              alt="Campus Connect Logo" 
+              src="/assets/Campus_Catalyst.png" 
+              alt="Campus Catalyst Logo" 
               width={32} 
               height={32} 
               className="rounded-lg"
             />
-            <span className="text-xl font-semibold">Campus Connect</span>
+            <span className="text-xl font-semibold">Campus Catalyst</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -367,13 +367,13 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Image 
-                  src="/assets/LOGO (Campus Connect).png" 
-                  alt="Campus Connect Logo" 
+                  src="/assets/Campus_Catalyst.png" 
+                  alt="Campus Catalyst Logo" 
                   width={32} 
                   height={32} 
                   className="rounded-lg"
                 />
-                <span className="text-xl font-semibold">Campus Connect</span>
+                <span className="text-xl font-semibold">Campus Catalyst</span>
               </div>
               <p className="text-muted-foreground">
                 Streamlining campus internships and placements for students, companies, faculty, and administrators.
@@ -412,7 +412,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2025 Campus Connect. All rights reserved.</p>
+            <p>&copy; 2025 Campus Catalyst. All rights reserved.</p>
           </div>
         </div>
       </footer>
