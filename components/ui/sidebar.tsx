@@ -24,6 +24,7 @@ interface SidebarProps {
 const navigationItems = {
   student: [
     { name: "Dashboard", href: "/student", icon: Home },
+    { name: "Profile", href: "/student/profile", icon: User },
     { name: "Opportunities", href: "/student/opportunities", icon: Briefcase },
     { name: "Training", href: "/student/training", icon: BookOpen },
     { name: "Notifications", href: "/student/notifications", icon: Bell },
