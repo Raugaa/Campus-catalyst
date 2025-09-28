@@ -14,6 +14,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Campus Internship Portal',
   description: 'Connect students with internship opportunities',
+  icons: {
+    icon: '/assets/Logo.png',
+  },
 }
 
 export default function RootLayout({

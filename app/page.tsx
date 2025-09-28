@@ -15,7 +15,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Image 
-              src="/assets/Campus_Catalyst.png" 
+              src="/assets/Logo.png" 
               alt="Campus Catalyst Logo" 
               width={32} 
               height={32} 
@@ -367,7 +367,7 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Image 
-                  src="/assets/Campus_Catalyst.png" 
+                  src="/assets/Logo.png" 
                   alt="Campus Catalyst Logo" 
                   width={32} 
                   height={32} 

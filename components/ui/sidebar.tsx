@@ -200,7 +200,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
             <Image 
-              src="/assets/Campus_Catalyst.png" 
+              src="/assets/Logo.png" 
               alt="Campus Catalyst Logo" 
               width={36} 
               height={36} 

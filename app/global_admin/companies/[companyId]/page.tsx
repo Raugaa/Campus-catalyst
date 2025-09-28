@@ -16,7 +16,6 @@ import {
   XCircle,
   FileText,
   CheckCheck,
-  Sparkles,
   AlertCircle
 } from "lucide-react"
 import Link from "next/link"
@@ -166,8 +165,7 @@ export default function CompanyDetailPage({ params }: { params: { companyId: str
   const [companyData, setCompanyData] = useState<CompanyData | null>(null)
   const [isVerified, setIsVerified] = useState(false)
   const [isRejected, setIsRejected] = useState(false)
-  const [showVerificationAnimation, setShowVerificationAnimation] = useState(false)
-  const [showRejectionAnimation, setShowRejectionAnimation] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
 
   useEffect(() => {
     const company = mockCompanyData[parseInt(params.companyId)]
@@ -182,18 +180,17 @@ export default function CompanyDetailPage({ params }: { params: { companyId: str
     if (companyData) {
       // Handle company approval logic
       console.log(`Company ${companyData.name} approved`)
-      // Show verification animation
-      setShowVerificationAnimation(true)
       setIsVerified(true)
       setIsRejected(false)
+      setShowSuccessMessage(true)
       
-      // Hide animation after 3 seconds
+      // Hide success message after 3 seconds
       setTimeout(() => {
-        setShowVerificationAnimation(false)
+        setShowSuccessMessage(false)
       }, 3000)
       
       // In a real app, this would call an API to update the company status
-      alert(`Company ${companyData.name} has been approved!`)
+      // alert(`Company ${companyData.name} has been approved!`)
     }
   }
 
@@ -201,18 +198,17 @@ export default function CompanyDetailPage({ params }: { params: { companyId: str
     if (companyData) {
       // Handle company rejection logic
       console.log(`Company ${companyData.name} rejected`)
-      // Show rejection animation
-      setShowRejectionAnimation(true)
       setIsRejected(true)
       setIsVerified(false)
+      setShowSuccessMessage(true)
       
-      // Hide animation after 3 seconds
+      // Hide success message after 3 seconds
       setTimeout(() => {
-        setShowRejectionAnimation(false)
+        setShowSuccessMessage(false)
       }, 3000)
       
       // In a real app, this would call an API to update the company status
-      alert(`Company ${companyData.name} has been rejected!`)
+      // alert(`Company ${companyData.name} has been rejected!`)
     }
   }
 
@@ -249,28 +245,6 @@ export default function CompanyDetailPage({ params }: { params: { companyId: str
             </Link>
           </div>
         </div>
-
-        {/* Verification Animation */}
-        {showVerificationAnimation && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-            <div className="bg-white p-8 rounded-lg shadow-xl text-center animate-pulse">
-              <Sparkles className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-green-600 mb-2">Company Verified!</h2>
-              <p className="text-gray-600">{companyData.name} has been successfully verified.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Rejection Animation */}
-        {showRejectionAnimation && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-            <div className="bg-white p-8 rounded-lg shadow-xl text-center animate-pulse">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-red-600 mb-2">Company Rejected!</h2>
-              <p className="text-gray-600">{companyData.name} registration has been rejected.</p>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Company Details */}
@@ -399,7 +373,13 @@ export default function CompanyDetailPage({ params }: { params: { companyId: str
                 <CardDescription>Review and process this company registration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isVerified ? (
+                {showSuccessMessage ? (
+                  <div className="text-center py-4">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                    <p className="font-medium text-green-600">Action Completed!</p>
+                    <p className="text-sm text-muted-foreground">Processing your request...</p>
+                  </div>
+                ) : isVerified ? (
                   <div className="text-center py-4">
                     <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
                       <CheckCheck className="h-6 w-6" />

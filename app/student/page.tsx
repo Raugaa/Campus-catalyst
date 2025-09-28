@@ -258,30 +258,105 @@ const CalendarComponent = () => {
   )
 }
 
+// Mock user data
+const user = {
+  student: {
+    firstName: "Rahul"
+  }
+}
+
+// Mock data for interviews
+const interviews = [
+  {
+    id: 1,
+    title: "UX/UI Design Interview",
+    company: "TCS",
+    date: "Nov 8",
+    time: "9:00 AM"
+  }
+]
+
+// Mock data for company inbox
+const companyInboxJobs = [
+  {
+    id: 1,
+    company: "Google",
+    position: "Software Engineering Intern, Fall 2024",
+    location: "Bangalore, India",
+    posted: "2 days ago",
+    match: "95% Match",
+    matchStyle: "bg-blue-100 text-blue-800"
+  },
+  {
+    id: 2,
+    company: "Microsoft",
+    position: "Product Manager Intern",
+    location: "Hyderabad, India",
+    posted: "3 days ago",
+    match: "88% Match",
+    matchStyle: "bg-blue-500 text-white"
+  },
+  {
+    id: 3,
+    company: "Amazon",
+    position: "Data Scientist Intern",
+    location: "Chennai, India",
+    posted: "4 days ago",
+    match: "85% Match",
+    matchStyle: "bg-blue-500 text-white"
+  },
+  {
+    id: 4,
+    company: "TCS",
+    position: "Software Developer Intern",
+    location: "Mumbai, India",
+    posted: "5 days ago",
+    match: "92% Match",
+    matchStyle: "bg-blue-500 text-white"
+  },
+  {
+    id: 5,
+    company: "Infosys",
+    position: "System Engineer Intern",
+    location: "Pune, India",
+    posted: "1 week ago",
+    match: "89% Match",
+    matchStyle: "bg-blue-500 text-white"
+  }
+]
+
+// Mock data for application tracker
+const applications = [
+  {
+    position: "Software Engineer Intern",
+    company: "Infosys",
+    progress: 60,
+    status: "In Progress"
+  },
+  {
+    position: "Data Analyst Intern",
+    company: "Wipro",
+    progress: 100,
+    status: "Offer Received"
+  }
+]
+
+// Mock data for skills
+const skills = [
+  { name: "Python", level: 90, proficiency: "Advanced" },
+  { name: "SQL", level: 65, proficiency: "Intermediate" },
+  { name: "Tableau", level: 30, proficiency: "Beginner" }
+]
+
+// In-demand skills
+const inDemandSkills = ["Machine Learning", "AWS", "React"]
+
 export default function StudentDashboard() {
   const router = useRouter()
   const [appliedJobs, setAppliedJobs] = useState<Set<number>>(new Set())
   
-  // Mock user data
-  const user = {
-    student: {
-      firstName: "Rahul"
-    }
-  }
-  
   // Get user's first name for welcome message
   const userFirstName = user?.student?.firstName || "Rahul"
-
-  // Mock data for interviews
-  const interviews = [
-    {
-      id: 1,
-      title: "UX/UI Design Interview",
-      company: "TCS",
-      date: "Nov 8",
-      time: "9:00 AM"
-    }
-  ]
 
   // Handle job application
   const handleApply = (jobId: number) => {
@@ -299,13 +374,6 @@ export default function StudentDashboard() {
             <p className="text-muted-foreground">Here's what's happening with your applications</p>
           </div>
           <div className="flex items-center gap-4">
-            {/* <div className="flex gap-2">
-              <Link href="/student">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <span>Back to Dashboard</span>
-                </Button>
-              </Link>
-            </div> */}
             <Button variant="ghost" size="icon" className="relative" asChild>
               <Link href="/student/notifications">
                 <Bell className="w-5 h-5" />
@@ -364,54 +432,8 @@ export default function StudentDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[
-                  {
-                    id: 1,
-                    company: "Google",
-                    position: "Software Engineering Intern, Fall 2024",
-                    location: "Bangalore, India",
-                    posted: "2 days ago",
-                    match: "95% Match",
-                    matchStyle: "bg-blue-100 text-blue-800"
-                  },
-                  {
-                    id: 2,
-                    company: "Microsoft",
-                    position: "Product Manager Intern",
-                    location: "Hyderabad, India",
-                    posted: "3 days ago",
-                    match: "88% Match",
-                    matchStyle: "bg-blue-500 text-white"
-                  },
-                  {
-                    id: 3,
-                    company: "Amazon",
-                    position: "Data Scientist Intern",
-                    location: "Chennai, India",
-                    posted: "4 days ago",
-                    match: "85% Match",
-                    matchStyle: "bg-blue-500 text-white"
-                  },
-                  {
-                    id: 4,
-                    company: "TCS",
-                    position: "Software Developer Intern",
-                    location: "Mumbai, India",
-                    posted: "5 days ago",
-                    match: "92% Match",
-                    matchStyle: "bg-blue-500 text-white"
-                  },
-                  {
-                    id: 5,
-                    company: "Infosys",
-                    position: "System Engineer Intern",
-                    location: "Pune, India",
-                    posted: "1 week ago",
-                    match: "89% Match",
-                    matchStyle: "bg-blue-500 text-white"
-                  }
-                ].map((job, index) => (
-                  <div key={index} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                {companyInboxJobs.map((job) => (
+                  <div key={job.id} className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={`/placeholder-40x40.png?height=40&width=40&text=${job.company[0]}`} />
                       <AvatarFallback className="bg-blue-100 text-blue-800">{job.company[0]}</AvatarFallback>
@@ -445,20 +467,7 @@ export default function StudentDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {[
-                  {
-                    position: "Software Engineer Intern",
-                    company: "Infosys",
-                    progress: 60,
-                    status: "In Progress"
-                  },
-                  {
-                    position: "Data Analyst Intern",
-                    company: "Wipro",
-                    progress: 100,
-                    status: "Offer Received"
-                  }
-                ].map((application, index) => (
+                {applications.map((application, index) => (
                   <div key={index} className="space-y-3">
                     <div>
                       <h4 className="font-medium">{application.position}</h4>
@@ -510,37 +519,25 @@ export default function StudentDashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">Python</span>
-                      <span className="text-sm text-blue-600">Advanced</span>
+                  {skills.map((skill, index) => (
+                    <div key={index}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">{skill.name}</span>
+                        <span className="text-sm text-blue-600">{skill.proficiency}</span>
+                      </div>
+                      <Progress value={skill.level} className="h-2" />
                     </div>
-                    <Progress value={90} className="h-2" />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">SQL</span>
-                      <span className="text-sm text-blue-600">Intermediate</span>
-                    </div>
-                    <Progress value={65} className="h-2" />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">Tableau</span>
-                      <span className="text-sm text-blue-600">Beginner</span>
-                    </div>
-                    <Progress value={30} className="h-2" />
-                  </div>
+                  ))}
                 </div>
                 
                 <div>
                   <p className="text-sm font-medium mb-2">In-demand skills:</p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Machine Learning</Badge>
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">AWS</Badge>
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">React</Badge>
+                    {inDemandSkills.map((skill, index) => (
+                      <Badge key={index} className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        {skill}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
               </CardContent>

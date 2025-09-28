@@ -147,7 +147,7 @@ export default function GlobalAdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {institute.status === "pending" && (
-                        <Link href="/global_admin/institutes/list">
+                        <Link href={`/global_admin/institutes/${institute.id}`}>
                           <Button variant="outline" size="sm">Review</Button>
                         </Link>
                       )}
@@ -184,7 +184,7 @@ export default function GlobalAdminDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {company.status === "pending" && (
-                        <Link href="/global_admin/companies">
+                        <Link href={`/global_admin/companies/${company.id}`}>
                           <Button variant="outline" size="sm">Review</Button>
                         </Link>
                       )}

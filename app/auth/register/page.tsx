@@ -105,7 +105,7 @@ export default function RegisterPage() {
         <div className="flex flex-col items-center space-y-2">
           <div className="bg-white p-2 rounded-full shadow-md">
             <Image
-              src="/assets/Campus_Catalyst.png"
+              src="/assets/Logo.png"
               width={48}
               height={48}
               alt="Campus Catalyst Logo"
