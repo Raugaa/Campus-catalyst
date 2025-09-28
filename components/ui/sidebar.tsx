@@ -50,6 +50,7 @@ const navigationItems = {
     { name: "Faculty", href: "/admin/faculty", icon: User },
     { name: "Companies", href: "/admin/companies", icon: Building2 },
     { name: "Opportunities", href: "/admin/opportunities", icon: Briefcase },
+    { name: "Training", href: "/admin/training", icon: BookOpen },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ],
   global_admin: [

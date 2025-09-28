@@ -196,7 +196,7 @@ export default function RegisterPage() {
               </div>
 
               <Button className="w-full mt-2" type="submit" disabled={isLoading}>
-                {isLoading ? "Redirecting to WorkOS..." : "Continue with WorkOS"}
+                {isLoading ? "Registering..." : "Register"}
               </Button>
             </form>
 

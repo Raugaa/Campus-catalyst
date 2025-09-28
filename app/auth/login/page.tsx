@@ -141,7 +141,7 @@ export default function LoginPage() {
               </div>
               {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
               <Button className="w-full mt-4" type="submit" disabled={isLoading}>
-                {isLoading ? "Redirecting to WorkOS..." : "Continue with WorkOS"}
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
             <div className="text-center text-sm">
