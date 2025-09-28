@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bell, Users, CheckCircle, AlertCircle, FileText, Calendar, TrendingUp } from "lucide-react"
+import Link from "next/link"
 
 export default function FacultyNotifications() {
   const notifications = [
@@ -92,6 +93,13 @@ export default function FacultyNotifications() {
             <p className="text-muted-foreground">Stay updated with mentee activities and approval requests</p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex gap-2">
+              <Link href="/faculty">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <span>Back to Dashboard</span>
+                </Button>
+              </Link>
+            </div>
             {urgentCount > 0 && (
               <Badge variant="destructive" className="animate-pulse">
                 {urgentCount} urgent

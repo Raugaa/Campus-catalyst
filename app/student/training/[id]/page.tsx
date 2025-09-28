@@ -172,11 +172,20 @@ export default function TrainingCourseDetail({ params }: { params: { id: string 
   return (
     <DashboardLayout userRole="student">
       <div className="space-y-6">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/student/training" className="hover:text-foreground">Training</Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-foreground truncate">{course.title}</span>
+        {/* Breadcrumb and Navigation */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link href="/student/training" className="hover:text-foreground">Training</Link>
+            <ChevronRight className="w-4 h-4" />
+            <span className="text-foreground truncate">{course.title}</span>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/student">
+              <Button variant="outline" className="flex items-center gap-2">
+                <span>Back to Dashboard</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Enrollment Success Message */}

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 import { 
   User, 
   Upload, 
@@ -312,6 +313,13 @@ export default function StudentProfile() {
             <p className="text-muted-foreground">Manage your personal information and professional details</p>
           </div>
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              <Link href="/student">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <span>Back to Dashboard</span>
+                </Button>
+              </Link>
+            </div>
             <Button variant="outline" onClick={uploadResume} className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
               Upload Resume

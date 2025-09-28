@@ -85,9 +85,18 @@ export default function FacultyFeedbackPage() {
   return (
     <DashboardLayout userRole="faculty">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Student Feedback</h1>
-          <p className="text-gray-600">Provide feedback on student internship performance</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Student Feedback</h1>
+            <p className="text-gray-600">Provide feedback on student internship performance</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/faculty">
+              <Button variant="outline" className="flex items-center gap-2">
+                <span>Back to Dashboard</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Search and Filter */}

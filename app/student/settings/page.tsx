@@ -7,15 +7,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { User, Bell, Shield, Palette, Upload } from "lucide-react"
+import Link from "next/link"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 
 export default function SettingsPage() {
   return (
     <DashboardLayout userRole="student">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground">Manage your account preferences and privacy settings</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+            <p className="text-muted-foreground">Manage your account preferences and privacy settings</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/student">
+              <Button variant="outline" className="flex items-center gap-2">
+                <span>Back to Dashboard</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">

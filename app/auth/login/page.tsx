@@ -94,15 +94,17 @@ export default function LoginPage() {
       </div>
       
       <div className="w-full max-w-md relative z-10">
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <Image 
-            src="/assets/LOGO (Campus Connect).png" 
-            alt="Campus Connect Logo" 
-            width={40} 
-            height={40} 
-            className="rounded-lg"
-          />
-          <span className="text-2xl font-semibold">Campus Connect</span>
+        <div className="flex flex-col items-center space-y-2">
+          <div className="bg-white p-2 rounded-full shadow-md">
+            <Image
+              src="/assets/Logo.png"
+              width={48}
+              height={48}
+              alt="Campus Catalyst Logo"
+              className="rounded-full"
+            />
+          </div>
+          <span className="text-2xl font-semibold">Campus Catalyst</span>
         </div>
 
         <Card className="shadow-xl border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-card/80 backdrop-blur-sm">

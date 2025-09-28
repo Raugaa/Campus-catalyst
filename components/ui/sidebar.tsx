@@ -25,6 +25,7 @@ interface SidebarProps {
 const navigationItems = {
   student: [
     { name: "Dashboard", href: "/student", icon: Home },
+    { name: "Profile", href: "/student/profile", icon: User },
     { name: "Opportunities", href: "/student/opportunities", icon: Briefcase },
     { name: "Training", href: "/student/training", icon: BookOpen },
     { name: "Notifications", href: "/student/notifications", icon: Bell },
@@ -38,7 +39,7 @@ const navigationItems = {
   ],
   faculty: [
     { name: "Dashboard", href: "/faculty", icon: Home },
-    { name: "Students", href: "/faculty/students", icon: Users },
+    { name: "Mentees", href: "/faculty/mentees", icon: Users },
     { name: "Notifications", href: "/faculty/notifications", icon: Bell },
     { name: "Settings", href: "/faculty/settings", icon: Settings },
   ],
@@ -201,15 +202,15 @@ export const Sidebar = React.memo(function Sidebar({ userRole, className }: Side
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
             <Image 
-              src="/assets/LOGO (Campus Connect).png" 
-              alt="Campus Connect Logo" 
+              src="/assets/Logo.png" 
+              alt="Campus Catalyst Logo" 
               width={36} 
               height={36} 
               className="rounded-lg shadow-sm"
             />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-foreground truncate">Campus Connect</h1>
+            <h1 className="text-lg font-bold text-foreground truncate">Campus Catalyst</h1>
             <p className="text-xs text-muted-foreground">Student Portal</p>
           </div>
         </div>
@@ -219,7 +220,7 @@ export const Sidebar = React.memo(function Sidebar({ userRole, className }: Side
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
           <Avatar className="w-10 h-10 ring-2 ring-primary/10">
-            <AvatarImage src="/assets/LOGO (Campus Connect).png" alt={displayName} />
+            <AvatarImage src="/assets/Logo.png" alt={displayName} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
               {typeof avatarFallback === 'string' ? avatarFallback : avatarFallback}
             </AvatarFallback>
