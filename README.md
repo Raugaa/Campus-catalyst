@@ -1,14 +1,14 @@
-# Campus Connect - Internship Portal
+# Campus Catalyst - Internship Portal
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/raugaas-projects/v0-campus-internship-portal)
 [![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-Campus Connect is a comprehensive internship portal designed to bridge the gap between students, faculty, and companies in educational institutions. This platform streamlines the internship process by providing dedicated dashboards for all stakeholders.
+Campus Catalyst is a comprehensive internship portal designed to bridge the gap between students, faculty, and companies in educational institutions. This platform streamlines the internship process by providing dedicated dashboards for all stakeholders.
 
 ## 🎯 Overview
 
-Campus Connect revolutionizes the internship management process by offering a centralized platform where students can discover opportunities, companies can post internships and manage applications, faculty can mentor and track progress, and administrators can oversee the entire ecosystem.
+Campus Catalyst revolutionizes the internship management process by offering a centralized platform where students can discover opportunities, companies can post internships and manage applications, faculty can mentor and track progress, and administrators can oversee the entire ecosystem.
 
 ### Key Features
 - **Multi-role Access**: Dedicated dashboards for students, companies, faculty, and administrators
@@ -42,8 +42,8 @@ Campus Connect revolutionizes the internship management process by offering a ce
 
 ## 🎥 Demo Video
 
-[![Campus Connect Demo](public/screenshots/video-thumbnail.png)](public/videos/campus-connect-demo.mp4)
-*Click to watch the full demonstration of Campus Connect in action*
+[![Campus Catalyst Demo](public/screenshots/video-thumbnail.png)](public/videos/campus-connect-demo.mp4)
+*Click to watch the full demonstration of Campus Catalyst in action*
 
 ## 🚀 Getting Started
 
@@ -257,7 +257,7 @@ Easily customize:
 
 ## 🤝 Contributing
 
-We welcome contributions to Campus Connect! Here's how you can help:
+We welcome contributions to Campus Catalyst! Here's how you can help:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -288,7 +288,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-For support, please open an issue on our GitHub repository or contact our team at support@campusconnect.edu.
+For support, please open an issue on our GitHub repository or contact our team at support@campuscatalyst.edu.
 
 ## 🔄 Updates
 
