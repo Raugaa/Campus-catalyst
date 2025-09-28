@@ -71,17 +71,41 @@ const CalendarComponent = ({
   currentCalendarDate: Date;
   setCurrentCalendarDate: (date: Date) => void;
 }) => {
+  const [selectedUser, setSelectedUser] = useState<string>('all')
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentCalendarDate.getMonth())
+  const [selectedYear, setSelectedYear] = useState<number>(currentCalendarDate.getFullYear())
+  
+  // Get unique users/students from interviews
+  const uniqueUsers = Array.from(new Set(interviews.map(interview => interview.name)))
+  
+  // Generate a range of years (5 years before and after current year)
+  const generateYearRange = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(i);
+    }
+    return years;
+  };
+  
+  const yearRange = generateYearRange();
+
+  // Filter interviews based on selected user
+  const filteredInterviews = selectedUser === 'all' 
+    ? interviews 
+    : interviews.filter(interview => interview.name === selectedUser)
+
   // Calendar functions
   const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
+    return new Date(selectedYear, selectedMonth, 1);
   }
 
   const getLastDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return new Date(selectedYear, selectedMonth + 1, 0);
   }
 
   const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    return new Date(selectedYear, selectedMonth + 1, 0).getDate();
   }
 
   const getMonthName = (date: Date) => {
@@ -90,18 +114,34 @@ const CalendarComponent = ({
 
   // Navigate to previous month
   const goToPreviousMonth = () => {
-    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1));
+    let newMonth = selectedMonth - 1
+    let newYear = selectedYear
+    if (newMonth < 0) {
+      newMonth = 11
+      newYear = selectedYear - 1
+    }
+    setSelectedMonth(newMonth)
+    setSelectedYear(newYear)
+    setCurrentCalendarDate(new Date(newYear, newMonth, 1))
   }
 
   // Navigate to next month
   const goToNextMonth = () => {
-    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1));
+    let newMonth = selectedMonth + 1
+    let newYear = selectedYear
+    if (newMonth > 11) {
+      newMonth = 0
+      newYear = selectedYear + 1
+    }
+    setSelectedMonth(newMonth)
+    setSelectedYear(newYear)
+    setCurrentCalendarDate(new Date(newYear, newMonth, 1))
   }
 
   // Get interviews for a specific date
   const getInterviewsForDate = (date: Date | null) => {
     if (!date) return [];
-    return interviews.filter(interview => 
+    return filteredInterviews.filter(interview => 
       interview.date.getDate() === date.getDate() &&
       interview.date.getMonth() === date.getMonth() &&
       interview.date.getFullYear() === date.getFullYear()
@@ -137,7 +177,7 @@ const CalendarComponent = ({
   }
   // Add days of the month
   for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), i));
+    calendarDays.push(new Date(selectedYear, selectedMonth, i));
   }
 
   // Get interviews for selected date
@@ -149,8 +189,62 @@ const CalendarComponent = ({
     setSelectedDate(isSameDay(selectedDate, day) ? null : day);
   }
 
+  // Handle month selection
+  const handleMonthChange = (monthIndex: number) => {
+    setSelectedMonth(monthIndex)
+    setCurrentCalendarDate(new Date(selectedYear, monthIndex, 1))
+  }
+
+  // Handle year selection
+  const handleYearChange = (year: string) => {
+    const yearNum = parseInt(year)
+    setSelectedYear(yearNum)
+    setCurrentCalendarDate(new Date(yearNum, selectedMonth, 1))
+  }
+
   return (
     <div>
+      {/* Filter Dropdowns */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex gap-2">
+          <Select value={selectedUser} onValueChange={setSelectedUser}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Users" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              {uniqueUsers.map((user, index) => (
+                <SelectItem key={index} value={user}>{user}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select Month" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => (
+                <SelectItem key={i} value={i.toString()}>
+                  {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Select Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {yearRange.map((year: number, index: number) => (
+              <SelectItem key={index} value={year.toString()}>{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Button 
@@ -161,7 +255,7 @@ const CalendarComponent = ({
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="font-medium">{getMonthName(currentCalendarDate)} {currentCalendarDate.getFullYear()}</span>
+          <span className="font-medium">{getMonthName(firstDayOfMonth)} {selectedYear}</span>
           <Button 
             variant="ghost" 
             size="sm" 
@@ -245,7 +339,7 @@ const CalendarComponent = ({
           </p>
         ) : (
           <div className="space-y-3">
-            {interviews
+            {filteredInterviews
               .filter(interview => interview.date >= new Date())
               .slice(0, 3)
               .map((interview) => (
@@ -263,7 +357,7 @@ const CalendarComponent = ({
                   </div>
                 </div>
               ))}
-            {interviews.filter(interview => interview.date >= new Date()).length === 0 && (
+            {filteredInterviews.filter(interview => interview.date >= new Date()).length === 0 && (
               <p className="text-muted-foreground text-sm">No upcoming interviews</p>
             )}
           </div>

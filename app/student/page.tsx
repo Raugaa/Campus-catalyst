@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Briefcase,
   FileText,
@@ -29,6 +30,9 @@ import { useRouter } from "next/navigation"
 const CalendarComponent = () => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedUser, setSelectedUser] = useState<string>('all')
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
 
   // Events data - in a real app, this would come from an API
   const events = [
@@ -42,11 +46,31 @@ const CalendarComponent = () => {
     { date: new Date(2025, 11, 1), type: 'deadline', title: 'Internship Application Deadline', company: 'Various Companies', time: '11:59 PM' },
   ]
 
+  // Get unique users/companies from events
+  const uniqueUsers = Array.from(new Set(events.map(event => event.company)))
+  
+  // Generate a range of years (5 years before and after current year)
+  const generateYearRange = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(i);
+    }
+    return years;
+  };
+  
+  const yearRange = generateYearRange();
+
+  // Filter events based on selected user
+  const filteredEvents = selectedUser === 'all' 
+    ? events 
+    : events.filter(event => event.company === selectedUser)
+
   // Get the first day of the month
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+  const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1)
   
   // Get the last day of the month
-  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+  const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0)
   
   // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfWeek = firstDayOfMonth.getDay()
@@ -55,10 +79,10 @@ const CalendarComponent = () => {
   const daysInMonth = lastDayOfMonth.getDate()
   
   // Get the month name
-  const monthName = currentDate.toLocaleString('default', { month: 'long' })
+  const monthName = firstDayOfMonth.toLocaleString('default', { month: 'long' })
   
   // Get the year
-  const year = currentDate.getFullYear()
+  const year = firstDayOfMonth.getFullYear()
 
   // Helper function to get month name (to match company calendar)
   const getMonthName = (date: Date) => {
@@ -68,7 +92,7 @@ const CalendarComponent = () => {
   // Function to get events for a specific date
   const getEventsForDate = (date: Date | null) => {
     if (!date) return []
-    return events.filter(event => 
+    return filteredEvents.filter(event => 
       event.date.getDate() === date.getDate() &&
       event.date.getMonth() === date.getMonth() &&
       event.date.getFullYear() === date.getFullYear()
@@ -78,7 +102,7 @@ const CalendarComponent = () => {
   // Function to check if a date has events
   const hasEvents = (date: Date | null) => {
     if (!date) return false
-    return events.some(event => 
+    return filteredEvents.some(event => 
       event.date.getDate() === date.getDate() &&
       event.date.getMonth() === date.getMonth() &&
       event.date.getFullYear() === date.getFullYear()
@@ -87,12 +111,30 @@ const CalendarComponent = () => {
 
   // Function to go to the previous month
   const goToPreviousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    let newMonth = selectedMonth - 1
+    let newYear = selectedYear
+    if (newMonth < 0) {
+      newMonth = 11
+      newYear = selectedYear - 1
+    }
+    setSelectedMonth(newMonth)
+    setSelectedYear(newYear)
+    setCurrentDate(new Date(newYear, newMonth, 1))
+    setSelectedDate(null) // Reset selected date when month changes
   }
 
   // Function to go to the next month
   const goToNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    let newMonth = selectedMonth + 1
+    let newYear = selectedYear
+    if (newMonth > 11) {
+      newMonth = 0
+      newYear = selectedYear + 1
+    }
+    setSelectedMonth(newMonth)
+    setSelectedYear(newYear)
+    setCurrentDate(new Date(newYear, newMonth, 1))
+    setSelectedDate(null) // Reset selected date when month changes
   }
 
   // Function to check if two dates are the same day
@@ -122,7 +164,7 @@ const CalendarComponent = () => {
   
   // Add cells for each day of the month
   for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))
+    calendarDays.push(new Date(selectedYear, selectedMonth, day))
   }
 
   // Get events for selected date
@@ -134,8 +176,64 @@ const CalendarComponent = () => {
     setSelectedDate(isSameDay(selectedDate, day) ? null : day)
   }
 
+  // Handle month selection
+  const handleMonthChange = (monthIndex: number) => {
+    setSelectedMonth(monthIndex)
+    setCurrentDate(new Date(selectedYear, monthIndex, 1))
+    setSelectedDate(null) // Reset selected date when month changes
+  }
+
+  // Handle year selection
+  const handleYearChange = (year: string) => {
+    const yearNum = parseInt(year)
+    setSelectedYear(yearNum)
+    setCurrentDate(new Date(yearNum, selectedMonth, 1))
+    setSelectedDate(null) // Reset selected date when year changes
+  }
+
   return (
     <div>
+      {/* Filter Dropdowns */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex gap-2">
+          <Select value={selectedUser} onValueChange={setSelectedUser}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Users" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              {uniqueUsers.map((user, index) => (
+                <SelectItem key={index} value={user}>{user}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select Month" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => (
+                <SelectItem key={i} value={i.toString()}>
+                  {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Select Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {yearRange.map((year: number, index: number) => (
+              <SelectItem key={index} value={year.toString()}>{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Button 
@@ -146,7 +244,7 @@ const CalendarComponent = () => {
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="font-medium">{getMonthName(currentDate)} {currentDate.getFullYear()}</span>
+          <span className="font-medium">{monthName} {selectedYear}</span>
           <Button 
             variant="ghost" 
             size="sm" 
@@ -230,7 +328,7 @@ const CalendarComponent = () => {
           </p>
         ) : (
           <div className="space-y-3">
-            {events
+            {filteredEvents
               .filter(event => event.date >= new Date())
               .slice(0, 3)
               .map((event, index) => (
@@ -248,7 +346,7 @@ const CalendarComponent = () => {
                   </div>
                 </div>
               ))}
-            {events.filter(event => event.date >= new Date()).length === 0 && (
+            {filteredEvents.filter(event => event.date >= new Date()).length === 0 && (
               <p className="text-muted-foreground text-sm">No upcoming events</p>
             )}
           </div>
