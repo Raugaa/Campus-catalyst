@@ -192,62 +192,64 @@ const CalendarComponent = () => {
   }
 
   return (
-    <div>
-      {/* Filter Dropdowns */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="flex gap-2">
-          <Select value={selectedUser} onValueChange={setSelectedUser}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Users" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              {uniqueUsers.map((user, index) => (
-                <SelectItem key={index} value={user}>{user}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={selectedMonth.toString()} onValueChange={(value) => handleMonthChange(parseInt(value))}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select Month" />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => (
-                <SelectItem key={i} value={i.toString()}>
-                  {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Select Year" />
-          </SelectTrigger>
-          <SelectContent>
-            {yearRange.map((year: number, index: number) => (
-              <SelectItem key={index} value={year.toString()}>{year}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="flex items-center justify-between mb-3">
+    <><div>
+  {/* Filter Dropdowns */}
+  <div className="flex gap-3 mb-4">
+    <Select value={selectedUser} onValueChange={setSelectedUser}>
+      <SelectTrigger className="w-[78px]">
+        <SelectValue placeholder="All Users" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Users</SelectItem>
+        {uniqueUsers.map((user, index) => (
+          <SelectItem key={index} value={user}>{user}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+
+    <Select
+      value={selectedMonth.toString()}
+      onValueChange={(value) => handleMonthChange(parseInt(value))}
+    >
+      <SelectTrigger className="w-[78px]">
+        <SelectValue placeholder="Select Month" />
+      </SelectTrigger>
+      <SelectContent>
+        {Array.from({ length: 12 }, (_, i) => (
+          <SelectItem key={i} value={i.toString()}>
+            {new Date(0, i).toLocaleString('default', { month: 'long' })}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+
+    <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
+      <SelectTrigger className="w-[78px]">
+        <SelectValue placeholder="Select Year" />
+      </SelectTrigger>
+      <SelectContent>
+        {yearRange.map((year: number, index: number) => (
+          <SelectItem key={index} value={year.toString()}>{year}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+</div>
+    
+    <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={goToPreviousMonth}
             className="p-1"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <span className="font-medium">{monthName} {selectedYear}</span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={goToNextMonth}
             className="p-1"
           >
@@ -255,8 +257,7 @@ const CalendarComponent = () => {
           </Button>
         </div>
         <Calendar className="w-5 h-5 text-muted-foreground" />
-      </div>
-      <div className="grid grid-cols-7 gap-1 mb-3">
+      </div><div className="grid grid-cols-7 gap-1 mb-3">
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
           <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
             {day}
@@ -265,17 +266,15 @@ const CalendarComponent = () => {
         {calendarDays.map((day, index) => {
           const dayEvents = day !== null ? getEventsForDate(day) : []
           const hasMultipleEvents = dayEvents.length > 1
-          
+
           return (
-            <div 
-              key={index} 
-              className={`text-center text-sm p-2 rounded-full relative cursor-pointer transition-all duration-200 ${
-                day === null ? 'invisible' : 
-                isSameDay(selectedDate, day) ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary/30 scale-110' : 
-                isToday(day) ? 'bg-muted font-semibold border-2 border-primary animate-pulse' :
-                dayEvents.length > 0 ? 'bg-blue-100 text-blue-800 font-medium hover:bg-blue-200' : 
-                'text-muted-foreground hover:bg-muted'
-              }`}
+            <div
+              key={index}
+              className={`text-center text-sm p-2 rounded-full relative cursor-pointer transition-all duration-200 ${day === null ? 'invisible' :
+                  isSameDay(selectedDate, day) ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary/30 scale-110' :
+                    isToday(day) ? 'bg-muted font-semibold border-2 border-primary animate-pulse' :
+                      dayEvents.length > 0 ? 'bg-blue-100 text-blue-800 font-medium hover:bg-blue-200' :
+                        'text-muted-foreground hover:bg-muted'}`}
               onClick={() => handleDateSelect(day)}
             >
               {day ? day.getDate() : ""}
@@ -295,13 +294,11 @@ const CalendarComponent = () => {
             </div>
           )
         })}
-      </div>
-      
-      <div className="mt-4 pt-4 border-t">
+      </div><div className="mt-4 pt-4 border-t">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <span className="w-2 h-2 bg-primary rounded-full"></span>
-          {selectedDate 
-            ? `Events on ${getMonthName(selectedDate)} ${selectedDate.getDate()}` 
+          {selectedDate
+            ? `Events on ${getMonthName(selectedDate)} ${selectedDate.getDate()}`
             : `Upcoming Events`}
         </h3>
         {displayedEvents.length > 0 ? (
@@ -351,8 +348,7 @@ const CalendarComponent = () => {
             )}
           </div>
         )}
-      </div>
-    </div>
+      </div></>
   )
 }
 
