@@ -12,7 +12,6 @@ import { useParams } from "next/navigation"
 import { useState, useMemo } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-
 export default function StudentDetailPage() {
   const params = useParams()
   const { toast } = useToast()

@@ -54,11 +54,11 @@ export default function FacultySettings() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="display-name">Display Name</Label>
-                    <Input id="display-name" defaultValue="Dr. Rajesh Kumar" />
+                    <Input id="display-name" defaultValue="Dr. Priya Kumar" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" defaultValue="rajesh.kumar@university.edu" />
+                    <Input id="email" type="email" defaultValue="faculty1@acme.edu" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>

@@ -39,14 +39,14 @@ import { parseResume } from "@/lib/resume-parser"
 export default function StudentProfile() {
   // Personal Information State
   const [personalInfo, setPersonalInfo] = useState({
-    firstName: "Aarav",
-    lastName: "Sharma",
-    email: "aarav.sharma@college.edu",
+    firstName: "Arjun",
+    lastName: "patel",
+    email: "student1@acme.edu",
     phone: "+91 98765 43210",
     address: "Mumbai, Maharashtra",
-    linkedin: "linkedin.com/in/aaravsharma",
-    github: "github.com/aaravsharma",
-    portfolio: "aaravsharma.dev",
+    linkedin: "linkedin.com/in/arjunpatel",
+    github: "github.com/arjunpatel",
+    portfolio: "arjunpatel.dev",
     about: "Passionate computer science student with expertise in full-stack development and machine learning. Seeking opportunities to apply my skills in real-world projects."
   })
 
@@ -55,7 +55,7 @@ export default function StudentProfile() {
     {
       id: "1",
       degree: "B.Tech Computer Science",
-      institution: "Indian Institute of Technology Bombay",
+      institution: "Acme University",
       startDate: "2022-08",
       endDate: "2026-05",
       grade: "8.7 CGPA",

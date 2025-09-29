@@ -40,6 +40,15 @@ function generateStudentData(index: number, collegeCode: string, branchCode: str
   };
 }
 
+// Helper: generate random month for 2025
+function getRandomMonth2025() {
+  const months = [
+    "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06",
+    "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"
+  ];
+  return months[Math.floor(Math.random() * months.length)];
+}
+
 async function run() {
   console.log("🌱 Starting Convex data seeding...");
 
@@ -59,52 +68,29 @@ async function run() {
     });
     console.log("✅ Global Admin created:", globalAdmin1.userId);
 
-    // 2. Create 3 Colleges
-    console.log("📚 Creating colleges...");
+    // 2. Create 1 College (Fake Name)
+    console.log("📚 Creating college...");
     const colleges: any[] = [];
     
     const collegeResult1 = await client.mutation(api.mutations.createCollegeForSeeding, {
-      name: "KJ Somaiya College of Engineering",
-      code: "KJSCE",
-      location: "Mumbai, Maharashtra",
-      type: "COLLEGE",
-      website: "https://kjsce.somaiya.edu.in",
-      phone: "022-67728000",
-      logo: "https://kjsce.somaiya.edu.in/assets/kjsce/images/Logo/kjsce-logo.png",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-    colleges.push({ collegeId: collegeResult1.collegeId, code: "KJSCE", name: "KJ Somaiya College of Engineering" });
-
-    const collegeResult2 = await client.mutation(api.mutations.createCollegeForSeeding, {
-      name: "Indian Institute of Technology Bombay",
-      code: "IITB",
+      name: "Acme University", // Changed to a fake university name
+      code: "ACME", // Changed college code
       location: "Mumbai, Maharashtra",
       type: "INSTITUTE",
-      website: "https://www.iitb.ac.in",
-      phone: "022-25722545",
-      logo: "https://www.iitb.ac.in/sites/default/files/iitb_logo.png",
+      website: "https://acmeuni.edu.in",
+      phone: "022-67890000",
+      logo: "https://acmeuni.edu.in/assets/images/logo.png",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-    colleges.push({ collegeId: collegeResult2.collegeId, code: "IITB", name: "Indian Institute of Technology Bombay" });
+    colleges.push({ collegeId: collegeResult1.collegeId, code: "ACME", name: "Acme University" });
 
-    const collegeResult3 = await client.mutation(api.mutations.createCollegeForSeeding, {
-      name: "Delhi Technological University",
-      code: "DTU",
-      location: "Delhi, India",
-      type: "UNIVERSITY",
-      website: "https://www.dtu.ac.in",
-      phone: "011-27871023",
-      logo: "https://www.dtu.ac.in/images/dtu-logo.png",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-    colleges.push({ collegeId: collegeResult3.collegeId, code: "DTU", name: "Delhi Technological University" });
+    console.log("✅ College created:", colleges.length);
 
-    console.log("✅ Colleges created:", colleges.length);
+    // Declare college once here for consistent use
+    const mainCollege = colleges[0];
 
-    // 3. Create 7 Branches for each college
+    // 3. Create 7 Branches for the college
     console.log("🏢 Creating branches...");
     const branches: any[] = [];
     
@@ -118,7 +104,7 @@ async function run() {
       { name: "Chemical Engineering", code: "CHE" },
     ];
 
-    for (const college of colleges) {
+    for (const college of colleges) { // This loop variable 'college' is fine as it's block-scoped
       for (const branchInfo of branchData) {
         const branchId = await client.mutation(api.mutations.createBranch, {
           name: branchInfo.name,
@@ -139,141 +125,114 @@ async function run() {
 
     console.log("✅ Branches created:", branches.length);
 
-    // 4. Create 1 Admin per college
-    console.log("👤 Creating admins...");
+    // 4. Create 1 Admin for the college
+    console.log("👤 Creating admin...");
     const admins: any[] = [];
     
-    const adminData = [
-      { email: "admin@somaiya.edu", name: "Vikrant Waghmare", department: "Training & Placement Cell" },
-      { email: "placement@iitb.ac.in", name: "Dr. Rajesh Gupta", department: "Career Development Center" },
-      { email: "tpo@dtu.ac.in", name: "Dr. Sunita Agarwal", department: "Training & Placement Office" },
-    ];
+    const admin = await client.mutation(api.mutations.createAdminForSeeding, {
+      email: "admin@acmeuni.edu", // Updated email domain
+      passwordHash: await bcrypt.hash("admin123", 10),
+      name: "Dr. Rajesh Sharma",
+      phone: "9999999980",
+      department: "Training & Placement Cell",
+      collegeId: mainCollege.collegeId, // Use mainCollege
+    });
+    admins.push({ ...admin, collegeId: mainCollege.collegeId });
 
-    for (let i = 0; i < colleges.length; i++) {
-      const admin = await client.mutation(api.mutations.createAdminForSeeding, {
-        email: adminData[i].email,
-        passwordHash: await bcrypt.hash("admin123", 10),
-        name: adminData[i].name,
-        phone: `999999998${i}`,
-        department: adminData[i].department,
-        collegeId: colleges[i].collegeId,
-      });
-      admins.push({ ...admin, collegeId: colleges[i].collegeId });
-    }
+    console.log("✅ Admin created:", admins.length);
 
-    console.log("✅ Admins created:", admins.length);
-
-    // 5. Create Faculty (10 per college)
+    // 5. Create Faculty (5 for the college)
     console.log("👨‍🏫 Creating faculty...");
     const faculty: any[] = [];
     
     const facultyNames = [
-      "Dr. Priya Sharma", "Dr. Rajesh Kumar", "Prof. Amit Singh", "Dr. Kavita Mehta", "Dr. Suresh Patel",
-      "Prof. Neha Gupta", "Dr. Vikram Joshi", "Prof. Anita Verma", "Dr. Rahul Agarwal", "Prof. Deepika Nair",
-      "Dr. Arjun Reddy", "Prof. Pooja Yadav", "Dr. Siddharth Mishra", "Prof. Riya Tiwari", "Dr. Harsh Pandey"
+      "Dr. Priya Sharma", "Dr. Rajesh Kumar", "Prof. Amit Singh", "Dr. Kavita Mehta", "Dr. Suresh Patel"
     ];
 
-    const departments = ["Computer Science", "Information Technology", "Electronics", "Electrical", "Mechanical", "Civil", "Chemical"];
+    const departments = ["Computer Science", "Information Technology", "Electronics", "Electrical", "Mechanical"];
     const designations = ["Professor", "Associate Professor", "Assistant Professor"];
 
-    for (let collegeIndex = 0; collegeIndex < colleges.length; collegeIndex++) {
-      const college = colleges[collegeIndex];
-      for (let i = 0; i < 10; i++) {
-        const facultyResult = await client.mutation(api.mutations.createFacultyForSeeding, {
-          email: `faculty${i + 1}@${college.code.toLowerCase()}.edu`,
-          passwordHash: await bcrypt.hash("faculty123", 10),
-          name: facultyNames[(collegeIndex * 10 + i) % facultyNames.length],
-          phone: `988888888${collegeIndex}${i}`,
-          department: departments[i % departments.length],
-          designation: designations[i % designations.length],
-          canMentor: true,
-          collegeId: college.collegeId,
-        });
-        faculty.push({ facultyId: facultyResult.facultyId, collegeId: college.collegeId });
-      }
+    // Removed redeclaration of 'college'
+    for (let i = 0; i < 5; i++) {
+      const facultyResult = await client.mutation(api.mutations.createFacultyForSeeding, {
+        email: `faculty${i + 1}@${mainCollege.code.toLowerCase()}.edu`, // Use mainCollege
+        passwordHash: await bcrypt.hash("faculty123", 10),
+        name: facultyNames[i],
+        phone: `9888888880${i}`,
+        department: departments[i],
+        designation: designations[i % designations.length],
+        canMentor: true,
+        collegeId: mainCollege.collegeId, // Use mainCollege
+      });
+      faculty.push({ facultyId: facultyResult.facultyId, collegeId: mainCollege.collegeId });
     }
 
     console.log("✅ Faculty created:", faculty.length);
 
-    // 6. Create 150 Students per college (total 450)
-    console.log("👨‍🎓 Creating 150 students per college...");
+    // 6. Create 60 Students for the college
+    console.log("👨‍🎓 Creating 60 students...");
     const students: any[] = [];
     
-    for (let collegeIndex = 0; collegeIndex < colleges.length; collegeIndex++) {
-      const college = colleges[collegeIndex];
-      const collegeBranches = branches.filter(b => b.collegeId === college.collegeId);
-      const collegeFaculty = faculty.filter(f => f.collegeId === college.collegeId);
+    // Removed redeclaration of 'college'
+    const collegeBranches = branches.filter(b => b.collegeId === mainCollege.collegeId); // Use mainCollege
+    const collegeFaculty = faculty.filter(f => f.collegeId === mainCollege.collegeId); // Use mainCollege
+    
+    console.log(`Creating students for ${mainCollege.name}...`); // Use mainCollege
+    for (let i = 0; i < 60; i++) {
+      const branch = collegeBranches[i % collegeBranches.length];
+      const studentData = generateStudentData(i, mainCollege.code, branch.code, 2021 + (i % 4)); // Use mainCollege
+      const facultyMember = collegeFaculty[i % collegeFaculty.length];
       
-      console.log(`Creating students for ${college.name}...`);
-      for (let i = 0; i < 150; i++) {
-        const branch = collegeBranches[i % collegeBranches.length];
-        const studentData = generateStudentData(i, college.code, branch.code, 2021 + (i % 4));
-        const facultyMember = collegeFaculty[i % collegeFaculty.length];
-        
-        const student = await client.mutation(api.mutations.createUserAndStudent, {
-          userData: {
-            email: `student${i + 1}@${college.code.toLowerCase()}.edu`,
-            passwordHash: await bcrypt.hash("student123", 10),
-            role: "STUDENT",
-            isActive: true,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          },
-          studentData: {
-            firstName: studentData.firstName,
-            lastName: studentData.lastName,
-            rollNumber: studentData.rollNumber,
-            phone: studentData.phone,
-            department: branch.name,
-            branchId: branch.branchId,
-            year: i < 75 ? "Final Year" : "Third Year",
-            semester: i < 75 ? 8 : 6,
-            tenthPercentage: studentData.tenthPercentage,
-            twelfthPercentage: studentData.twelfthPercentage,
-            cgpa: studentData.cgpa,
-            skills: studentData.skills,
-            isPlaced: false,
-            collegeId: college.collegeId,
-            mentorId: facultyMember.facultyId,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          },
-        });
-        students.push({ ...student, collegeId: college.collegeId });
-      }
+      const student = await client.mutation(api.mutations.createUserAndStudent, {
+        userData: {
+          email: `student${i + 1}@${mainCollege.code.toLowerCase()}.edu`, // Use mainCollege
+          passwordHash: await bcrypt.hash("student123", 10),
+          role: "STUDENT",
+          isActive: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        studentData: {
+          firstName: studentData.firstName,
+          lastName: studentData.lastName,
+          rollNumber: studentData.rollNumber,
+          phone: studentData.phone,
+          department: branch.name,
+          branchId: branch.branchId,
+          year: i < 30 ? "Final Year" : "Third Year",
+          semester: i < 30 ? 8 : 6,
+          tenthPercentage: studentData.tenthPercentage,
+          twelfthPercentage: studentData.twelfthPercentage,
+          cgpa: studentData.cgpa,
+          skills: studentData.skills,
+          isPlaced: false,
+          collegeId: mainCollege.collegeId, // Use mainCollege
+          mentorId: facultyMember.facultyId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+      });
+      students.push({ ...student, collegeId: mainCollege.collegeId }); // Use mainCollege
     }
 
     console.log("✅ Students created:", students.length);
 
-    // 7. Create Companies (15 companies, 5 per college)
+    // 7. Create Companies (8 companies for the college)
     console.log("🏢 Creating companies...");
     const companies: any[] = [];
     
     const companyData = [
-      // KJSCE Companies
       { name: "TechCorp Solutions", location: "Bangalore, Karnataka", industry: "Information Technology" },
       { name: "InnovateLab", location: "Mumbai, Maharashtra", industry: "Technology" },
       { name: "CloudTech Systems", location: "Pune, Maharashtra", industry: "Cloud Computing" },
       { name: "WebDev Pro", location: "Mumbai, Maharashtra", industry: "Web Development" },
       { name: "MobileTech Inc", location: "Bangalore, Karnataka", industry: "Mobile Development" },
-      
-      // IITB Companies
       { name: "DataDyne Analytics", location: "Pune, Maharashtra", industry: "Data Analytics" },
       { name: "FinTech Innovations", location: "Mumbai, Maharashtra", industry: "Financial Technology" },
       { name: "AI Ventures", location: "Bangalore, Karnataka", industry: "Artificial Intelligence" },
-      { name: "RoboTech Solutions", location: "Chennai, Tamil Nadu", industry: "Robotics" },
-      { name: "CyberSec Corp", location: "Hyderabad, Telangana", industry: "Cybersecurity" },
-      
-      // DTU Companies
-      { name: "StartupHub Delhi", location: "Delhi, India", industry: "Technology Consulting" },
-      { name: "EduTech Solutions", location: "Gurgaon, Haryana", industry: "Educational Technology" },
-      { name: "GreenTech Innovations", location: "Noida, Uttar Pradesh", industry: "Clean Technology" },
-      { name: "HealthTech Systems", location: "Delhi, India", industry: "Healthcare Technology" },
-      { name: "LogiTech Solutions", location: "Gurgaon, Haryana", industry: "Logistics Technology" },
     ];
 
     for (let i = 0; i < companyData.length; i++) {
-      const collegeIndex = Math.floor(i / 5);
       const result = await client.mutation(api.mutations.createCompanyForSeeding, {
         email: `hr${i + 1}@${companyData[i].name.toLowerCase().replace(/\s+/g, '')}.com`,
         passwordHash: await bcrypt.hash("company123", 10),
@@ -283,13 +242,13 @@ async function run() {
         industry: companyData[i].industry,
         size: ["50-100", "100-500", "500-1000", "1000+"][i % 4],
         description: `Leading company in ${companyData[i].industry}`,
-        collegeId: colleges[collegeIndex].collegeId,
+        collegeId: mainCollege.collegeId, // Use mainCollege
       });
 
       companies.push({
         companyId: result.companyId,
         userId: result.userId,
-        collegeId: colleges[collegeIndex].collegeId,
+        collegeId: mainCollege.collegeId, // Use mainCollege
         name: companyData[i].name,
         location: companyData[i].location,
       });
@@ -306,7 +265,7 @@ async function run() {
       });
     }
 
-    // 9. Create Opportunities for 2023-2025 (3 per company per year)
+    // 9. Create Opportunities for 2023-2025 (4 per company per year for better data)
     console.log("💼 Creating opportunities for 2023-2025...");
     const opportunities: any[] = [];
     
@@ -314,10 +273,10 @@ async function run() {
       for (let i = 0; i < companies.length; i++) {
         const company = companies[i];
 
-        // Create 3 opportunities per company per year (1 internship, 2 jobs)
-        for (let j = 0; j < 3; j++) {
-          const opType = j === 0 ? "INTERNSHIP" : "JOB";
-          const jobTitles = ["Software Engineer", "Data Analyst", "Product Manager", "UI/UX Designer", "DevOps Engineer"];
+        // Create 4 opportunities per company per year (2 internships, 2 jobs)
+        for (let j = 0; j < 4; j++) {
+          const opType = j < 2 ? "INTERNSHIP" : "JOB";
+          const jobTitles = ["Software Engineer", "Data Analyst", "Product Manager", "UI/UX Designer", "DevOps Engineer", "Full Stack Developer"];
           
           const created = await client.mutation(api.mutations.createOpportunityForSeeding, {
             title: `${jobTitles[j % jobTitles.length]} ${opType === "INTERNSHIP" ? "Internship" : "Position"} at ${company.name} - ${year}`,
@@ -326,8 +285,8 @@ async function run() {
             location: company.location,
             workType: ["REMOTE", "HYBRID", "ONSITE"][j % 3],
             duration: opType === "INTERNSHIP" ? "3 months" : undefined,
-            stipend: opType === "INTERNSHIP" ? 25000 + (i * 2000) : undefined,
-            salary: opType === "JOB" ? 800000 + (i * 100000) + (j * 50000) : undefined,
+            stipend: opType === "INTERNSHIP" ? 25000 + (i * 2000) + (j * 1000) : undefined,
+            salary: opType === "JOB" ? 800000 + (i * 100000) + (j * 50000) + (year - 2023) * 100000 : undefined,
             requirements: "Bachelor's degree in relevant field, Strong technical skills, Good communication, Problem-solving abilities",
             skills: ["JavaScript", "React", "Node.js", "Python", "Java", "SQL", "AWS"].slice(0, 3 + (j % 3)),
             academicRequirements: {
@@ -360,68 +319,86 @@ async function run() {
 
     console.log("✅ Opportunities created:", opportunities.length);
 
-    // 10. Create Applications (first 100 students per college apply)
-    console.log("📝 Creating applications...");
+    // 10. Create Applications spread across all 12 months of 2025
+    console.log("📝 Creating applications across all 12 months of 2025...");
     const applications: any[] = [];
     
-    for (let collegeIndex = 0; collegeIndex < colleges.length; collegeIndex++) {
-      const collegeStudents = students.filter(s => s.collegeId === colleges[collegeIndex].collegeId);
-      const collegeOpportunities = opportunities.filter(op => op.collegeId === colleges[collegeIndex].collegeId);
+    const collegeStudents = students.filter(s => s.collegeId === mainCollege.collegeId); // Use mainCollege
+    const collegeOpportunitiesFiltered = opportunities.filter(op => op.collegeId === mainCollege.collegeId); // Renamed variable
+    
+    // Create applications for each month of 2025
+    const months2025 = [
+      "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06",
+      "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"
+    ];
+    
+    let applicationIndex = 0;
+    for (let monthIndex = 0; monthIndex < months2025.length; monthIndex++) {
+      const month = months2025[monthIndex];
+      const applicationsThisMonth = 15 + Math.floor(Math.random() * 20); // 15-35 applications per month
       
-      for (let i = 0; i < Math.min(100, collegeStudents.length); i++) {
-        const student = collegeStudents[i];
+      for (let i = 0; i < applicationsThisMonth; i++) {
+        const student = collegeStudents[applicationIndex % collegeStudents.length];
+        const opportunity = collegeOpportunitiesFiltered[applicationIndex % collegeOpportunitiesFiltered.length]; // Use renamed variable
         
-        // Each student applies to 3-5 opportunities
-        const numApplications = 3 + (i % 3);
-        for (let j = 0; j < numApplications && j < collegeOpportunities.length; j++) {
-          const opportunityMeta = collegeOpportunities[j % collegeOpportunities.length];
-          const createdApp = await client.mutation(api.mutations.createApplication, {
-            studentId: student.studentId,
-            opportunityId: opportunityMeta.opportunityId,
-          });
-          
-          applications.push({
-            applicationId: createdApp.applicationId,
-            studentId: student.studentId,
-            opportunityId: opportunityMeta.opportunityId,
-            collegeId: student.collegeId,
-          });
-        }
+        const dayOfMonth = Math.floor(Math.random() * 28) + 1; // Random day in month
+        const applicationDate = dateTS(`${month}-${String(dayOfMonth).padStart(2, '0')}`);
+        
+        const createdApp = await client.mutation(api.mutations.createApplication, {
+          studentId: student.studentId,
+          opportunityId: opportunity.opportunityId,
+        });
+        
+        applications.push({
+          applicationId: createdApp.applicationId,
+          studentId: student.studentId,
+          opportunityId: opportunity.opportunityId,
+          collegeId: student.collegeId,
+          month: month,
+          createdAt: applicationDate,
+        });
+        
+        applicationIndex++;
       }
     }
 
     console.log("✅ Applications created:", applications.length);
 
-    // 11. Update application statuses
+    // 11. Update application statuses with success rate
     console.log("📋 Updating application statuses...");
-    for (let i = 0; i < Math.min(50, applications.length); i++) {
+    for (let i = 0; i < applications.length; i++) {
       const statuses = ["SHORTLISTED", "SELECTED", "REJECTED", "MENTOR_REVIEW", "PENDING"];
+      const status = statuses[i % statuses.length];
+      
       await client.mutation(api.mutations.updateApplicationStatus, {
         applicationId: applications[i].applicationId,
-        status: statuses[i % statuses.length],
+        status: status,
         mentorApproved: i % 3 !== 2,
         adminApproved: i % 4 !== 3,
       });
     }
 
-    // 12. Create Placements for 2023-2025 (DISTRIBUTED ACROSS COLLEGES)
+    // 12. Create Placements for 2023-2025 (30 total for good salary trend data)
     console.log("🎯 Creating placements for 2023-2025...");
     const placements: any[] = [];
     
-    // Create 20 placements per college (60 total)
-    for (let collegeIndex = 0; collegeIndex < colleges.length; collegeIndex++) {
-      const collegeApplications = applications.filter(app => app.collegeId === colleges[collegeIndex].collegeId);
-      const collegeOpportunities = opportunities.filter(op => op.collegeId === colleges[collegeIndex].collegeId && op.type === "JOB");
-      const collegeCompanies = companies.filter(c => c.collegeId === colleges[collegeIndex].collegeId);
-      
-      // Take first 20 applications from this college for placements
-      const selectedApplications = collegeApplications.slice(0, 20);
-      
-      for (let i = 0; i < selectedApplications.length; i++) {
-        const application = selectedApplications[i];
+    const collegeApplications = applications.filter(app => app.collegeId === mainCollege.collegeId); // Use mainCollege
+    const collegeJobOpportunities = opportunities.filter(op => op.collegeId === mainCollege.collegeId && op.type === "JOB"); // Renamed variable
+    const collegeCompanies = companies.filter(c => c.collegeId === mainCollege.collegeId); // Use mainCollege
+    
+    // Create 10 placements per year (2023, 2024, 2025)
+    for (let year = 2023; year <= 2025; year++) {
+      for (let i = 0; i < 10; i++) {
+        const applicationIndex = (year - 2023) * 10 + i;
+        const application = collegeApplications[applicationIndex % collegeApplications.length];
         const company = collegeCompanies[i % collegeCompanies.length];
-        const opportunity = collegeOpportunities[i % collegeOpportunities.length];
-        const year = 2023 + (i % 3);
+        const opportunity = collegeJobOpportunities[applicationIndex % collegeJobOpportunities.length]; // Use renamed variable
+        
+        // Salary increases over years and varies by company
+        const baseSalary = 800000 + (year - 2023) * 200000; // Base increases each year
+        const companySalaryBonus = i * 100000; // Different companies pay different amounts
+        const randomVariation = Math.floor(Math.random() * 200000); // Random variation
+        const finalSalary = baseSalary + companySalaryBonus + randomVariation;
         
         const placement = await client.mutation(api.mutations.createPlacement, {
           studentId: application.studentId,
@@ -429,11 +406,11 @@ async function run() {
           opportunityId: opportunity?.opportunityId || application.opportunityId,
           applicationId: application.applicationId,
           jobTitle: `Software Engineer - ${year}`,
-          salary: 800000 + (collegeIndex * 200000) + (i * 50000), // Different salary ranges per college
+          salary: finalSalary,
           joinDate: dateTS(`${year}-07-01`),
           location: company.location || "Mumbai, Maharashtra",
           workMode: ["REMOTE", "HYBRID", "ONSITE"][i % 3],
-          status: ["OFFER_ACCEPTED", "JOINED"][i % 2] as any, // Only accepted/joined placements
+          status: ["OFFER_ACCEPTED", "JOINED"][i % 2] as any,
         });
         placements.push(placement);
         
@@ -447,37 +424,37 @@ async function run() {
 
     console.log("✅ Placements created:", placements.length);
 
-    // 13. Create Internships for 2023-2025 (DISTRIBUTED ACROSS COLLEGES)
+    // 13. Create Internships for 2023-2025 (30 total)
     console.log("🎓 Creating internships for 2023-2025...");
     const internships: any[] = [];
     
-    // Create 20 internships per college (60 total)
-    for (let collegeIndex = 0; collegeIndex < colleges.length; collegeIndex++) {
-      const collegeApplications = applications.filter(app => app.collegeId === colleges[collegeIndex].collegeId);
-      const collegeOpportunities = opportunities.filter(op => op.collegeId === colleges[collegeIndex].collegeId && op.type === "INTERNSHIP");
-      const collegeCompanies = companies.filter(c => c.collegeId === colleges[collegeIndex].collegeId);
-      const collegeFaculty = faculty.filter(f => f.collegeId === colleges[collegeIndex].collegeId);
-      
-      // Take applications 20-40 from this college for internships (different from placements)
-      const selectedApplications = collegeApplications.slice(20, 40);
-      
-      for (let i = 0; i < selectedApplications.length; i++) {
-        const application = selectedApplications[i];
+    const collegeInternshipOpportunities = opportunities.filter(op => op.collegeId === mainCollege.collegeId && op.type === "INTERNSHIP"); // Renamed variable
+    const collegeFacultyForInternship = faculty.filter(f => f.collegeId === mainCollege.collegeId); // Renamed variable
+    
+    // Create 10 internships per year (2023, 2024, 2025)
+    for (let year = 2023; year <= 2025; year++) {
+      for (let i = 0; i < 10; i++) {
+        const applicationIndex = (year - 2023) * 10 + i + 30; // Different students from placements
+        const application = collegeApplications[applicationIndex % collegeApplications.length];
         const company = collegeCompanies[i % collegeCompanies.length];
-        const opportunity = collegeOpportunities[i % collegeOpportunities.length];
-        const facultyMember = collegeFaculty[i % collegeFaculty.length];
-        const year = 2023 + (i % 3);
+        const opportunity = collegeInternshipOpportunities[applicationIndex % collegeInternshipOpportunities.length]; // Use renamed variable
+        const facultyMember = collegeFacultyForInternship[i % collegeFacultyForInternship.length]; // Use renamed variable
+        
+        // Stipend increases over years
+        const baseStipend = 25000 + (year - 2023) * 5000;
+        const companyStipendBonus = i * 2000;
+        const finalStipend = baseStipend + companyStipendBonus;
         
         const internship = await client.mutation(api.mutations.createInternship, {
           studentId: application.studentId,
           opportunityId: opportunity?.opportunityId || application.opportunityId,
-          collegeId: colleges[collegeIndex].collegeId,
+          collegeId: mainCollege.collegeId, // Use mainCollege
           companyId: company.companyId,
           applicationId: application.applicationId,
           startDate: dateTS(`${year}-06-01`),
           endDate: dateTS(`${year}-09-01`),
-          status: ["COMPLETED", "ACTIVE"][i % 2] as any, // Mix of completed and active
-          stipend: 25000 + (collegeIndex * 5000) + (i * 1000), // Different stipend ranges per college
+          status: ["COMPLETED", "ACTIVE"][i % 2] as any,
+          stipend: finalStipend,
           mentorId: facultyMember.facultyId,
           companyMentor: `Mentor ${i + 1}`,
           rating: 4 + (i % 2),
@@ -491,23 +468,10 @@ async function run() {
 
     console.log("✅ Internships created:", internships.length);
 
-    console.log("🎉 Seeding completed successfully!");
-    console.log("📊 Summary:");
-    console.log(`- Global Admins: 1`);
-    console.log(`- Colleges: ${colleges.length}`);
-    console.log(`- Admins: ${admins.length} (1 per college)`);
-    console.log(`- Branches: ${branches.length} (7 per college)`);
-    console.log(`- Faculty: ${faculty.length} (10 per college)`);
-    console.log(`- Students: ${students.length} (150 per college)`);
-    console.log(`- Companies: ${companies.length} (5 per college)`);
-    console.log(`- Opportunities: ${opportunities.length} (3 per company per year, 2023-2025)`);
-    console.log(`- Applications: ${applications.length}`);
-    console.log(`- Placements: ${placements.length} (20 per college, 2023-2025)`);
-    console.log(`- Internships: ${internships.length} (20 per college, 2023-2025)`);
-
+    console.log("🎉 Convex data seeding completed successfully!");
   } catch (error) {
-    console.error("❌ Seeding failed:", error);
-    throw error;
+    console.error("Seed failed:", error);
+    process.exit(1);
   }
 }
 

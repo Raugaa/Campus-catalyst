@@ -51,15 +51,15 @@ export default function AdminSettings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="institution-name">Institution Name</Label>
-                    <Input id="institution-name" defaultValue="IIT Bombay" />
+                    <Input id="institution-name" defaultValue="Acme University" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admin-email">Admin Email</Label>
-                    <Input id="admin-email" type="email" defaultValue="admin@iitb.ac.in" />
+                    <Input id="admin-email" type="email" defaultValue="admin@acmeuni.edu" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="support-email">Support Email</Label>
-                    <Input id="support-email" type="email" defaultValue="support@iitb.ac.in" />
+                    <Input id="support-email" type="email" defaultValue="support@acmeuni.edu" />
                   </div>
                 </div>
 

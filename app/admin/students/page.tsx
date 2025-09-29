@@ -2,12 +2,13 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useStudents } from "@/lib/convex-hooks";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Table,
 
@@ -38,6 +39,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Search,
   Filter,
   Download,
@@ -53,9 +62,15 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  UserPlus,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import * as XLSX from 'xlsx'
+import Link from "next/link";
 
 export default function AdminStudents() {
   const { user } = useAuth();
@@ -65,6 +80,11 @@ export default function AdminStudents() {
   const [yearFilter, setYearFilter] = useState("all");
   const [placementFilter, setPlacementFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [excelFile, setExcelFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const bulkCreateStudents = useAction(api.actions.bulkCreateStudents)
+
   const itemsPerPage = 20;
   const router = useRouter(); // useRouter hook
 
@@ -198,10 +218,145 @@ export default function AdminStudents() {
     );
   }
 
-  const handleExport = () => {
-    // Export functionality can be implemented here
-    console.log("Exporting student data...");
-  };
+  const generateRandomPassword = () => {
+    const length = 8
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    let password = ""
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    }
+    return password
+  }
+
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      toast.error("No File Selected", {
+        description: "Please select an Excel file to upload."
+      })
+      return
+    }
+
+    if (!user?.profile?.collegeId) {
+      toast.error("Authentication Error", {
+        description: "Could not determine your college. Please try again."
+      })
+      return
+    }
+
+    setIsUploading(true)
+    toast.loading("Processing Excel file...", { id: "upload-students" })
+
+    try {
+      const data = await excelFile.arrayBuffer()
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+      if (jsonData.length === 0) {
+        toast.error("Empty File", {
+          description: "The Excel file appears to be empty or invalid.",
+          id: "upload-students"
+        })
+        return
+      }
+
+      toast.loading(`Processing ${jsonData.length} students...`, { id: "upload-students" })
+
+      const studentsData = jsonData.map((row: any) => {
+        if (!row.firstName || !row.lastName || !row.email || !row.rollNumber) {
+          throw new Error(`Missing required fields for: ${row.email || 'Unknown'}`)
+        }
+
+        const password = row.password || generateRandomPassword()
+
+        return {
+          email: row.email,
+          password: password,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          rollNumber: row.rollNumber,
+          phone: row.phone || "",
+          department: row.department || "Not Specified",
+          year: row.year || "FY",
+          semester: row.semester ? parseInt(row.semester) : 1,
+          cgpa: row.cgpa ? parseFloat(row.cgpa) : undefined,
+          skills: row.skills ? row.skills.split(',').map((s: string) => s.trim()) : [],
+          resumeUrl: row.resumeUrl || "",
+          collegeId: user.profile.collegeId,
+        }
+      })
+
+      const result = await bulkCreateStudents({ studentsData })
+
+      if (result.successCount > 0) {
+        toast.success("Students Added Successfully!", {
+          description: `${result.successCount} students were created successfully.`,
+          id: "upload-students"
+        })
+
+        if (result.createdStudents && result.createdStudents.length > 0) {
+          const credentialsWs = XLSX.utils.json_to_sheet(result.createdStudents)
+          const credentialsWb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(credentialsWb, credentialsWs, "Student_Credentials")
+          XLSX.writeFile(credentialsWb, "student_credentials.xlsx")
+          
+          toast.success("Credentials Downloaded", {
+            description: "Login credentials file has been downloaded automatically."
+          })
+        }
+      }
+
+      if (result.errorCount > 0) {
+        toast.warning("Some Students Failed", {
+          description: `${result.errorCount} students could not be created. Check console for details.`
+        })
+        
+        if (result.errors) {
+          console.error("Student creation errors:", result.errors)
+        }
+      }
+
+      setIsAddDialogOpen(false)
+      setExcelFile(null)
+    } catch (error) {
+      console.error("Excel upload error:", error)
+      toast.error("Upload Failed", {
+        description: error instanceof Error ? error.message : "Error processing Excel file. Please check the format.",
+        id: "upload-students"
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        firstName: "John",
+        lastName: "Doe",
+        email: "john.doe@example.com",
+        rollNumber: "2021001",
+        department: "Computer Science",
+        year: "TY",
+        semester: 5,
+        cgpa: 8.5,
+        phone: "9876543210",
+        skills: "JavaScript, React, Node.js",
+        resumeUrl: "",
+        password: "optional_password"
+      }
+    ]
+
+    const ws = XLSX.utils.json_to_sheet(template)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Students")
+    XLSX.writeFile(wb, "student_template.xlsx")
+    
+    toast.success("Template Downloaded", {
+      description: "Student template has been downloaded successfully."
+    })
+  }
 
   return (
     <DashboardLayout userRole="admin">
@@ -217,10 +372,66 @@ export default function AdminStudents() {
             </p>
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
-            <Button onClick={handleExport} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Student
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Students</DialogTitle>
+                  <DialogDescription>
+                    Choose how you want to add students to the system.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      <Label htmlFor="excel-upload" className="text-base font-medium">
+                        Upload Excel File
+                      </Label>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={downloadTemplate}
+                      className="w-full text-sm"
+                    >
+                      Download Template
+                    </Button>
+                    
+                    <Input
+                      id="excel-upload"
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => setExcelFile(e.target.files?.[0] || null)}
+                      className="file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-medium"
+                    />
+                    
+                    {excelFile && (
+                      <div className="text-sm text-muted-foreground">
+                        Selected: {excelFile.name}
+                      </div>
+                    )}
+                    
+                    <Button
+                      onClick={handleExcelUpload}
+                      className="w-full"
+                      disabled={!excelFile || isUploading || !user?.profile?.collegeId}
+                    >
+                      {isUploading ? "Processing..." : "Upload and Process Excel"}
+                    </Button>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Random passwords will be generated if not provided. A credentials file will be downloaded.
+                    </p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

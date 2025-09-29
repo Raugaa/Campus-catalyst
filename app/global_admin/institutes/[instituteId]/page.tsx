@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import DashboardLayout from "@/components/layout/dashboard-layout"
+import { toast } from "sonner"
 
 // Define the institute data type
 interface InstituteData {
@@ -135,7 +136,7 @@ export default function InstituteDetailPage({ params }: { params: { instituteId:
     if (instituteData) {
       // In a real app, this would call an API to create the admin
       console.log(`Admin created for ${instituteData.name}`)
-      setShowAdminCreated(true)
+      // setShowAdminCreated(true)
       setIsAdminCreated(true)
       
       // Hide success message after 3 seconds
@@ -143,7 +144,7 @@ export default function InstituteDetailPage({ params }: { params: { instituteId:
         setShowAdminCreated(false)
       }, 3000)
       
-      alert(`Admin account created for ${instituteData.name}!\nEmail: ${adminCredentials.email}\nPassword: ${adminCredentials.password}`)
+      toast(`Admin account created for ${instituteData.name}!\nEmail: ${adminCredentials.email}\nPassword: ${adminCredentials.password}`)
     }
   }
 

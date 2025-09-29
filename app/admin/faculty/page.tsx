@@ -357,14 +357,6 @@ export default function FacultyPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Button asChild className="w-full h-16 flex-col gap-2">
-                    <Link href="/admin/faculty/new">
-                      <UserPlus className="w-6 h-6" />
-                      <span>Add Single Faculty</span>
-                      <span className="text-xs text-muted-foreground">Fill out a form for one faculty member</span>
-                    </Link>
-                  </Button>
-                  
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Upload className="w-5 h-5" />

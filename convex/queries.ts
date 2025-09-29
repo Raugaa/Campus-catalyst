@@ -1112,7 +1112,7 @@ export const getApplicationTrends = query({
     const currentDate = new Date();
 
     // Initialize last 5 months
-    for (let i = 6; i >= 0; i--) {
+    for (let i = 4; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const key = date.toISOString().slice(0, 7); // YYYY-MM
       monthlyApplications.set(key, 0);

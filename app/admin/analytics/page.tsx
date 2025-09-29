@@ -294,11 +294,11 @@ export default function AdminAnalytics() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold">0</div>
+                      <div className="text-2xl font-bold">5</div>
                       <div className="text-sm text-muted-foreground">Total Faculty</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">0</div>
+                      <div className="text-2xl font-bold">5</div>
                       <div className="text-sm text-muted-foreground">Active Faculty</div>
                     </div>
                   </div>
@@ -307,7 +307,7 @@ export default function AdminAnalytics() {
                     <div className="flex justify-between">
                       <span className="text-sm">Student-Faculty Ratio</span>
                       <span className="text-sm font-medium">
-                        15:1
+                        12 : 1
                       </span>
                     </div>
                     <div className="flex justify-between">
