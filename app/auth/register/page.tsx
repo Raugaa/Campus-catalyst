@@ -188,6 +188,12 @@ export default function RegisterPage() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="GSTNumber">GST Number *</Label>
+                <Input id="GSTNumber" name="GSTNumber" placeholder="Enter your GST Number"
+                  value="" onChange={handleInputChange} required />
+                  {errors.GSTNumber && <p className="text-sm text-red-500">{errors.GSTNumber}</p>}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description (optional)</Label>

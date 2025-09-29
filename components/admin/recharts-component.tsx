@@ -217,7 +217,7 @@ export function DepartmentCTCChart({ data }: DepartmentCTCChartProps) {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
             <XAxis
               dataKey="department"
-              tick={{ fontSize: 12, fill: "#4b5563" }}
+              tick={{ fontSize: 10, fill: "#4b5563" }}
               axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
             />

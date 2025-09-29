@@ -240,6 +240,8 @@ export default function AdminDashboard() {
     }));
   }, [departmentCTCData]);
 
+  console.log("Top companies data:", departmentCTCData);
+
   const generateCSVReport = async () => {
     try {
       if (!csvReportData) {
@@ -496,10 +498,10 @@ export default function AdminDashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Years</SelectItem>
-                <SelectItem value="First Year">First Year</SelectItem>
-                <SelectItem value="Second Year">Second Year</SelectItem>
-                <SelectItem value="Third Year">Third Year</SelectItem>
-                <SelectItem value="Final Year">Final Year</SelectItem>
+                <SelectItem value="FY">Batch of 2029</SelectItem>
+                <SelectItem value="SY">Batch of 2028</SelectItem>
+                <SelectItem value="TY">Batch of 2027</SelectItem>
+                <SelectItem value="LY">Batch of 2026</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex gap-2">
@@ -608,17 +610,17 @@ export default function AdminDashboard() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="All">All Years</SelectItem>
-                              <SelectItem value="First Year">
-                                First Year
+                              <SelectItem value="FY">
+                                Batch of 2029
                               </SelectItem>
-                              <SelectItem value="Second Year">
-                                Second Year
+                              <SelectItem value="SY">
+                                Batch of 2028
                               </SelectItem>
-                              <SelectItem value="Third Year">
-                                Third Year
+                              <SelectItem value="TY">
+                                Batch of 2027
                               </SelectItem>
-                              <SelectItem value="Final Year">
-                                Final Year
+                              <SelectItem value="LY">
+                                Batch of 2026
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -790,7 +792,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -846,22 +848,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Salary Trends
-              </CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(ctcAnalyticsData?.highestPackage || 0)}
-              </div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                Average: {formatCurrency(ctcAnalyticsData?.averagePackage || 0)}
-              </p>
-            </CardContent>
-          </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
